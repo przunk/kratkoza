@@ -39,15 +39,13 @@ class SettingsRepository(context: Context) {
                 themeMode = preferences[THEME_MODE]
                     ?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
                     ?: GameSettings.DEFAULT.themeMode,
-                language = if (AppLocales.handledByApp) {
-                    preferences[LANGUAGE]
-                        ?.let(AppLanguage::fromStorageName)
-                        ?: GameSettings.DEFAULT.language
-                } else {
-                    AppLocales.fromLocaleManager(appContext)
-                        ?: preferences[LANGUAGE]?.let(AppLanguage::fromStorageName)
-                        ?: GameSettings.DEFAULT.language
-                },
+                language = preferences[LANGUAGE]
+                    ?.let(AppLanguage::fromStorageName)
+                    ?: if (!AppLocales.handledByApp) {
+                        AppLocales.fromLocaleManager(appContext) ?: GameSettings.DEFAULT.language
+                    } else {
+                        GameSettings.DEFAULT.language
+                    },
                 autoRemoveCandidates = preferences[AUTO_REMOVE_CANDIDATES]
                     ?: GameSettings.DEFAULT.autoRemoveCandidates,
                 highlightSameDigits = preferences[HIGHLIGHT_SAME_DIGITS]
@@ -62,10 +60,10 @@ class SettingsRepository(context: Context) {
     }
 
     suspend fun setLanguage(language: AppLanguage) {
-        dataStore.edit { it[LANGUAGE] = language.name }
         if (!AppLocales.handledByApp) {
             AppLocales.applyToSystem(appContext, language)
         }
+        dataStore.edit { it[LANGUAGE] = language.name }
     }
 
     suspend fun setAutoRemoveCandidates(enabled: Boolean) {
