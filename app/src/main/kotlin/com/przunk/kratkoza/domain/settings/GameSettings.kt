@@ -7,8 +7,8 @@ package com.przunk.kratkoza.domain.settings
  * theme follows the system until the player says otherwise.
  *
  * The list is deliberately short. The remaining options of section 35 — palette, high contrast, the
- * 8/9 hint, the remaining-digit counter — arrive with the screens that use them; adding a field to
- * a preferences store costs nothing and needs no migration.
+ * 8/9 hint — arrive with the screens that use them; adding a field to a preferences store costs
+ * nothing and needs no migration.
  */
 data class GameSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -16,6 +16,8 @@ data class GameSettings(
     val autoRemoveCandidates: Boolean = true,
     /** project.md section 10. */
     val highlightSameDigits: Boolean = true,
+    /** project.md section 19 — how many of each digit are still missing. */
+    val showRemainingCounts: Boolean = true,
 ) {
     companion object {
         val DEFAULT = GameSettings()

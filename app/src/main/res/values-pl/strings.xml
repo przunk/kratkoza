@@ -1,4 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Kratkoza</string>
+
+    <!-- Ekran główny -->
+    <string name="home_title">Kratkoza</string>
+    <string name="home_continue">Kontynuuj</string>
+    <string name="home_continue_details">%1$s · %2$s</string>
+    <string name="home_new_game">Nowa gra</string>
+    <string name="home_saved_games">Zapisane gry</string>
+    <string name="home_statistics">Statystyki</string>
+    <string name="home_settings">Ustawienia</string>
+
+    <!-- Poziom trudności -->
+    <string name="difficulty_easy">Łatwy</string>
+    <string name="difficulty_normal">Normalny</string>
+    <string name="difficulty_hard">Trudny</string>
+    <string name="difficulty_expert">Ekspert</string>
+    <string name="difficulty_master">Morderczy</string>
+
+    <!-- Nowa gra -->
+    <string name="new_game_title">Nowa gra</string>
+    <string name="new_game_choose_difficulty">Wybierz poziom trudności</string>
+    <string name="new_game_generating">Przygotowuję planszę…</string>
+
+    <!-- Gra -->
+    <string name="game_time">Czas</string>
+    <string name="game_mistakes">Błędy</string>
+    <string name="game_mistakes_value">%1$d</string>
+    <string name="game_pause">Pauza</string>
+    <string name="game_resume">Wznów</string>
+    <string name="game_paused_title">Pauza</string>
+    <string name="game_paused_message">Plansza jest zasłonięta, dopóki czas stoi.</string>
+    <string name="game_undo">Cofnij</string>
+    <string name="game_erase">Wymaż</string>
+    <string name="game_candidates_on">Kandydaci włączeni</string>
+    <string name="game_candidates_off">Kandydaci wyłączeni</string>
+    <string name="game_loading">Wczytuję…</string>
+    <string name="game_solved_title">Rozwiązane</string>
+    <string name="game_solved_message">%1$s w czasie %2$s, %3$s.</string>
+    <string name="game_solved_home">Wróć do menu</string>
+    <string name="game_solved_new">Nowa gra</string>
+    <string name="game_digit">%1$d</string>
+
+    <!-- Dostępność planszy -->
+    <string name="board_description">Plansza Sudoku, 9 na 9</string>
+    <string name="board_cell_empty">Wiersz %1$d, kolumna %2$d, puste</string>
+    <string name="board_cell_given">Wiersz %1$d, kolumna %2$d, %3$d, cyfra startowa</string>
+    <string name="board_cell_entered">Wiersz %1$d, kolumna %2$d, %3$d</string>
+    <string name="board_cell_incorrect">Wiersz %1$d, kolumna %2$d, %3$d, błędnie</string>
+    <string name="board_cell_candidates">Wiersz %1$d, kolumna %2$d, kandydaci %3$s</string>
+    <string name="board_cell_selected">zaznaczone</string>
+
+    <!-- Zapisane gry -->
+    <string name="saved_games_title">Zapisane gry</string>
+    <string name="saved_games_empty">Brak nieukończonych gier.</string>
+    <string name="saved_games_entry">%1$s · %2$s</string>
+    <string name="saved_games_delete">Usuń</string>
+    <string name="saved_games_preview">Podgląd planszy</string>
+
+    <!-- Statystyki -->
+    <string name="statistics_title">Statystyki</string>
+    <string name="statistics_overall">Ogółem</string>
+    <string name="statistics_started">Rozpoczęte gry</string>
+    <string name="statistics_completed">Ukończone gry</string>
+    <string name="statistics_completion_rate">Procent ukończeń</string>
+    <string name="statistics_total_mistakes">Łącznie błędów</string>
+    <string name="statistics_average_mistakes">Błędów na grę</string>
+    <string name="statistics_by_difficulty">Według poziomu</string>
+    <string name="statistics_best_time">Najlepszy czas</string>
+    <string name="statistics_average_time">Średni czas</string>
+    <string name="statistics_none">—</string>
+
+    <!-- Ustawienia -->
+    <string name="settings_title">Ustawienia</string>
+    <string name="settings_appearance">Wygląd</string>
+    <string name="settings_theme">Motyw</string>
+    <string name="settings_theme_system">Zgodny z systemem</string>
+    <string name="settings_theme_light">Jasny</string>
+    <string name="settings_theme_dark">Ciemny</string>
+    <string name="settings_gameplay">Rozgrywka</string>
+    <string name="settings_auto_remove_candidates">Automatycznie usuwaj kandydatów</string>
+    <string name="settings_auto_remove_candidates_summary">Po poprawnej cyfrze usuń ją z kandydatów w tym samym wierszu, kolumnie i bloku.</string>
+    <string name="settings_highlight_same_digits">Podświetlaj takie same cyfry</string>
+    <string name="settings_highlight_same_digits_summary">Oznacz każde pole z tą samą cyfrą co zaznaczone.</string>
+    <string name="settings_show_remaining_counts">Pokazuj licznik pozostałych cyfr</string>
+    <string name="settings_show_remaining_counts_summary">Licz, ile wystąpień każdej cyfry jeszcze brakuje, i wygaś cyfrę po jej wykorzystaniu.</string>
+
+    <!-- Wspólne -->
+    <string name="common_back">Wstecz</string>
+    <string name="duration_hours_minutes_seconds">%1$d:%2$02d:%3$02d</string>
+    <string name="duration_minutes_seconds">%1$d:%2$02d</string>
+
+    <plurals name="mistake_count">
+        <item quantity="one">%1$d błąd</item>
+        <item quantity="few">%1$d błędy</item>
+        <item quantity="many">%1$d błędów</item>
+        <item quantity="other">%1$d błędu</item>
+    </plurals>
 </resources>

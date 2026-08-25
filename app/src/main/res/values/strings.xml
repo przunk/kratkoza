@@ -1,4 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Kratkoza</string>
+
+    <!-- Home -->
+    <string name="home_title">Kratkoza</string>
+    <string name="home_continue">Continue</string>
+    <string name="home_continue_details">%1$s · %2$s</string>
+    <string name="home_new_game">New game</string>
+    <string name="home_saved_games">Saved games</string>
+    <string name="home_statistics">Statistics</string>
+    <string name="home_settings">Settings</string>
+
+    <!-- Difficulty -->
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_normal">Normal</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_expert">Expert</string>
+    <string name="difficulty_master">Master</string>
+
+    <!-- New game -->
+    <string name="new_game_title">New game</string>
+    <string name="new_game_choose_difficulty">Choose a difficulty</string>
+    <string name="new_game_generating">Preparing a board…</string>
+
+    <!-- Game -->
+    <string name="game_time">Time</string>
+    <string name="game_mistakes">Mistakes</string>
+    <string name="game_mistakes_value">%1$d</string>
+    <string name="game_pause">Pause</string>
+    <string name="game_resume">Resume</string>
+    <string name="game_paused_title">Paused</string>
+    <string name="game_paused_message">The board is hidden while the clock is stopped.</string>
+    <string name="game_undo">Undo</string>
+    <string name="game_erase">Erase</string>
+    <string name="game_candidates_on">Candidates on</string>
+    <string name="game_candidates_off">Candidates off</string>
+    <string name="game_loading">Loading…</string>
+    <string name="game_solved_title">Solved</string>
+    <string name="game_solved_message">%1$s in %2$s, %3$s.</string>
+    <string name="game_solved_home">Back to menu</string>
+    <string name="game_solved_new">New game</string>
+    <string name="game_digit">%1$d</string>
+
+    <!-- Board accessibility -->
+    <string name="board_description">Sudoku board, 9 by 9</string>
+    <string name="board_cell_empty">Row %1$d, column %2$d, empty</string>
+    <string name="board_cell_given">Row %1$d, column %2$d, %3$d, given</string>
+    <string name="board_cell_entered">Row %1$d, column %2$d, %3$d</string>
+    <string name="board_cell_incorrect">Row %1$d, column %2$d, %3$d, wrong</string>
+    <string name="board_cell_candidates">Row %1$d, column %2$d, candidates %3$s</string>
+    <string name="board_cell_selected">selected</string>
+
+    <!-- Saved games -->
+    <string name="saved_games_title">Saved games</string>
+    <string name="saved_games_empty">No unfinished games.</string>
+    <string name="saved_games_entry">%1$s · %2$s</string>
+    <string name="saved_games_delete">Delete</string>
+    <string name="saved_games_preview">Board preview</string>
+
+    <!-- Statistics -->
+    <string name="statistics_title">Statistics</string>
+    <string name="statistics_overall">Overall</string>
+    <string name="statistics_started">Games started</string>
+    <string name="statistics_completed">Games completed</string>
+    <string name="statistics_completion_rate">Completion rate</string>
+    <string name="statistics_total_mistakes">Total mistakes</string>
+    <string name="statistics_average_mistakes">Mistakes per game</string>
+    <string name="statistics_by_difficulty">By difficulty</string>
+    <string name="statistics_best_time">Best time</string>
+    <string name="statistics_average_time">Average time</string>
+    <string name="statistics_none">—</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_gameplay">Gameplay</string>
+    <string name="settings_auto_remove_candidates">Remove candidates automatically</string>
+    <string name="settings_auto_remove_candidates_summary">After a correct digit, clear it from candidates in the same row, column and block.</string>
+    <string name="settings_highlight_same_digits">Highlight matching digits</string>
+    <string name="settings_highlight_same_digits_summary">Mark every cell holding the same digit as the selected one.</string>
+    <string name="settings_show_remaining_counts">Show remaining digits</string>
+    <string name="settings_show_remaining_counts_summary">Count how many of each digit are still missing, and dim a digit once it is used up.</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="duration_hours_minutes_seconds">%1$d:%2$02d:%3$02d</string>
+    <string name="duration_minutes_seconds">%1$d:%2$02d</string>
+
+    <!--
+        Counts go through plurals, not through "%d " + a noun. English gets away with the latter;
+        Polish does not, where 1 / 2 / 5 mistakes are "błąd" / "błędy" / "błędów".
+    -->
+    <plurals name="mistake_count">
+        <item quantity="one">%1$d mistake</item>
+        <item quantity="other">%1$d mistakes</item>
+    </plurals>
 </resources>

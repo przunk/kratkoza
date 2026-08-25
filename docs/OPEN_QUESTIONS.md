@@ -104,3 +104,42 @@ Undo, brak nowego błędu. Nic nie zostaje zatwierdzone, bo nic się nie zmienia
 
 **Wariant alternatywny:** ponowne dotknięcie tej samej cyfry działa jak Wymaż (spotykane
 w innych aplikacjach Sudoku). To zmiana UX, nie tylko techniczna.
+
+---
+
+## 5. Wartości domyślne dwóch opcji z §35
+
+**Wymaganie źródłowe:** `project.md` §35 wymienia „podświetlanie takich samych cyfr: ON/OFF"
+(§10) oraz „licznik pozostałych cyfr: ON/OFF" (§19), ale — inaczej niż przy auto-usuwaniu
+kandydatów (domyślnie ON) i podpowiedzi 8/9 (domyślnie OFF) — nie podaje wartości domyślnej.
+
+**Przyjęte teraz:** obie **ON**. Obie są pomocami w czytelności, a `project.md` §8 stawia
+czytelność bardzo wysoko; obie da się wyłączyć jednym przełącznikiem w Ustawieniach.
+
+**Wariant alternatywny:** OFF dla obu, jeśli domyślny ekran ma być maksymalnie surowy i bliższy
+grze papierowej. Zmiana to dwie wartości w `GameSettings`.
+
+---
+
+## 6. „Portrait only" nie jest już egzekwowalne na dużych ekranach
+
+**Wymaganie źródłowe:** `project.md` §2 — „Orientacja aplikacji w pierwszej wersji: portrait only.
+Tablety i landscape mogą zostać opracowane później."
+
+**Fakt techniczny, nie decyzja.** Od Androida 16 (API 36 — czyli dokładnie nasz `targetSdk`) system
+**ignoruje** `android:screenOrientation` na urządzeniach o najmniejszej szerokości ≥ 600dp. Android
+Lint zgłasza to jako `DiscouragedApi`. Na telefonach wymuszenie portretu nadal działa, więc dla
+docelowego urządzenia pierwszej wersji wymaganie jest spełnione. Na tablecie aplikacja pokaże się
+w landscape niezależnie od manifestu.
+
+**Stan teraz:** manifest deklaruje `portrait`, ostrzeżenie lintu wyciszone z komentarzem
+(`app/lint.xml`). Layout ekranu gry jest kolumną — w landscape plansza zajmie całą szerokość
+i panel cyfr zjedzie poza ekran. Nie testowano tego, bo tablety są poza zakresem etapu.
+
+**Do decyzji, kiedy dojdziemy do tabletów:**
+
+- **A** — zostawić jak jest do czasu prac nad tabletami; na telefonie problem nie występuje.
+- **B** — już teraz zrobić ekran gry przewijalnym w pionie, żeby landscape na tablecie był brzydki,
+  ale używalny. Mały koszt, usuwa najgorszy przypadek.
+- **C** — pełny layout landscape (plansza obok panelu cyfr). To już praca z §2 „tablety
+  i landscape później".

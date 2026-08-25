@@ -40,6 +40,8 @@ class SettingsRepository(context: Context) {
                     ?: GameSettings.DEFAULT.autoRemoveCandidates,
                 highlightSameDigits = preferences[HIGHLIGHT_SAME_DIGITS]
                     ?: GameSettings.DEFAULT.highlightSameDigits,
+                showRemainingCounts = preferences[SHOW_REMAINING_COUNTS]
+                    ?: GameSettings.DEFAULT.showRemainingCounts,
             )
         }
 
@@ -55,11 +57,16 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[HIGHLIGHT_SAME_DIGITS] = enabled }
     }
 
+    suspend fun setShowRemainingCounts(enabled: Boolean) {
+        dataStore.edit { it[SHOW_REMAINING_COUNTS] = enabled }
+    }
+
     private companion object {
         // Stored by name, not by ordinal: an ordinal silently means something else the day an enum
         // entry is inserted in the middle.
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val AUTO_REMOVE_CANDIDATES = booleanPreferencesKey("auto_remove_candidates")
         val HIGHLIGHT_SAME_DIGITS = booleanPreferencesKey("highlight_same_digits")
+        val SHOW_REMAINING_COUNTS = booleanPreferencesKey("show_remaining_counts")
     }
 }

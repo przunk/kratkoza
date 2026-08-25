@@ -26,6 +26,11 @@ android {
         // The whole UI is translated; without this the app also ships every language bundled by
         // AndroidX, which dilutes the per-locale resources for no benefit.
         localeFilters += listOf("en", "pl")
+
+        // Lets AGP write the manifest's localeConfig from the filters above, so Android 13+ offers
+        // Kratkoza in the system's per-app language picker. Hand-writing that resource works too,
+        // but then the list of languages lives in two places and drifts.
+        generateLocaleConfig = true
     }
 
     signingConfigs {
@@ -75,6 +80,7 @@ android {
         abortOnError = true
         checkReleaseBuilds = true
         warningsAsErrors = true
+        lintConfig = file("lint.xml")
     }
 
     packaging {

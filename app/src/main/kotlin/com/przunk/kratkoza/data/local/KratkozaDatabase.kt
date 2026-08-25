@@ -30,7 +30,6 @@ abstract class KratkozaDatabase : RoomDatabase() {
 
         fun create(context: Context): KratkozaDatabase =
             Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, NAME)
-                // Foreign keys are declared on the entities; SQLite ignores them unless asked.
                 .build()
     }
 }

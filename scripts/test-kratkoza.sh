@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+#
+# Runs the unit tests and prints a short report.
+#
+# On failure it lists the failing tests with their assertion messages, read out of the JUnit XML,
+# rather than dumping the Gradle log. A failing run should be readable in a dozen lines.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -6,12 +11,54 @@ source "$SCRIPT_DIR/kratkoza-env.sh"
 cd "$KRATKOZA_DIR"
 
 LOG_FILE="/tmp/kratkoza-test.log"
+RESULTS_DIR="$KRATKOZA_DIR/app/build/test-results/testDebugUnitTest"
+
+started_at=$(date +%s)
 echo "🧪 Kratkoza — unit tests…"
 
-if ./gradlew :app:testDebugUnitTest --no-daemon --console=plain "$@" > "$LOG_FILE" 2>&1; then
-    echo "✅ Tests passed"
-else
-    echo "❌ Tests failed. Last lines:"
-    tail -n 60 "$LOG_FILE"
+set +e
+./gradlew :app:testDebugUnitTest --no-daemon --console=plain "$@" > "$LOG_FILE" 2>&1
+status=$?
+set -e
+
+elapsed=$(($(date +%s) - started_at))
+
+# A compile error produces no XML at all, so it has to be reported from the log.
+if grep -aq '^e: ' "$LOG_FILE"; then
+    echo "❌ Compile errors (${elapsed}s):"
+    grep -a '^e: ' "$LOG_FILE" | sed 's|file:///mnt/workspace/Kratkoza/||' | head -n 30
     exit 1
 fi
+
+summary="$(grep -aoE '[0-9]+ tests completed(, [0-9]+ failed)?(, [0-9]+ skipped)?' "$LOG_FILE" | tail -n 1 || true)"
+
+if [ $status -eq 0 ]; then
+    # Gradle only prints a count when something failed, so a green run counts the XML itself.
+    total="$(python3 -c 'import glob,sys,xml.etree.ElementTree as ET; print(sum(int(ET.parse(f).getroot().get("tests",0)) for f in glob.glob(sys.argv[1]+"/*.xml")))' "$RESULTS_DIR" 2>/dev/null || true)"
+    echo "✅ ${total:-All} tests passed (${elapsed}s)"
+    exit 0
+fi
+
+echo "❌ ${summary:-Tests failed} (${elapsed}s)"
+echo
+python3 - "$RESULTS_DIR" <<'PY'
+import glob, sys, xml.etree.ElementTree as ET
+
+for path in sorted(glob.glob(sys.argv[1] + "/*.xml")):
+    for case in ET.parse(path).getroot().iter("testcase"):
+        for failure in list(case.iter("failure")) + list(case.iter("error")):
+            suite = case.get("classname", "").rsplit(".", 1)[-1]
+            message = (failure.get("message") or "").strip().splitlines()
+            print(f"  {suite} > {case.get('name')}")
+            print(f"    {message[0] if message else failure.get('type', '')}")
+
+            # The first frame inside the project is what the reader needs; the rest is JUnit.
+            for line in (failure.text or "").splitlines():
+                if "com.przunk.kratkoza" in line and ".kt:" in line:
+                    print(f"    {line.strip()}")
+                    break
+PY
+
+echo
+echo "Full log: $LOG_FILE"
+exit 1

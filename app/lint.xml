@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!--
+        project.md section 2 pins targetSdk to API 36 (Android 16) while letting compileSdk track the
+        newest stable SDK, currently 37. Lint reads that gap as a project that has fallen behind.
+        Raising targetSdk to silence it would break an explicit requirement, so the check is turned
+        off here rather than the requirement bent. Revisit when project.md moves targetSdk.
+    -->
+    <issue id="OldTargetApi" severity="ignore" />
+
+    <!--
+        "A newer version is available" checks query the network and compare against whatever was
+        published today. With warningsAsErrors they turn a green build red without a line of code
+        changing, on a machine that may have no network at all. Upgrading a toolchain is a decision
+        to take deliberately, not a build failure to react to.
+    -->
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+
+    <!--
+        project.md section 2 and technical_requirements.md section 1: the first version is portrait
+        only. Tablets and landscape are named as later work. Lint is arguing with the requirement.
+    -->
+    <issue id="LockedOrientationActivity" severity="ignore" />
+
+    <!--
+        Same requirement, second check. Worth knowing what this one is actually saying: from
+        Android 16 onward the system ignores android:screenOrientation on large screens (smallest
+        width 600dp and up). Phones still honour it, so "portrait only" holds everywhere the first
+        version targets — but a tablet will show the app in landscape whatever the manifest says.
+        Tablets and landscape are named as later work in project.md section 2; see
+        docs/OPEN_QUESTIONS.md.
+    -->
+    <issue id="DiscouragedApi" severity="ignore" />
+</lint>

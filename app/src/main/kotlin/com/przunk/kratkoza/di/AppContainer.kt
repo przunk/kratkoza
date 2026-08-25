@@ -1,7 +1,6 @@
 package com.przunk.kratkoza.di
 
 import android.content.Context
-import androidx.compose.runtime.staticCompositionLocalOf
 import com.przunk.kratkoza.data.local.KratkozaDatabase
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.data.repository.SettingsRepository
@@ -34,14 +33,4 @@ class AppContainer(context: Context) {
             computationDispatcher = Dispatchers.Default,
         )
     }
-}
-
-/**
- * The container, reachable from the composition.
- *
- * No default: a screen built outside [com.przunk.kratkoza.KratkozaApplication] has no graph to read,
- * and failing at that point is far easier to diagnose than a silently empty database.
- */
-val LocalAppContainer = staticCompositionLocalOf<AppContainer> {
-    error("AppContainer requested outside of the Kratkoza application")
 }

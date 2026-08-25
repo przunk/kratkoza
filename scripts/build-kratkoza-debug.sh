@@ -13,7 +13,13 @@ if ./gradlew :app:assembleDebug --no-daemon --console=plain "$@" > "$LOG_FILE" 2
     echo "✅ OK"
     echo "📦 ${APK_PATH:-<no apk found>}"
 else
-    echo "❌ Build failed. Last lines:"
-    tail -n 40 "$LOG_FILE"
+    echo "❌ Build failed. What went wrong:"
+    if grep -aq '^\* What went wrong:' "$LOG_FILE"; then
+        sed -n '/^\* What went wrong:/,/^\* Try:/p' "$LOG_FILE" \
+            | grep -av '^\* Try:' | sed "s|$KRATKOZA_DIR/||" | head -n 25
+    fi
+    grep -a '^e: ' "$LOG_FILE" | sed "s|file://$KRATKOZA_DIR/||" | head -n 25
+    echo
+    echo "Full log: $LOG_FILE"
     exit 1
 fi

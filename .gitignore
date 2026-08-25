@@ -25,3 +25,4 @@ signing.properties
 # OS
 .DS_Store
 Thumbs.db
+dist/
