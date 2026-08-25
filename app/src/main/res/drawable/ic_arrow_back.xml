@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A back arrow. Mirrored automatically for right-to-left layouts by autoMirrored.
+
+    Drawn here rather than taken from a Material icon package: material-icons-core is not on the
+    compile classpath, and material-icons-extended is a large dependency for a handful of glyphs
+    (technical_requirements.md section 9). One 24dp grid and one visual weight across the set.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:autoMirrored="true">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M20,11H7.8l5.6,-5.6L12,4l-8,8 8,8 1.4,-1.4L7.8,13H20z" />
+</vector>

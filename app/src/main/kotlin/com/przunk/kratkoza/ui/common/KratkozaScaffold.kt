@@ -2,24 +2,23 @@ package com.przunk.kratkoza.ui.common
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.przunk.kratkoza.R
 
 /**
  * A titled screen with an optional back arrow.
  *
- * The arrow is a text glyph rather than a vector asset: material-icons-extended is a large
- * dependency for one chevron, and technical_requirements.md section 9 asks a dependency to earn its
- * place. It carries a content description so TalkBack announces "back", not "less-than sign".
+ * The arrow is a local vector drawable; see `res/drawable/ic_arrow_back.xml` for why the icons are
+ * drawn rather than pulled from a package. It is auto-mirrored for right-to-left layouts and
+ * described, so TalkBack announces "back" rather than a shape.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,11 +37,11 @@ fun KratkozaScaffold(
                 title = { Text(title) },
                 navigationIcon = {
                     if (onNavigateBack != null) {
-                        IconButton(
-                            onClick = onNavigateBack,
-                            modifier = Modifier.semantics { contentDescription = backDescription },
-                        ) {
-                            Text(text = "‹", style = MaterialTheme.typography.headlineMedium)
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_back),
+                                contentDescription = backDescription,
+                            )
                         }
                     }
                 },

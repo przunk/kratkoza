@@ -12,8 +12,10 @@ import androidx.compose.ui.graphics.Color
  * (using `tertiaryContainer` as "peer highlight", say) makes both the board and the rest of the UI
  * harder to retheme later.
  *
- * Highlight tiers are ordered by strength so they stack readably:
- * selected cell > same digit > peer (row/column/block) > plain surface.
+ * Only two background tiers, ordered by strength: selected cell > peer (row/column/block) > plain
+ * surface. Matching digits (project.md section 10) are marked by *weight* instead of a third tint —
+ * a fourth shade of grey on the board was harder to read than the thing it was pointing at, and a
+ * bolder digit says "here is another one of these" without touching the background at all.
  *
  * The tiers separate by lightness, not by hue — each step is a visibly different grey carrying a
  * trace of the accent. A reader who cannot tell the hues apart still sees three distinct steps, and
@@ -31,7 +33,6 @@ data class BoardColors(
     val blockLine: Color,
     val selectedCell: Color,
     val peerCell: Color,
-    val sameDigitCell: Color,
     val errorCell: Color,
     val givenDigit: Color,
     val enteredDigit: Color,
@@ -46,7 +47,6 @@ internal val LightBoardColors = BoardColors(
     blockLine = Neutral30,
     selectedCell = HighlightLightSelected,
     peerCell = HighlightLightPeer,
-    sameDigitCell = HighlightLightSameDigit,
     errorCell = Error90,
     givenDigit = Neutral30,
     enteredDigit = EnteredLight,
@@ -61,7 +61,6 @@ internal val DarkBoardColors = BoardColors(
     blockLine = Neutral60,
     selectedCell = HighlightDarkSelected,
     peerCell = HighlightDarkPeer,
-    sameDigitCell = HighlightDarkSameDigit,
     errorCell = Error20,
     givenDigit = Neutral80,
     enteredDigit = EnteredDark,

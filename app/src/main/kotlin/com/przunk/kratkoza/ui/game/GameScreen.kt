@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -79,7 +81,10 @@ fun GameScreen(
                 title = { Text(stringResource(state.difficulty.labelRes())) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text(text = "‹", style = MaterialTheme.typography.headlineMedium)
+                        Icon(
+                            painter = painterResource(R.drawable.ic_arrow_back),
+                            contentDescription = stringResource(R.string.common_back),
+                        )
                     }
                 },
                 actions = {
@@ -264,20 +269,39 @@ private fun GameActionsRow(
         ) {
             Text(stringResource(R.string.game_erase))
         }
-        // Candidate mode reads as on or off from its label as well as its fill, so the state is not
-        // carried by colour alone (project.md section 8).
-        FilledTonalButton(
-            onClick = onToggleCandidates,
-            enabled = enabled,
-            modifier = Modifier.weight(1f).fillMaxSize(),
-        ) {
-            Text(
-                stringResource(
-                    if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
-                ),
-            )
+        // Filled only while candidate mode is on. Filling it in both states made the button
+        // contradict its own label — a filled button reads as "active". Off now matches Undo and
+        // Erase beside it, and the label still spells the state out, so it is not carried by colour
+        // alone (project.md section 8).
+        if (candidateMode) {
+            FilledTonalButton(
+                onClick = onToggleCandidates,
+                enabled = enabled,
+                modifier = Modifier.weight(1f).fillMaxSize(),
+            ) {
+                CandidateLabel(candidateMode = true)
+            }
+        } else {
+            OutlinedButton(
+                onClick = onToggleCandidates,
+                enabled = enabled,
+                modifier = Modifier.weight(1f).fillMaxSize(),
+            ) {
+                CandidateLabel(candidateMode = false)
+            }
         }
     }
+}
+
+/** Two words that wrap on a narrow phone, so the label is centred rather than left-aligned. */
+@Composable
+private fun CandidateLabel(candidateMode: Boolean) {
+    Text(
+        text = stringResource(
+            if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
+        ),
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable

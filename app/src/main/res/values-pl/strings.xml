@@ -59,6 +59,8 @@
     <string name="saved_games_empty">Brak nieukończonych gier.</string>
     <string name="saved_games_entry">%1$s · %2$s</string>
     <string name="saved_games_delete">Usuń</string>
+    <string name="saved_games_delete_confirm">USUŃ</string>
+    <string name="saved_games_delete_armed">Potwierdź usunięcie tej gry</string>
     <string name="saved_games_preview">Podgląd planszy</string>
 
     <!-- Statystyki -->

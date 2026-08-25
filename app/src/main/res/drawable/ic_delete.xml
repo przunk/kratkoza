@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A bin — delete a saved game.
+
+    Drawn here rather than taken from a Material icon package: material-icons-core is not on the
+    compile classpath, and material-icons-extended is a large dependency for a handful of glyphs
+    (technical_requirements.md section 9). One 24dp grid and one visual weight across the set.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M9.5,3h5l1,1.2h4.2v1.8H4.3V4.2h4.2z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M5.8,7.6h12.4l-0.9,12A1.6,1.6 0,0 1,15.7 21H8.3a1.6,1.6 0,0 1,-1.6 -1.4z M9.9,10.1h1.5v8.3H9.9z M12.6,10.1h1.5v8.3h-1.5z" />
+</vector>

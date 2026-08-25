@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A list — saved games.
+
+    Drawn here rather than taken from a Material icon package: material-icons-core is not on the
+    compile classpath, and material-icons-extended is a large dependency for a handful of glyphs
+    (technical_requirements.md section 9). One 24dp grid and one visual weight across the set.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M4,6.2h2.2v2.2H4z M4,10.9h2.2v2.2H4z M4,15.6h2.2v2.2H4z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M8.4,6.6h11.6v1.6H8.4z M8.4,11.3h11.6v1.6H8.4z M8.4,16h11.6v1.6H8.4z" />
+</vector>

@@ -12,12 +12,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -25,11 +32,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.game.SavedGameSummary
 import com.przunk.kratkoza.domain.sudoku.Sudoku
@@ -47,6 +58,21 @@ fun SavedGamesScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Which row, if any, is showing its confirmation. Held for the list rather than per row, so
+    // arming a second one disarms the first: two rows both offering to delete would be a trap.
+    var armedPuzzleId by remember { mutableStateOf<String?>(null) }
+
+    // Deleting a half-solved game cannot be undone, and the risk here is a mis-tap rather than a
+    // misunderstanding — so the guard is a second, deliberate tap rather than a dialog. It steps
+    // back on its own, because a button left sitting in its armed state is the mis-tap it was meant
+    // to prevent.
+    LaunchedEffect(armedPuzzleId) {
+        if (armedPuzzleId != null) {
+            delay(DELETE_ARMED_MILLIS)
+            armedPuzzleId = null
+        }
+    }
 
     KratkozaScaffold(
         title = stringResource(R.string.saved_games_title),
@@ -74,8 +100,13 @@ fun SavedGamesScreen(
             items(state.saves, key = { it.puzzleId }) { save ->
                 SavedGameRow(
                     save = save,
+                    armed = armedPuzzleId == save.puzzleId,
                     onOpen = { onOpenGame(save.puzzleId) },
-                    onDelete = { viewModel.delete(save.puzzleId) },
+                    onArmDelete = { armedPuzzleId = save.puzzleId },
+                    onConfirmDelete = {
+                        armedPuzzleId = null
+                        viewModel.delete(save.puzzleId)
+                    },
                 )
             }
         }
@@ -83,7 +114,13 @@ fun SavedGamesScreen(
 }
 
 @Composable
-private fun SavedGameRow(save: SavedGameSummary, onOpen: () -> Unit, onDelete: () -> Unit) {
+private fun SavedGameRow(
+    save: SavedGameSummary,
+    armed: Boolean,
+    onOpen: () -> Unit,
+    onArmDelete: () -> Unit,
+    onConfirmDelete: () -> Unit,
+) {
     val context = LocalContext.current
 
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
@@ -117,7 +154,7 @@ private fun SavedGameRow(save: SavedGameSummary, onOpen: () -> Unit, onDelete: (
                 )
             }
 
-            TextButton(onClick = onDelete) { Text(stringResource(R.string.saved_games_delete)) }
+            DeleteControl(armed = armed, onArm = onArmDelete, onConfirm = onConfirmDelete)
         }
     }
 }
@@ -173,6 +210,44 @@ private fun BoardPreview(save: SavedGameSummary) {
             },
     )
 }
+
+/**
+ * A bin that turns into the word DELETE when tapped, and deletes on the second tap.
+ *
+ * The two states are separate controls to a screen reader as well as to the eye: the description
+ * changes from "delete" to "confirm deleting this game", so TalkBack does not announce the same
+ * button twice and quietly destroy a game on the second tap.
+ */
+@Composable
+private fun DeleteControl(armed: Boolean, onArm: () -> Unit, onConfirm: () -> Unit) {
+    if (armed) {
+        val armedDescription = stringResource(R.string.saved_games_delete_armed)
+        TextButton(
+            onClick = onConfirm,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+            modifier = Modifier.semantics {
+                contentDescription = armedDescription
+            },
+        ) {
+            Text(
+                text = stringResource(R.string.saved_games_delete_confirm),
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    } else {
+        IconButton(onClick = onArm) {
+            Icon(
+                painter = painterResource(R.drawable.ic_delete),
+                contentDescription = stringResource(R.string.saved_games_delete),
+            )
+        }
+    }
+}
+
+/** How long the confirmation waits before stepping back to the bin. */
+private const val DELETE_ARMED_MILLIS = 3_000L
 
 private const val PREVIEW_SIZE_DP = 64
 private const val DOT_RADIUS_FRACTION = 0.22f

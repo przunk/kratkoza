@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A gear: eight teeth around a ring.
+
+    Drawn here rather than taken from a Material icon package: material-icons-core is not on the
+    compile classpath, and material-icons-extended is a large dependency for a handful of glyphs
+    (technical_requirements.md section 9). One 24dp grid and one visual weight across the set.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M18.64,10.53 L22.27,10.37 L22.27,13.63 L18.64,13.47 Z M17.74,15.65 L20.41,18.11 L18.11,20.41 L15.65,17.74 Z M13.47,18.64 L13.63,22.27 L10.37,22.27 L10.53,18.64 Z M8.35,17.74 L5.89,20.41 L3.59,18.11 L6.26,15.65 Z M5.36,13.47 L1.73,13.63 L1.73,10.37 L5.36,10.53 Z M6.26,8.35 L3.59,5.89 L5.89,3.59 L8.35,6.26 Z M10.53,5.36 L10.37,1.73 L13.63,1.73 L13.47,5.36 Z M15.65,6.26 L18.11,3.59 L20.41,5.89 L17.74,8.35 Z M4.60,12.00 C4.60,7.91 7.91,4.60 12.00,4.60 C16.09,4.60 19.40,7.91 19.40,12.00 C19.40,16.09 16.09,19.40 12.00,19.40 C7.91,19.40 4.60,16.09 4.60,12.00 Z M8.70,12.00 C8.70,13.82 10.18,15.30 12.00,15.30 C13.82,15.30 15.30,13.82 15.30,12.00 C15.30,10.18 13.82,8.70 12.00,8.70 C10.18,8.70 8.70,10.18 8.70,12.00 Z" />
+</vector>

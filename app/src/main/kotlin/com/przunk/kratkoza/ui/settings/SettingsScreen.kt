@@ -76,43 +76,19 @@ fun SettingsScreen(
                     // project.md section 4. Below API 33 Android offers no per-app language at all,
                     // and even above it the picker is buried in system settings, so the app carries
                     // its own.
+                    // Below API 33 the locale is baked into the activity's base context, so the
+                    // choice can only take effect by building a new one — and only once the write
+                    // has landed, or the rebuilt activity would read the old value back.
+                    val applyLanguage: (AppLanguage) -> Unit = { language ->
+                        viewModel.setLanguage(language) {
+                            if (AppLocales.handledByApp) context.findActivity()?.recreate()
+                        }
+                    }
+
                     Column(modifier = Modifier.selectableGroup()) {
-                        LanguageOption(
-                            language = AppLanguage.SYSTEM,
-                            labelRes = R.string.settings_language_system,
-                            selected = settings.language,
-                            onSelect = { language ->
-                                viewModel.setLanguage(language) {
-                                    if (AppLocales.handledByApp) {
-                                        context.findActivity()?.recreate()
-                                    }
-                                }
-                            },
-                        )
-                        LanguageOption(
-                            language = AppLanguage.ENGLISH,
-                            labelRes = R.string.settings_language_english,
-                            selected = settings.language,
-                            onSelect = { language ->
-                                viewModel.setLanguage(language) {
-                                    if (AppLocales.handledByApp) {
-                                        context.findActivity()?.recreate()
-                                    }
-                                }
-                            },
-                        )
-                        LanguageOption(
-                            language = AppLanguage.POLISH,
-                            labelRes = R.string.settings_language_polish,
-                            selected = settings.language,
-                            onSelect = { language ->
-                                viewModel.setLanguage(language) {
-                                    if (AppLocales.handledByApp) {
-                                        context.findActivity()?.recreate()
-                                    }
-                                }
-                            },
-                        )
+                        LanguageOption(AppLanguage.SYSTEM, R.string.settings_language_system, settings.language, applyLanguage)
+                        LanguageOption(AppLanguage.ENGLISH, R.string.settings_language_english, settings.language, applyLanguage)
+                        LanguageOption(AppLanguage.POLISH, R.string.settings_language_polish, settings.language, applyLanguage)
                     }
                 }
             }

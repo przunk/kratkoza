@@ -59,6 +59,8 @@
     <string name="saved_games_empty">No unfinished games.</string>
     <string name="saved_games_entry">%1$s · %2$s</string>
     <string name="saved_games_delete">Delete</string>
+    <string name="saved_games_delete_confirm">DELETE</string>
+    <string name="saved_games_delete_armed">Confirm deleting this game</string>
     <string name="saved_games_preview">Board preview</string>
 
     <!-- Statistics -->
