@@ -86,7 +86,7 @@ fun HomeScreen(
             )
             MenuButton(
                 label = stringResource(R.string.home_saved_games),
-                painter = painterResource(R.drawable.ic_list),
+                painter = painterResource(R.drawable.ic_saved_games),
                 onClick = onSavedGames,
             )
             MenuButton(

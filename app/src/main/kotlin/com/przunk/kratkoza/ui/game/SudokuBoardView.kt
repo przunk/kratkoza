@@ -140,10 +140,10 @@ fun SudokuBoardView(
                                     index = index,
                                     selectedCell = selectedCell,
                                     peerCells = peerCells,
+                                    sameDigitCells = sameDigitCells,
                                     incorrectCells = incorrectCells,
                                     colors = colors,
                                 ),
-                                isSameDigit = index in sameDigitCells,
                                 hint = eightOfNineHints[index],
                                 entranceScale = if (index == lastMove?.cell) entrance.value else 1f,
                                 flash = if (index in lastMove?.flashCells.orEmpty()) {
@@ -170,20 +170,22 @@ fun SudokuBoardView(
  * Which background a cell gets.
  *
  * Ordered strongest first, and a cell is only ever one thing: an error outranks the selection,
- * because a wrong digit the player is looking at has to stay legible as wrong, and the selection
- * outranks the row/column/block tint. project.md section 10 requires exactly that nothing buries
- * the selection, the peers or an error — which is also why matching digits are marked by weight
- * rather than by a third background tint.
+ * because a wrong digit the player is looking at has to stay legible as wrong; the selection
+ * outranks the matching-digit tint; and that outranks the row/column/block tint. project.md
+ * section 10 requires exactly this — matching digits must never bury the selection, the peers or
+ * an error.
  */
 private fun backgroundOf(
     index: Int,
     selectedCell: Int?,
     peerCells: Set<Int>,
+    sameDigitCells: Set<Int>,
     incorrectCells: Set<Int>,
     colors: BoardColors,
 ): Color = when {
     index in incorrectCells -> colors.errorCell
     index == selectedCell -> colors.selectedCell
+    index in sameDigitCells -> colors.sameDigitCell
     index in peerCells -> colors.peerCell
     else -> Color.Transparent
 }
@@ -196,7 +198,6 @@ private fun SudokuCell(
     isIncorrect: Boolean,
     candidates: Set<Int>,
     background: Color,
-    isSameDigit: Boolean,
     isSelected: Boolean,
     hint: Int?,
     entranceScale: Float,
@@ -241,7 +242,6 @@ private fun SudokuCell(
                 value = value,
                 isGiven = isGiven,
                 isIncorrect = isIncorrect,
-                isSameDigit = isSameDigit,
                 entranceScale = entranceScale,
                 cellSize = cellSize,
                 colors = colors,
@@ -265,7 +265,6 @@ private fun DigitText(
     value: Int,
     isGiven: Boolean,
     isIncorrect: Boolean,
-    isSameDigit: Boolean,
     entranceScale: Float,
     cellSize: Dp,
     colors: BoardColors,
@@ -274,15 +273,11 @@ private fun DigitText(
         text = value.toString(),
         style = TextStyle(
             fontSize = with(LocalDensity.current) { (cellSize * DIGIT_HEIGHT_FRACTION).toSp() },
-            // Weight says given or entered, and keeps saying it whatever colour the digit takes —
-            // which is what lets matching digits be recoloured without the distinction going with
-            // them (project.md section 8).
+            // The player's digits are the heavy ones, not the givens. Weight carries the
+            // distinction alongside colour, so it does not rest on hue (project.md section 8).
             fontWeight = if (isGiven) FontWeight.Normal else FontWeight.SemiBold,
-            // A wrong digit stays wrong-coloured whatever else is true of it; matching the selected
-            // digit never outranks that (project.md section 10).
             color = when {
                 isIncorrect -> colors.errorDigit
-                isSameDigit -> colors.matchedDigit
                 isGiven -> colors.givenDigit
                 else -> colors.enteredDigit
             },

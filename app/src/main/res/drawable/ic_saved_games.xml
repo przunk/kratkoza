@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    A list — saved games.
+    A floppy disk — saved games.
 
     Drawn here rather than taken from a Material icon package: material-icons-core is not on the
     compile classpath, and material-icons-extended is a large dependency for a handful of glyphs
     (technical_requirements.md section 9). One 24dp grid and one visual weight across the set.
+
+    The shutter and the label are holes in the body rather than separate shapes, so the glyph stays
+    a single filled path and tints as one piece.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
@@ -13,8 +16,8 @@
     android:viewportHeight="24">
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M4,6.2h2.2v2.2H4z M4,10.9h2.2v2.2H4z M4,15.6h2.2v2.2H4z" />
-    <path
-        android:fillColor="@android:color/white"
-        android:pathData="M8.4,6.6h11.6v1.6H8.4z M8.4,11.3h11.6v1.6H8.4z M8.4,16h11.6v1.6H8.4z" />
+        android:fillType="evenOdd"
+        android:pathData="M5,3 L16,3 L21,8 L21,19 A2,2 0 0,1 19,21 L5,21 A2,2 0 0,1 3,19 L3,5 A2,2 0 0,1 5,3 Z
+                          M8.5,4.6 L14.4,4.6 L14.4,9 L8.5,9 Z
+                          M7.2,13.4 L16.8,13.4 L16.8,19.4 L7.2,19.4 Z" />
 </vector>

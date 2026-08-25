@@ -12,14 +12,18 @@ import androidx.compose.ui.graphics.Color
  * (using `tertiaryContainer` as "peer highlight", say) makes both the board and the rest of the UI
  * harder to retheme later.
  *
- * Only two background tiers, ordered by strength: selected cell > peer (row/column/block) > plain
- * surface. Matching digits (project.md section 10) are marked by the *colour of the digit* instead
- * of a third tint: a fourth shade of grey read as mud, and bolding them was tried and looked
- * restless.
+ * Three background tiers, ordered by strength: selected cell > matching digits > peer
+ * (row/column/block) > plain surface. They separate by *lightness*, in even steps, so the order is
+ * legible without telling any two hues apart.
  *
- * Recolouring the digit does not cost the given/entered distinction, because that is carried by
- * weight — a given stays light, a player's digit stays semi-bold, whatever colour it takes. Nothing
- * here rests on hue alone (project.md section 8).
+ * Matching digits (project.md section 10) took three tries to place. A tint too near the peer tint
+ * was invisible; bolding the digits looked restless; giving them their own colour put a third
+ * colour on a board that already carries grey, blue and red, and the result was hard to look at.
+ * A quiet step in the same grey ramp says "these ones too" and then gets out of the way — which is
+ * all section 10 asks of it.
+ *
+ * Digit colour therefore says only what it always said: given, entered, or wrong. Weight repeats
+ * the given/entered part, so nothing rests on hue alone (project.md section 8).
  *
  * The tiers separate by lightness, not by hue — each step is a visibly different grey carrying a
  * trace of the accent. A reader who cannot tell the hues apart still sees three distinct steps, and
@@ -37,10 +41,10 @@ data class BoardColors(
     val blockLine: Color,
     val selectedCell: Color,
     val peerCell: Color,
+    val sameDigitCell: Color,
     val errorCell: Color,
     val givenDigit: Color,
     val enteredDigit: Color,
-    val matchedDigit: Color,
     val errorDigit: Color,
     val candidate: Color,
     val autoHintDigit: Color,
@@ -52,10 +56,10 @@ internal val LightBoardColors = BoardColors(
     blockLine = Neutral30,
     selectedCell = HighlightLightSelected,
     peerCell = HighlightLightPeer,
+    sameDigitCell = HighlightLightSameDigit,
     errorCell = Error90,
     givenDigit = Neutral30,
     enteredDigit = EnteredLight,
-    matchedDigit = MatchedLight,
     errorDigit = Error40,
     candidate = Neutral50,
     autoHintDigit = Neutral60,
@@ -67,10 +71,10 @@ internal val DarkBoardColors = BoardColors(
     blockLine = Neutral60,
     selectedCell = HighlightDarkSelected,
     peerCell = HighlightDarkPeer,
+    sameDigitCell = HighlightDarkSameDigit,
     errorCell = Error20,
     givenDigit = Neutral80,
     enteredDigit = EnteredDark,
-    matchedDigit = MatchedDark,
     errorDigit = Error80,
     candidate = Neutral60,
     autoHintDigit = Neutral50,

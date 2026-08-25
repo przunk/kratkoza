@@ -25,26 +25,16 @@ internal val SlateBlue95 = Color(0xFFE8F1F8)
  * survives a bad screen, bright sunlight and colour-blindness — not by hue.
  */
 internal val HighlightLightPeer = Color(0xFFE8EBEE)
-internal val HighlightLightSameDigit = Color(0xFFD4DEE7)
+internal val HighlightLightSameDigit = Color(0xFFDCE3E9)
 internal val HighlightLightSelected = Color(0xFFAECBE4)
 
 internal val HighlightDarkPeer = Color(0xFF2B3034)
-internal val HighlightDarkSameDigit = Color(0xFF39434B)
+internal val HighlightDarkSameDigit = Color(0xFF343B41)
 internal val HighlightDarkSelected = Color(0xFF3D5B77)
 
 /** Player-entered digits. Saturated enough to carry across a board full of neutral givens. */
 internal val EnteredLight = Color(0xFF15599E)
 internal val EnteredDark = Color(0xFF8CC6F5)
-
-/**
- * Digits matching the selected one (project.md section 10).
- *
- * Green rather than another blue: it has to separate from the entered digits at a glance, and hue
- * is what is left once weight is spoken for. Several cells change together, so the eye catches the
- * group even where it would not catch one cell on its own.
- */
-internal val MatchedLight = Color(0xFF1E6F5A)
-internal val MatchedDark = Color(0xFF7FD3BA)
 
 internal val Teal40 = Color(0xFF2C6E63)
 internal val Teal80 = Color(0xFF9CD1C6)
