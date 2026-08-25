@@ -89,6 +89,18 @@ Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
 Po stronie właściciela projektu, poza kodem: klucz upload (nie ma żadnego), konto Play,
 polityka prywatności, formularz Data safety, opis i grafiki w konsoli.
 
+### Drobne: licznik błędów nie stoi na środku ekranu
+
+**Zgłoszone i odłożone:** 2026-08-26.
+
+Pasek nad planszą rozkłada trzy elementy przez `Arrangement.SpaceBetween`: czas po lewej, błędy
+w środku, pauza po prawej. SpaceBetween rozkłada *odstępy*, nie elementy — środkowy trafia na
+środek tylko wtedy, gdy skrajne mają tę samą szerokość, a „Czas / 4:04" i przycisk pauzy jej nie
+mają. Skakanie zostało już naprawione (przycisk ma stałą szerokość), zostało samo przesunięcie.
+
+Poprawka to nadanie trzem slotom równych wag i wyśrodkowanie treści w środkowym; wtedy pozycja
+przestaje zależeć od długości sąsiadów w jakimkolwiek języku.
+
 ### Podpowiedź 8/9 niedostępna w grach rankingowych
 
 **Zgłoszone:** 2026-08-25. `project.md` §17 kończy się zdaniem: „Funkcja 8/9 jest niedostępna
