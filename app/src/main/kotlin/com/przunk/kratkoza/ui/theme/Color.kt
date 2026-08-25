@@ -19,6 +19,23 @@ internal val SlateBlue80 = Color(0xFFA8C8E4)
 internal val SlateBlue90 = Color(0xFFD3E3F1)
 internal val SlateBlue95 = Color(0xFFE8F1F8)
 
+/**
+ * Board highlight tints. Neutral greys carrying a trace of the accent hue rather than saturated
+ * blues: the board has to read as paper, and the tiers have to be told apart by *lightness* — which
+ * survives a bad screen, bright sunlight and colour-blindness — not by hue.
+ */
+internal val HighlightLightPeer = Color(0xFFE8EBEE)
+internal val HighlightLightSameDigit = Color(0xFFD4DEE7)
+internal val HighlightLightSelected = Color(0xFFAECBE4)
+
+internal val HighlightDarkPeer = Color(0xFF2B3034)
+internal val HighlightDarkSameDigit = Color(0xFF39434B)
+internal val HighlightDarkSelected = Color(0xFF3D5B77)
+
+/** Player-entered digits. Saturated enough to carry across a board full of neutral givens. */
+internal val EnteredLight = Color(0xFF15599E)
+internal val EnteredDark = Color(0xFF8CC6F5)
+
 internal val Teal40 = Color(0xFF2C6E63)
 internal val Teal80 = Color(0xFF9CD1C6)
 

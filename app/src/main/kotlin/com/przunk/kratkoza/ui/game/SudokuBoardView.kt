@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -77,7 +78,13 @@ fun SudokuBoardView(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colors.surface)
-                .drawBehind { drawGridLines(colors) }
+                // Over the cells, not under them. A highlighted cell fills its own background,
+                // and a line drawn underneath would be erased by it — which is why selecting a cell
+                // used to punch a hole in its block's borders.
+                .drawWithContent {
+                    drawContent()
+                    drawGridLines(colors)
+                }
                 .semantics { contentDescription = boardDescription },
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -201,9 +208,9 @@ private fun DigitText(
         text = value.toString(),
         style = TextStyle(
             fontSize = with(LocalDensity.current) { (cellSize * DIGIT_HEIGHT_FRACTION).toSp() },
-            // A given is heavier as well as darker, so the two are told apart without relying on
-            // colour alone (project.md section 8).
-            fontWeight = if (isGiven) FontWeight.SemiBold else FontWeight.Normal,
+            // The player's digits are the heavy ones, not the givens. Weight carries the
+            // distinction alongside colour, so it does not rest on hue (project.md section 8).
+            fontWeight = if (isGiven) FontWeight.Normal else FontWeight.SemiBold,
             color = when {
                 isIncorrect -> colors.errorDigit
                 isGiven -> colors.givenDigit

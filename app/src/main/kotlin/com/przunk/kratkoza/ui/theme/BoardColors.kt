@@ -14,6 +14,15 @@ import androidx.compose.ui.graphics.Color
  *
  * Highlight tiers are ordered by strength so they stack readably:
  * selected cell > same digit > peer (row/column/block) > plain surface.
+ *
+ * The tiers separate by lightness, not by hue — each step is a visibly different grey carrying a
+ * trace of the accent. A reader who cannot tell the hues apart still sees three distinct steps, and
+ * the board keeps looking like paper rather than a heat map (project.md sections 8 and 10).
+ *
+ * A given is drawn in a quieter grey than a player's digit, which is the opposite of the usual
+ * "bold black givens". The board starts full of givens and fills up with the player's own answers;
+ * making the answers the loud ones is what lets progress be read at a glance. Weight separates them
+ * as well as colour, so the distinction does not rest on hue (project.md section 8).
  */
 @Immutable
 data class BoardColors(
@@ -35,12 +44,12 @@ internal val LightBoardColors = BoardColors(
     surface = Neutral100,
     gridLine = Neutral80,
     blockLine = Neutral30,
-    selectedCell = SlateBlue80,
-    peerCell = SlateBlue95,
-    sameDigitCell = SlateBlue90,
+    selectedCell = HighlightLightSelected,
+    peerCell = HighlightLightPeer,
+    sameDigitCell = HighlightLightSameDigit,
     errorCell = Error90,
-    givenDigit = Neutral10,
-    enteredDigit = SlateBlue40,
+    givenDigit = Neutral30,
+    enteredDigit = EnteredLight,
     errorDigit = Error40,
     candidate = Neutral50,
     autoHintDigit = Neutral60,
@@ -50,12 +59,12 @@ internal val DarkBoardColors = BoardColors(
     surface = Neutral12,
     gridLine = Neutral30,
     blockLine = Neutral60,
-    selectedCell = SlateBlue40,
-    peerCell = Neutral17,
-    sameDigitCell = Neutral22,
+    selectedCell = HighlightDarkSelected,
+    peerCell = HighlightDarkPeer,
+    sameDigitCell = HighlightDarkSameDigit,
     errorCell = Error20,
-    givenDigit = Neutral90,
-    enteredDigit = SlateBlue80,
+    givenDigit = Neutral80,
+    enteredDigit = EnteredDark,
     errorDigit = Error80,
     candidate = Neutral60,
     autoHintDigit = Neutral50,
