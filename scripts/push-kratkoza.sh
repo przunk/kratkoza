@@ -9,6 +9,11 @@
 # Non-interactive use reads KRATKOZA_GITHUB_USER and KRATKOZA_GITHUB_TOKEN from the environment.
 #
 # Usage:  ./scripts/push-kratkoza.sh [branch…]      (default: the current branch)
+#
+# KRATKOZA_FORCE_PUSH=1 overwrites what is on the remote, for the one case that needs it: history
+# that was deliberately rewritten locally. It uses --force-with-lease, which refuses if the remote
+# has moved since the last fetch — so it can overwrite your own rewrite, but not somebody else's
+# work that arrived in the meantime.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,8 +28,14 @@ fi
 git remote get-url "$REMOTE" >/dev/null 2>&1 ||
     { echo "❌ No remote '$REMOTE'. Add it with: git remote add $REMOTE <url>"; exit 1; }
 
+push_flags=(--set-upstream)
+if [ "${KRATKOZA_FORCE_PUSH:-0}" = "1" ]; then
+    push_flags+=(--force-with-lease)
+fi
+
 echo "🌐 $(git remote get-url "$REMOTE")"
 echo "   branches: ${branches[*]}"
+[ "${KRATKOZA_FORCE_PUSH:-0}" = "1" ] && echo "   ⚠️  force (--force-with-lease): the remote history will be replaced"
 
 if [ -t 0 ]; then
     current="${KRATKOZA_GITHUB_USER:-przunk}"
@@ -43,7 +54,7 @@ export GIT_ASKPASS="$SCRIPT_DIR/internal/git-askpass.sh"
 export GIT_TERMINAL_PROMPT=0
 
 echo
-if git push --set-upstream "$REMOTE" "${branches[@]}"; then
+if git push "${push_flags[@]}" "$REMOTE" "${branches[@]}"; then
     echo
     echo "✅ Pushed ${branches[*]} to $REMOTE"
 else
@@ -52,5 +63,7 @@ else
     echo "   A 403 usually means the token lacks write access to this repository."
     echo "   Classic token: needs the 'repo' scope."
     echo "   Fine-grained:  needs Contents → Read and write on przunk/kratkoza."
+    echo "   A rejected non-fast-forward means the history was rewritten:"
+    echo "     KRATKOZA_FORCE_PUSH=1 ./scripts/push-kratkoza.sh ${branches[*]}"
     exit 1
 fi

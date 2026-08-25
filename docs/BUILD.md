@@ -155,6 +155,10 @@ więc token nie pojawia się też w terminalu.
 Token potrzebuje prawa zapisu do `przunk/kratkoza`: klasyczny — zakres `repo`, precyzyjny —
 Contents: Read and write.
 
+Gdy historia została świadomie przepisana lokalnie, `KRATKOZA_FORCE_PUSH=1` nadpisze zdalną.
+Używa `--force-with-lease`, które odmawia, jeśli zdalne repo ruszyło od ostatniego pobrania — więc
+nadpisze własne przepisanie, ale nie czyjąś pracę, która w międzyczasie doszła.
+
 Wygodniejsza alternatywa, jeśli ciągłe wpisywanie zacznie przeszkadzać:
 `git config --global credential.helper 'cache --timeout=3600'` trzyma token w pamięci przez godzinę
 i nie zapisuje go na dysk. `credential.helper store` **zapisuje token czystym tekstem** w
