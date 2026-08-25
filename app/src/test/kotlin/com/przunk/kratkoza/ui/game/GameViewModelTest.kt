@@ -456,6 +456,31 @@ class GameViewModelTest {
         assertEquals(GameUiState.FlashKind.NONE, echo.flashKind)
         assertTrue(echo.flashCells.isEmpty())
     }
+
+    @Test
+    fun `a digit with all nine placed is refused`() = gameTest {
+        // The pad dims the key, but the rule is enforced here too: a rule that lives only in a
+        // button is a rule the next caller does not have.
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val digit = 5
+
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (game.state.board.isEmpty(cell) && game.state.puzzle.solution[cell] == digit) {
+                viewModel.selectCell(cell)
+                viewModel.enterDigit(digit)
+            }
+        }
+        assertEquals(0, viewModel.uiState.value.remainingByDigit[digit])
+
+        val settled = viewModel.uiState.value
+        val elsewhere = (0 until Sudoku.CELL_COUNT).first { settled.board.isEmpty(it) }
+        viewModel.selectCell(elsewhere)
+        viewModel.enterDigit(digit)
+
+        assertTrue("the finished digit must not land", settled.board[elsewhere] == 0)
+        assertEquals(0, viewModel.uiState.value.mistakeCount)
+    }
 }
 
 /** Picks a digit the solution disagrees with, for a board the generator produced. */

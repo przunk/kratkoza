@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.domain.game
 
 import com.przunk.kratkoza.domain.model.Puzzle
+import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
 import com.przunk.kratkoza.domain.sudoku.SudokuValidator
 
@@ -39,22 +40,35 @@ data class GameState(
 
     /** Cells holding a digit that disagrees with the solution (project.md section 16). */
     val incorrectCells: Set<Int>
-        get() = (0 until com.przunk.kratkoza.domain.sudoku.Sudoku.CELL_COUNT)
-            .filterTo(mutableSetOf()) { cell ->
-                !board.isEmpty(cell) && board[cell] != puzzle.solution[cell]
-            }
+        get() = (0 until Sudoku.CELL_COUNT).filterTo(mutableSetOf()) { cell ->
+            !board.isEmpty(cell) && board[cell] != puzzle.solution[cell]
+        }
 
     /** Cells that repeat a digit inside a row, column or block. */
     val conflictingCells: Set<Int> get() = SudokuValidator.conflictingCells(board)
 
-    /** How many of [digit] are still missing from the board, `0` once all nine are placed. */
+    /**
+     * How many of [digit] are still missing, `0` once all nine sit where they belong.
+     *
+     * Counts *correct* placements only, which is what project.md section 19 asks for: "how many
+     * correct occurrences of the digit remain". A wrong copy of a digit is not one of its nine, and
+     * counting it would say the digit was finished while a cell still needed it — and then, since
+     * [isDigitComplete] decides whether the key can be pressed, lock the player out of fixing it.
+     */
     fun remainingCountOf(digit: Int): Int {
         var placed = 0
-        for (cell in 0 until com.przunk.kratkoza.domain.sudoku.Sudoku.CELL_COUNT) {
-            if (board[cell] == digit) placed++
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (board[cell] == digit && puzzle.solution[cell] == digit) placed++
         }
-        return (com.przunk.kratkoza.domain.sudoku.Sudoku.SIZE - placed).coerceAtLeast(0)
+        return (Sudoku.SIZE - placed).coerceAtLeast(0)
     }
+
+    /**
+     * True when every nine of [digit] is correctly placed, so it can go nowhere else.
+     *
+     * Entering it again could only ever be a mistake, which is why the number pad refuses it.
+     */
+    fun isDigitComplete(digit: Int): Boolean = remainingCountOf(digit) == 0
 
     fun isGiven(index: Int): Boolean = puzzle.isGiven(index)
 

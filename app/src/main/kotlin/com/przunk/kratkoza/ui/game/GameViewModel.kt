@@ -106,6 +106,11 @@ class GameViewModel(
         val index = selection ?: return
         if (!_uiState.value.isPlayable) return
 
+        // project.md section 19: once all nine are correctly placed the digit can go nowhere
+        // else, so pressing it could only ever be a mistake. Guarded here as well as on the pad —
+        // a rule that lives only in a button is a rule the next caller does not have.
+        if (state.isDigitComplete(digit)) return
+
         val updated = if (_uiState.value.candidateMode) {
             GameEngine.toggleCandidate(state, index, digit)
         } else {

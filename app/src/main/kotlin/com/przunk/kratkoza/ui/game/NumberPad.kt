@@ -34,9 +34,12 @@ import com.przunk.kratkoza.domain.sudoku.Sudoku
  * a 48x48 square and there is no dead space between them to miss into. A 3x3 pad would clear the
  * guideline literally, at the cost of a third of the board's height in portrait.
  *
- * project.md section 19 is an option, so [showRemainingCounts] governs both the small count under
- * each key and the dimming of a spent one. A spent key is never *disabled*: the nine digits on the
- * board may include a wrong one, and the player has to be able to take it back out.
+ * A key whose digit is finished — all nine correctly placed — is dimmed and refuses the press.
+ * Pressing it could only ever be a mistake, so offering it is offering a trap.
+ *
+ * [showRemainingCounts] governs the small count under each key, which project.md section 19 makes
+ * an option. It does not govern the refusal: whether a move is possible is not a matter of taste,
+ * and a key that silently did nothing when the count was hidden would be worse than either.
  */
 @Composable
 fun NumberPad(
@@ -75,7 +78,7 @@ private fun DigitKey(
     onClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val exhausted = showRemaining && remaining == 0
+    val exhausted = remaining == 0
     val colors = MaterialTheme.colorScheme
     val description = stringResource(R.string.game_digit, digit)
 
@@ -84,7 +87,7 @@ private fun DigitKey(
             .fillMaxWidth()
             .clip(RoundedCornerShape(KEY_CORNER_DP.dp))
             .background(if (candidateMode) colors.secondaryContainer else colors.surfaceContainerHigh)
-            .clickable(enabled = enabled) { onClick(digit) }
+            .clickable(enabled = enabled && !exhausted) { onClick(digit) }
             .alpha(if (exhausted) EXHAUSTED_ALPHA else 1f)
             .clearAndSetSemantics { contentDescription = description },
         contentAlignment = Alignment.Center,

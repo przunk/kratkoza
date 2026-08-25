@@ -51,7 +51,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 182 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 185 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 

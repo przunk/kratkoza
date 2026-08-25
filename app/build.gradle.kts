@@ -19,8 +19,8 @@ android {
         // Bumped on every approved change, so the version shown in Settings identifies exactly
         // which build is on a phone. A screenshot from the wrong APK has already cost us a round
         // trip once; the number is what makes that impossible to repeat.
-        versionCode = 6
-        versionName = "0.3.0"
+        versionCode = 7
+        versionName = "0.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
