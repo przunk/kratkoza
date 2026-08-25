@@ -21,6 +21,22 @@ Skrypty celowo **nie wypluwają logu Gradle'a**. Sukces to jedna linia; porażka
 nie przeszło — nazwy testów z komunikatami asercji, błędy kompilacji, znaleziska lintu — czytana
 z raportów JUnit i lintu, nie z logu. Pełny log zawsze leży w `/tmp/kratkoza-*.log`.
 
+## Stosunek do skryptów w `.tooling`
+
+Skrypty Kratkozy **nie są** pochodnymi `build-taskflow-release.sh` ani `build-opowio-release.sh` —
+zostały napisane od zera, z tamtych wzięte są konwencje:
+
+- układ `source <env>.sh` → build → weryfikacja
+- artefakt do `dist/`, nazwany `kratkoza-<versionName>-<versionCode>-<stempel>.apk`
+  (tak nazywa Opowio; TaskFlow i LocusLog wrzucają do `app/build/outputs/<projekt>/`)
+- odczyt certyfikatu z **gotowego pliku** zamiast ufania konfiguracji Gradle'a
+- raport rozmiaru APK
+
+Świadomie pominięte, bo tamte skrypty mają po ~17 kB i wypisują kilkadziesiąt linii na starcie:
+banner środowiska, podsumowanie czasów per faza, raporty `--profile`, wykrywanie JDK dla natywnego
+Windowsa, podmienianie `local.properties`. Tutaj priorytetem jest krótki output. Jeśli któraś z tych
+rzeczy okaże się potrzebna, dokłada się ją pojedynczo.
+
 ## Lint
 
 `abortOnError` i `warningsAsErrors` są włączone, więc ostrzeżenie lintu wywraca build.

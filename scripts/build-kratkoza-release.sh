@@ -44,9 +44,12 @@ if [ ! -f "$BUILD_APK" ]; then
 fi
 
 mkdir -p "$DIST_DIR"
+# versionCode as well as versionName, the way build-opowio-release.sh names its artifacts: two
+# builds of the same versionName are otherwise indistinguishable once they leave dist/.
 version_name="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
+version_code="$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
 stamp="$(date +%Y%m%d-%H%M%S)"
-artifact="$DIST_DIR/kratkoza-${version_name:-unknown}-$stamp.apk"
+artifact="$DIST_DIR/kratkoza-${version_name:-unknown}-${version_code:-0}-$stamp.apk"
 cp "$BUILD_APK" "$artifact"
 
 echo
@@ -72,4 +75,4 @@ fi
 
 echo
 echo "✅ OK in $(($(date +%s) - started_at))s"
-echo "📦 $artifact"
+echo "📦 $artifact ($(du -h "$artifact" 2>/dev/null | cut -f1 || echo "?"))"

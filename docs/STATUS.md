@@ -77,13 +77,17 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Wymaga decyzji
 
-Cztery rzeczy, których `project.md` świadomie nie rozstrzyga, a implementacja musiała je przyjąć,
-żeby ruszyć. Każda ma opisane warianty w [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md):
+Sześć rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
+[OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); poniżej sam stan.
 
-1. Podział pięciu poziomów trudności między techniki logiczne
-2. Auto-usuwanie kandydatów po błędnej cyfrze
-3. Zakres działania przycisku „Wymaż"
-4. Ponowne wpisanie tej samej cyfry w to samo pole
+Ustalone 2026-08-25 — kod jest zgodny, wracamy tylko jeśli coś się zmieni:
 
-Do tego dwie opcje z §35, dla których `project.md` nie podaje wartości domyślnej — przyjęto ON
-w obu: podświetlanie takich samych cyfr (§10) i licznik pozostałych cyfr (§19).
+- auto-usuwanie kandydatów **nie** rusza notatek sąsiadów po błędnej cyfrze
+- ponowne wpisanie tej samej cyfry w to samo pole **nie robi nic**
+- „portrait only" zostaje jak jest, mimo że Android 16 ignoruje je na ekranach ≥ 600dp
+
+Czeka na granie na urządzeniu:
+
+- **podział 5 poziomów trudności** — czy MASTER jest realnie wystarczająco trudny (§7)
+- **zakres przycisku „Wymaż"** — na razie kasuje cyfrę i kandydatów naraz
+- **domyślne ON** dla podświetlania takich samych cyfr (§10) i licznika pozostałych cyfr (§19)

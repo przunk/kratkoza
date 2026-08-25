@@ -1,14 +1,28 @@
 # Kratkoza — otwarte decyzje
 
 Rzeczy, które implementacja musiała rozstrzygnąć, żeby ruszyć dalej, a których `project.md`
-świadomie nie rozstrzyga (sekcja 39: „do ustalenia"). Każda pozycja opisuje: co zostało przyjęte
-teraz, dlaczego, oraz jakie są alternatywy do wspólnej decyzji.
+świadomie nie rozstrzyga (sekcja 39: „do ustalenia"). Każda pozycja opisuje: co zostało przyjęte,
+dlaczego, oraz jakie są alternatywy.
 
-Nic z tej listy nie jest traktowane jako zatwierdzone wymaganie.
+| # | Rzecz | Stan |
+|---|---|---|
+| 1 | Podział pięciu poziomów trudności między techniki | 🟡 **otwarte** — do weryfikacji w grze |
+| 2 | Auto-usuwanie kandydatów po błędnej cyfrze | 🟢 **ustalone** — nie usuwa |
+| 3 | Zakres przycisku „Wymaż" | 🟡 tymczasowo OK — rozstrzygnie test w grze |
+| 4 | Ponowne wpisanie tej samej cyfry | 🟢 **ustalone** — brak akcji |
+| 5 | Domyślne wartości dwóch opcji z §35 | 🟡 tymczasowo ON — decyzja po testach |
+| 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
+
+🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
+🟡 = przyjęte tymczasowo, czeka na decyzję.
+
+Status na podstawie ustaleń z 2026-08-25.
 
 ---
 
 ## 1. Klasyfikacja trudności — jak rozdzielić 5 poziomów
+
+**Stan: 🟡 otwarte.** Czeka na ocenę w realnej grze, czy MASTER jest wystarczająco trudny.
 
 **Wymaganie źródłowe:** `project.md` §5 — poziom trudności musi wynikać z technik logicznych
 potrzebnych do rozwiązania, a nie wyłącznie z liczby pustych pól. §7 — pięć poziomów.
@@ -65,6 +79,8 @@ i progi siedzą w `Difficulty`, więc zmiana to jedna edycja + przeliczenie test
 
 ## 2. Automatyczne usuwanie kandydatów po *błędnej* cyfrze
 
+**Stan: 🟢 ustalone 2026-08-25.** Zostaje wariant przyjęty — po błędnej cyfrze kandydaci sąsiadów nie są ruszani.
+
 **Wymaganie źródłowe:** `project.md` §15 — „Po **poprawnym** wpisaniu cyfry aplikacja
 automatycznie usuwa tę cyfrę z kandydatów w polach, w których nie może już wystąpić".
 
@@ -83,6 +99,8 @@ poprawności cyfry. Zmiana to jeden warunek w `GameEngine.enterDigit`.
 
 ## 3. Co dokładnie robi przycisk „Wymaż"
 
+**Stan: 🟡 tymczasowo OK.** Zostaje jak jest; rozstrzygnie granie na urządzeniu.
+
 **Wymaganie źródłowe:** `project.md` §11 wymienia przycisk Wymaż, §12 wymaga cofalności
 „wymazania cyfry". Nie doprecyzowano, czy Wymaż kasuje też kandydatów.
 
@@ -95,6 +113,8 @@ jednoznaczne znaczenie.
 ---
 
 ## 4. Ponowne wpisanie tej samej cyfry w to samo pole
+
+**Stan: 🟢 ustalone 2026-08-25.** Ponowne wpisanie tej samej cyfry nie robi nic.
 
 **Wymaganie źródłowe:** `project.md` §16 — każde zatwierdzenie cyfry innej niż poprawna zwiększa
 licznik błędów o 1. Nie doprecyzowano, czy powtórzenie tej samej cyfry to nowe zdarzenie.
@@ -109,6 +129,8 @@ w innych aplikacjach Sudoku). To zmiana UX, nie tylko techniczna.
 
 ## 5. Wartości domyślne dwóch opcji z §35
 
+**Stan: 🟡 tymczasowo ON.** Zostaje ON do czasu sprawdzenia w grze.
+
 **Wymaganie źródłowe:** `project.md` §35 wymienia „podświetlanie takich samych cyfr: ON/OFF"
 (§10) oraz „licznik pozostałych cyfr: ON/OFF" (§19), ale — inaczej niż przy auto-usuwaniu
 kandydatów (domyślnie ON) i podpowiedzi 8/9 (domyślnie OFF) — nie podaje wartości domyślnej.
@@ -122,6 +144,8 @@ grze papierowej. Zmiana to dwie wartości w `GameSettings`.
 ---
 
 ## 6. „Portrait only" nie jest już egzekwowalne na dużych ekranach
+
+**Stan: 🟢 ustalone 2026-08-25 — wariant A.** Zostaje jak jest; wrócimy do tego przy pracach nad tabletami.
 
 **Wymaganie źródłowe:** `project.md` §2 — „Orientacja aplikacji w pierwszej wersji: portrait only.
 Tablety i landscape mogą zostać opracowane później."
