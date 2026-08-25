@@ -77,6 +77,37 @@ funkcje wyłączone z zakresu etapu:
 
 Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE.md) §5 i §8.
 
+## Do zrobienia
+
+### Skrypt budujący AAB na Google Play
+
+**Zgłoszone:** 2026-08-25. Przygotowanie do wydania alpha.
+
+Wzorzec: `/mnt/workspace/TaskFlow/scripts/build-play-bundle.sh`. Robi tam:
+`:app:bundleRelease` → podpisanie kluczem upload przez `jarsigner` z JDK → artefakt
+ze stemplem czasu do katalogu wyjściowego, z interaktywnym pytaniem o ścieżkę keystore
+i hasło, gdy nie ma ich w środowisku.
+
+Do zrobienia jako `scripts/build-kratkoza-bundle.sh`, w stylu pozostałych skryptów Kratkozy
+(krótki output, szczegóły dopiero przy porażce):
+
+- `:app:bundleRelease`, artefakt do `dist/` jako `kratkoza-<versionName>-<versionCode>.aab`
+- odczyt podpisu z **gotowego pliku**, nie z konfiguracji Gradle'a — tak samo jak robi to
+  `build-kratkoza-release.sh`; AAB podpisany kluczem debug zostanie odrzucony przy uploadzie,
+  a błąd jest inaczej niewidoczny do momentu odrzucenia
+- **twarde przerwanie**, gdy podpis nie jest kluczem upload. Przy APK fallback na klucz debug
+  ratuje wgrywanie na telefon i ma sens; przy bundlu przeznaczonym na Play jest bezużyteczny
+- sprawdzenie, czy `versionCode` jest wyższy niż ostatnio wysłany — Play odrzuca powtórzony
+
+Już gotowe i istotne dla AAB: `bundle { language { enableSplit = false } }` w
+`app/build.gradle.kts`. Bez tego Play dzieliłby zasoby po języku i przełącznik języka w
+aplikacji byłby atrapą — na telefonie po angielsku polskie stringi nigdy by się nie pobrały.
+
+Do ustalenia przed pierwszym wysłaniem: keystore upload (dziś nie ma żadnego, patrz
+[BUILD.md](BUILD.md)), `applicationId`, oraz czy `isMinifyEnabled` ma zostać wyłączone.
+
+---
+
 ## Wymaga decyzji
 
 Sześć rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
