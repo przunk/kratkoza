@@ -163,8 +163,12 @@ private fun SavedGameRow(
  * A thumbnail of the board (project.md section 22).
  *
  * Drawn as dots rather than digits: at this size a digit is illegible anyway, and the pattern of
- * what is filled in is the thing that lets the player recognise which game this is. The player's
- * own entries are drawn in the entered colour so the thumbnail shows progress, not just the givens.
+ * what is filled in is what lets the player recognise which game this is.
+ *
+ * The player's own entries are told from the givens by *size* as well as colour. A dot here is only
+ * a few pixels across, and at that scale a hue on its own barely registers — the same reason
+ * project.md section 8 refuses to let colour carry a state by itself. Givens are small and quiet,
+ * entries are larger and in the accent, so progress reads at a glance without squinting.
  */
 @Composable
 private fun BoardPreview(save: SavedGameSummary) {
@@ -178,18 +182,18 @@ private fun BoardPreview(save: SavedGameSummary) {
             .clearAndSetSemantics { contentDescription = description }
             .drawBehind {
                 val cell = size.width / Sudoku.SIZE
-                val radius = cell * DOT_RADIUS_FRACTION
 
                 for (index in 0 until Sudoku.CELL_COUNT) {
                     val value = save.board[index]
                     if (value == Sudoku.EMPTY) continue
+                    val entered = save.givens.isEmpty(index)
                     val centre = Offset(
                         x = (Sudoku.columnOf(index) + 0.5f) * cell,
                         y = (Sudoku.rowOf(index) + 0.5f) * cell,
                     )
                     drawCircle(
-                        color = if (save.givens.isEmpty(index)) colors.enteredDigit else colors.givenDigit,
-                        radius = radius,
+                        color = if (entered) colors.enteredDigit else colors.candidate,
+                        radius = cell * if (entered) ENTERED_DOT_FRACTION else GIVEN_DOT_FRACTION,
                         center = centre,
                     )
                 }
@@ -249,6 +253,11 @@ private fun DeleteControl(armed: Boolean, onArm: () -> Unit, onConfirm: () -> Un
 /** How long the confirmation waits before stepping back to the bin. */
 private const val DELETE_ARMED_MILLIS = 3_000L
 
-private const val PREVIEW_SIZE_DP = 64
-private const val DOT_RADIUS_FRACTION = 0.22f
+private const val PREVIEW_SIZE_DP = 72
+
+/** A given: small and quiet, enough to show the board's shape without competing with progress. */
+private const val GIVEN_DOT_FRACTION = 0.17f
+
+/** The player's own digit: half again as wide, and in the accent. */
+private const val ENTERED_DOT_FRACTION = 0.30f
 private const val BLOCK_LINE_PX = 1f
