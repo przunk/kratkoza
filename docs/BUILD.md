@@ -10,6 +10,7 @@ z `/mnt/workspace/.tooling`. Nie trzeba niczego eksportować ręcznie.
 | `scripts/test-kratkoza.sh` | testy jednostkowe |
 | `scripts/lint-kratkoza.sh` | Android Lint |
 | `scripts/build-kratkoza-bundle.sh` | AAB na Google Play, do `dist/` |
+| `scripts/push-kratkoza.sh` | wypchnięcie na GitHuba, token pytany za każdym razem |
 | `scripts/kratkoza-env.sh` | wspólne środowisko, tylko do `source` |
 
 Wszystkie przyjmują dodatkowe argumenty Gradle'a, np.:
@@ -136,6 +137,28 @@ Jeśli go jeszcze nie ma:
 **Kopia zapasowa keystore'a jest obowiązkowa.** Utrata pliku albo hasła oznacza, że nie da się już
 zaktualizować aplikacji pod tym samym `applicationId` — zostaje prośba do Google o reset klucza
 upload albo publikacja od nowa jako inna aplikacja.
+
+## Repozytorium
+
+`master` jest bazą, praca idzie na `develop`. Wydania powstają przez scalenie `develop` w `master`.
+
+```bash
+./scripts/push-kratkoza.sh              # bieżąca gałąź
+./scripts/push-kratkoza.sh develop master
+```
+
+Skrypt pyta o token przy każdym uruchomieniu i **nigdzie go nie zapisuje** — ta sama umowa co przy
+budowaniu bundla. Token nie trafia do `.git/config` ani do adresu zdalnego repozytorium, gdzie
+pokazywałby go `git remote -v` i każdy komunikat błędu. Odpowiedzi dla gita idą przez `GIT_ASKPASS`,
+więc token nie pojawia się też w terminalu.
+
+Token potrzebuje prawa zapisu do `przunk/kratkoza`: klasyczny — zakres `repo`, precyzyjny —
+Contents: Read and write.
+
+Wygodniejsza alternatywa, jeśli ciągłe wpisywanie zacznie przeszkadzać:
+`git config --global credential.helper 'cache --timeout=3600'` trzyma token w pamięci przez godzinę
+i nie zapisuje go na dysk. `credential.helper store` **zapisuje token czystym tekstem** w
+`~/.git-credentials` — działa, ale trzeba wiedzieć, na co się zgadzasz.
 
 ## Testy
 
