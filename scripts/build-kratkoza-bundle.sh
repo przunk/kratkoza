@@ -2,17 +2,14 @@
 #
 # Builds an Android App Bundle for Google Play and refuses to hand over one Play would reject.
 #
-# Signing credentials never live in this repository. Put them in ~/.gradle/gradle.properties:
+# Credentials are asked for when the script runs and are never written anywhere — not into the
+# repository, not into ~/.gradle/gradle.properties, not into the shell history. They are handed to
+# Gradle through ORG_GRADLE_PROJECT_* environment variables, which is how Gradle takes a project
+# property from the environment, and they live only as long as this process does.
 #
-#   PRZUNK_UPLOAD_STORE_FILE=/absolute/path/to/kratkoza-upload.jks
-#   PRZUNK_UPLOAD_STORE_PASSWORD=…
-#   PRZUNK_UPLOAD_KEY_ALIAS=…
-#   PRZUNK_UPLOAD_KEY_PASSWORD=…
-#
-# Unlike build-kratkoza-release.sh, this script *fails* when the artifact turns out to be signed
-# with the debug key. For an APK the debug fallback is useful — an unsigned APK cannot be sideloaded
-# at all. For a bundle headed to Play it is useless: the upload is rejected, and the only thing the
-# fallback buys is finding out later rather than now.
+# Non-interactive use (CI, or a shell without a terminal) reads the same values from:
+#   KRATKOZA_UPLOAD_KEYSTORE, KRATKOZA_UPLOAD_KEY_ALIAS,
+#   KRATKOZA_UPLOAD_STORE_PASSWORD, KRATKOZA_UPLOAD_KEY_PASSWORD
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,21 +20,79 @@ DIST_DIR="$KRATKOZA_DIR/dist"
 LOG_FILE="/tmp/kratkoza-bundle.log"
 BUILD_AAB="$KRATKOZA_DIR/app/build/outputs/bundle/release/app-release.aab"
 
-started_at=$(date +%s)
+fail() {
+    echo "❌ $1"
+    shift || true
+    for line in "$@"; do echo "   $line"; done
+    exit 1
+}
+
+# Asks for what it needs, defaulting to whatever the environment already carries.
+collect_signing_configuration() {
+    local entered current
+
+    if [ -t 0 ]; then
+        current="${KRATKOZA_UPLOAD_KEYSTORE:-}"
+        if [ -n "$current" ]; then
+            read -r -p "Upload keystore path [$current]: " entered
+            KRATKOZA_UPLOAD_KEYSTORE="${entered:-$current}"
+        else
+            read -r -p "Upload keystore path: " KRATKOZA_UPLOAD_KEYSTORE
+        fi
+    fi
+    [ -n "${KRATKOZA_UPLOAD_KEYSTORE:-}" ] || fail "no keystore given" \
+        "Set KRATKOZA_UPLOAD_KEYSTORE, or run this from a terminal so it can ask."
+
+    # ~ is the shell's, not the filesystem's; a typed path keeps it literal.
+    KRATKOZA_UPLOAD_KEYSTORE="${KRATKOZA_UPLOAD_KEYSTORE/#\~/$HOME}"
+    [ -f "$KRATKOZA_UPLOAD_KEYSTORE" ] || fail "keystore not found: $KRATKOZA_UPLOAD_KEYSTORE"
+
+    if [ -t 0 ]; then
+        current="${KRATKOZA_UPLOAD_KEY_ALIAS:-kratkoza}"
+        read -r -p "Key alias [$current]: " entered
+        KRATKOZA_UPLOAD_KEY_ALIAS="${entered:-$current}"
+    fi
+    [ -n "${KRATKOZA_UPLOAD_KEY_ALIAS:-}" ] || fail "no key alias given"
+
+    if [ -t 0 ]; then
+        read -r -s -p "Keystore password: " KRATKOZA_UPLOAD_STORE_PASSWORD
+        echo
+    fi
+    [ -n "${KRATKOZA_UPLOAD_STORE_PASSWORD:-}" ] || fail "no keystore password given"
+
+    if [ -t 0 ]; then
+        read -r -s -p "Key password [Enter = keystore password]: " entered
+        echo
+        KRATKOZA_UPLOAD_KEY_PASSWORD="${entered:-$KRATKOZA_UPLOAD_STORE_PASSWORD}"
+    fi
+    KRATKOZA_UPLOAD_KEY_PASSWORD="${KRATKOZA_UPLOAD_KEY_PASSWORD:-$KRATKOZA_UPLOAD_STORE_PASSWORD}"
+
+    # Gradle reads a project property of its own name from ORG_GRADLE_PROJECT_<name>, so the
+    # signingConfig in app/build.gradle.kts picks these up without any of them touching a file.
+    export ORG_GRADLE_PROJECT_PRZUNK_UPLOAD_STORE_FILE="$KRATKOZA_UPLOAD_KEYSTORE"
+    export ORG_GRADLE_PROJECT_PRZUNK_UPLOAD_KEY_ALIAS="$KRATKOZA_UPLOAD_KEY_ALIAS"
+    export ORG_GRADLE_PROJECT_PRZUNK_UPLOAD_STORE_PASSWORD="$KRATKOZA_UPLOAD_STORE_PASSWORD"
+    export ORG_GRADLE_PROJECT_PRZUNK_UPLOAD_KEY_PASSWORD="$KRATKOZA_UPLOAD_KEY_PASSWORD"
+}
 
 version_name="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
 version_code="$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
 artifact="$DIST_DIR/kratkoza-${version_name:-unknown}-${version_code:-0}.aab"
 
-echo "🔨 Kratkoza — Play bundle ${version_name:-?} (${version_code:-?})…"
+echo "🔨 Kratkoza — Play bundle ${version_name:-?} (${version_code:-?})"
 
-# Play rejects a versionCode it has already seen. The file being here means this code was built
-# before — a rebuild is fine, a forgotten bump is not, and only the author knows which.
+# Play rejects a versionCode it has already seen. This file being here means the code was built
+# before — a rebuild is fine, a forgotten bump is not, and only the author can tell which.
 if [ -f "$artifact" ]; then
     echo "ℹ️  A bundle for versionCode ${version_code} already exists and will be replaced."
     echo "   If that code has been uploaded, bump it in app/build.gradle.kts first."
 fi
 
+collect_signing_configuration
+echo "🔑 $KRATKOZA_UPLOAD_KEYSTORE (alias ${KRATKOZA_UPLOAD_KEY_ALIAS}) — passwords not stored"
+echo
+
+started_at=$(date +%s)
 if ! ./gradlew :app:bundleRelease --no-daemon --console=plain "$@" > "$LOG_FILE" 2>&1; then
     echo "❌ Build failed. What went wrong:"
     if grep -aq '^\* What went wrong:' "$LOG_FILE"; then
@@ -50,55 +105,38 @@ if ! ./gradlew :app:bundleRelease --no-daemon --console=plain "$@" > "$LOG_FILE"
     exit 1
 fi
 
-if [ ! -f "$BUILD_AAB" ]; then
-    echo "❌ Build reported success but produced no bundle at $BUILD_AAB"
-    exit 1
+[ -f "$BUILD_AAB" ] || fail "build reported success but produced no bundle at $BUILD_AAB"
+
+# A bundle carries a JAR signature, not an APK one, so apksigner cannot read it.
+JARSIGNER="$JAVA_HOME/bin/jarsigner"
+[ -x "$JARSIGNER" ] || fail "jarsigner is unavailable in $JAVA_HOME"
+
+if ! "$JARSIGNER" -J-Duser.language=en -verify "$BUILD_AAB" > "$LOG_FILE" 2>&1 ||
+    ! grep -Fq "jar verified." "$LOG_FILE"; then
+    fail "the bundle carries no verifiable signature" "Full log: $LOG_FILE"
 fi
 
-# A bundle is JAR-signed, not APK-signed, so apksigner cannot read it. keytool can.
-echo
-echo "🔎 Signature"
-signer=""
-if [ -x "$JAVA_HOME/bin/keytool" ]; then
-    signer="$("$JAVA_HOME/bin/keytool" -printcert -jarfile "$BUILD_AAB" 2>/dev/null \
-        | grep -m1 'Owner:' || true)"
-fi
+signer="$("$JAVA_HOME/bin/keytool" -printcert -jarfile "$BUILD_AAB" 2>/dev/null \
+    | grep -m1 'Owner:' || true)"
+[ -n "$signer" ] || fail "no certificate found in the bundle"
 
-if [ -z "$signer" ]; then
-    echo "   ❌ No certificate found. Play will not accept an unsigned bundle."
-    exit 1
-fi
-
+# The hard rule, and the reason this script is not build-kratkoza-release.sh with a different task.
+# For an APK the debug fallback earns its place: an unsigned APK cannot be sideloaded at all. For a
+# bundle headed to Play it buys nothing but a rejected upload discovered later instead of now.
 if echo "$signer" | grep -qi 'CN=Android Debug'; then
-    echo "   ❌ DEBUG KEY — Play will reject this bundle."
-    echo "       $signer"
-    echo
-    echo "   Create an upload key once:"
-    echo "     \$JAVA_HOME/bin/keytool -genkeypair -v \\"
-    echo "       -keystore ~/keys/kratkoza-upload.jks -storetype JKS \\"
-    echo "       -keyalg RSA -keysize 4096 -validity 10000 -alias kratkoza"
-    echo
-    echo "   Then add PRZUNK_UPLOAD_* to ~/.gradle/gradle.properties (see the header of this file)."
-    echo
-    # Deliberately not copied into dist/: an artifact that cannot be uploaded should not be sitting
-    # in the folder the uploadable ones live in.
-    if [ "${KRATKOZA_ALLOW_DEBUG_BUNDLE:-0}" = "1" ]; then
-        debug_artifact="$DIST_DIR/kratkoza-${version_name}-${version_code}-DEBUGKEY-DO-NOT-UPLOAD.aab"
-        mkdir -p "$DIST_DIR"
-        cp "$BUILD_AAB" "$debug_artifact"
-        echo "   ⚠️  KRATKOZA_ALLOW_DEBUG_BUNDLE=1 — kept for pipeline testing only:"
-        echo "   📦 $debug_artifact ($(du -h "$debug_artifact" | cut -f1))"
-    fi
-    exit 1
+    fail "DEBUG KEY — Play will reject this bundle." \
+        "$signer" \
+        "" \
+        "Gradle fell back to the debug key, which means it did not see the credentials." \
+        "Check the alias exists in that keystore: keytool -list -keystore <path>"
 fi
 
 mkdir -p "$DIST_DIR"
 cp "$BUILD_AAB" "$artifact"
 
-echo "   ✅ Upload key."
-echo "       $signer"
-echo
+echo "🔎 $signer"
 echo "✅ OK in $(($(date +%s) - started_at))s"
 echo "📦 $artifact ($(du -h "$artifact" | cut -f1))"
+command -v sha256sum >/dev/null 2>&1 && sha256sum "$artifact"
 echo
 echo "Upload at https://play.google.com/console → Kratkoza → Testing → Closed testing."

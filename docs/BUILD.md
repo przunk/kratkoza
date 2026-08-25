@@ -94,24 +94,38 @@ Wygenerowanie klucza (raz):
 ./scripts/build-kratkoza-bundle.sh
 ```
 
-Buduje `:app:bundleRelease`, weryfikuje podpis i kładzie artefakt w `dist/` jako
-`kratkoza-<versionName>-<versionCode>.aab`.
+Pyta o wszystko na bieżąco — ścieżkę do keystore'a, alias, hasła — i **nigdzie ich nie zapisuje**:
+ani w repozytorium, ani w `~/.gradle/gradle.properties`, ani w historii powłoki. Trafiają do
+Gradle'a przez zmienne `ORG_GRADLE_PROJECT_*` (tak Gradle czyta właściwość projektu ze środowiska)
+i żyją tyle, co proces skryptu.
+
+Artefakt ląduje w `dist/` jako `kratkoza-<versionName>-<versionCode>.aab`, razem z sumą SHA-256.
+
+Bez terminala — na przykład w CI — te same wartości czyta ze zmiennych:
+
+```bash
+KRATKOZA_UPLOAD_KEYSTORE=/path/to/kratkoza-upload.jks \
+KRATKOZA_UPLOAD_KEY_ALIAS=kratkoza \
+KRATKOZA_UPLOAD_STORE_PASSWORD=… \
+KRATKOZA_UPLOAD_KEY_PASSWORD=… \
+./scripts/build-kratkoza-bundle.sh
+```
 
 Trzy rzeczy działają tu inaczej niż w skrypcie APK:
 
 - **Twarde przerwanie przy kluczu debug.** Przy APK fallback na klucz debug ma sens — niepodpisanego
   APK nie da się w ogóle zainstalować. Przy bundlu na Play jest bezużyteczny: upload i tak zostanie
-  odrzucony, a jedyne, co fallback kupuje, to dowiedzenie się o tym później zamiast teraz. Artefakt
-  z kluczem debug **nie trafia** do `dist/`, żeby nie leżał obok tych, które da się wysłać.
-- **Weryfikacja przez `keytool`, nie `apksigner`.** Bundle jest podpisany jak JAR, nie jak APK,
-  więc apksigner go nie przeczyta.
+  odrzucony, a jedyne, co fallback kupuje, to dowiedzenie się o tym później zamiast teraz.
+  Certyfikat jest odczytywany z **gotowego pliku** — konfiguracja Gradle'a może wyglądać poprawnie
+  i mimo to zadziałać fallback.
+- **Weryfikacja przez `jarsigner` i `keytool`, nie `apksigner`.** Bundle niesie podpis JAR-a, nie
+  APK-a, więc apksigner go nie przeczyta.
 - **Pilnowanie `versionCode`.** Play odrzuca kod wersji, który już widział. Skrypt mówi, gdy bundle
-  o tym kodzie już istnieje w `dist/` — przebudowa jest w porządku, zapomniane podbicie nie.
+  o tym kodzie już leży w `dist/` — przebudowa jest w porządku, zapomniane podbicie nie.
 
-Do sprawdzenia samego przebiegu bez klucza: `KRATKOZA_ALLOW_DEBUG_BUNDLE=1` zachowa artefakt pod
-nazwą z dopiskiem `DEBUGKEY-DO-NOT-UPLOAD` i **nadal zakończy się błędem**.
+### Klucz upload
 
-### Klucz upload — jednorazowo
+Jeśli go jeszcze nie ma:
 
 ```bash
 /mnt/workspace/.tooling/jdk/bin/keytool -genkeypair -v \
@@ -119,11 +133,9 @@ nazwą z dopiskiem `DEBUGKEY-DO-NOT-UPLOAD` i **nadal zakończy się błędem**.
   -keyalg RSA -keysize 4096 -validity 10000 -alias kratkoza
 ```
 
-Potem `PRZUNK_UPLOAD_*` w `~/.gradle/gradle.properties` (patrz sekcja o podpisywaniu wyżej).
-
 **Kopia zapasowa keystore'a jest obowiązkowa.** Utrata pliku albo hasła oznacza, że nie da się już
-zaktualizować aplikacji pod tym samym `applicationId` — trzeba prosić Google o reset klucza upload
-albo publikować od nowa jako inną aplikację.
+zaktualizować aplikacji pod tym samym `applicationId` — zostaje prośba do Google o reset klucza
+upload albo publikacja od nowa jako inna aplikacja.
 
 ## Testy
 
