@@ -1,13 +1,12 @@
 package com.przunk.kratkoza.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,21 +60,21 @@ fun HomeScreen(
                     onClick = { onContinue(mostRecent.puzzleId) },
                     modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT_DP.dp),
                 ) {
-                    Icon(painterResource(R.drawable.ic_play), contentDescription = null)
-                    Spacer(Modifier.width(16.dp))
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(R.string.home_continue),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.home_continue_details,
-                                stringResource(mostRecent.difficulty.labelRes()),
-                                formatDuration(context, mostRecent.elapsedMillis),
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                    MenuButtonContent(painterResource(R.drawable.ic_play)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.home_continue),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.home_continue_details,
+                                    stringResource(mostRecent.difficulty.labelRes()),
+                                    formatDuration(context, mostRecent.elapsedMillis),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                     }
                 }
             }
@@ -111,21 +110,40 @@ fun HomeScreen(
  * carries a null content description rather than repeating the label to a screen reader.
  */
 @Composable
-private fun MenuButton(label: String, painter: Painter, onClick: () -> Unit) =
-    MenuButtonRow(label, onClick) { Icon(painter = painter, contentDescription = null) }
-
-@Composable
-private fun MenuButtonRow(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
+private fun MenuButton(label: String, painter: Painter, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT_DP.dp),
     ) {
-        icon()
-        // A fixed gap after the icon rather than a centred row: the labels differ in length, and
-        // centring each one separately would leave the icons dancing about down the menu.
-        Spacer(Modifier.width(16.dp))
-        Text(text = label, modifier = Modifier.weight(1f))
+        MenuButtonContent(painter) { Text(label) }
     }
 }
+
+/**
+ * Icon pinned to the left edge, label dead centre.
+ *
+ * Laying these out as one centred row instead would put the *label* off-centre by half the icon's
+ * width — which is what made the Continue button look nudged to the right. Centring each label on
+ * its own and letting the icons follow would leave the icons stepping about down the menu. Placing
+ * them independently is what gets both: a tidy column of icons and every label on the screen's
+ * centre line.
+ *
+ * The label keeps a gap wide enough for the icon on *both* sides, so a long translation runs out of
+ * room symmetrically rather than sliding under the icon.
+ */
+@Composable
+private fun MenuButtonContent(painter: Painter, label: @Composable () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Icon(
+            painter = painter,
+            contentDescription = null,
+            modifier = Modifier.align(Alignment.CenterStart),
+        )
+        Box(modifier = Modifier.padding(horizontal = LABEL_INSET_DP.dp)) { label() }
+    }
+}
+
+/** Clear of the icon on either side, so a centred label never slides under it. */
+private const val LABEL_INSET_DP = 40
 
 private const val BUTTON_HEIGHT_DP = 60

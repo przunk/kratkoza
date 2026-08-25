@@ -20,6 +20,7 @@ i angielski.
 | [BUILD.md](BUILD.md) | jak zbudować, przetestować i podpisać |
 | [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) | decyzje, których `project.md` świadomie nie rozstrzyga — z wariantami do ustalenia |
 | [STATUS.md](STATUS.md) | co jest zrobione, czego jeszcze nie ma |
+| [WISHLIST.md](WISHLIST.md) | pomysły spoza specyfikacji, czekające na decyzję |
 
 ## Szybki start
 
