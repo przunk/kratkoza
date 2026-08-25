@@ -35,7 +35,8 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Wymazywanie (§11)
 - [x] Licznik pozostałych cyfr, opcjonalny (§19)
 - [x] Podpowiedź 8/9, opcjonalna, domyślnie OFF (§17)
-- [x] Subtelne animacje wpisania cyfry i ukończenia wiersza / kolumny / bloku (§36)
+- [x] Subtelne animacje wpisania cyfry, ukończenia wiersza / kolumny / bloku oraz błędu (§36)
+- [x] Obracająca się grafika 3×3 na ekranie głównym
 - [x] Timer, pauza ręczna i przy przejściu w tło, zasłonięcie planszy (§20)
 - [x] Automatyczny zapis po każdym istotnym ruchu (§21)
 

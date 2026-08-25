@@ -2,6 +2,7 @@ package com.przunk.kratkoza.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,13 +53,23 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         ) {
+            // Takes whatever height the menu leaves and no more, so a short screen keeps every
+            // entry reachable and simply gets less of the artwork.
+            RotatingBoardArt(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            )
+
             val mostRecent = state.mostRecent
             if (mostRecent != null) {
                 Button(
                     onClick = { onContinue(mostRecent.puzzleId) },
-                    modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT_DP.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(BUTTON_HEIGHT_DP.dp)
+                        .padding(top = MENU_GAP_DP.dp),
                 ) {
                     MenuButtonContent(painterResource(R.drawable.ic_play)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -99,6 +110,7 @@ fun HomeScreen(
                 painter = painterResource(R.drawable.ic_settings),
                 onClick = onSettings,
             )
+            Spacer(Modifier.height(BOTTOM_GAP_DP.dp))
         }
     }
 }
@@ -113,7 +125,10 @@ fun HomeScreen(
 private fun MenuButton(label: String, painter: Painter, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT_DP.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BUTTON_HEIGHT_DP.dp)
+            .padding(top = MENU_GAP_DP.dp),
     ) {
         MenuButtonContent(painter) { Text(label) }
     }
@@ -147,3 +162,5 @@ private fun MenuButtonContent(painter: Painter, label: @Composable () -> Unit) {
 private const val LABEL_INSET_DP = 40
 
 private const val BUTTON_HEIGHT_DP = 60
+private const val MENU_GAP_DP = 12
+private const val BOTTOM_GAP_DP = 24

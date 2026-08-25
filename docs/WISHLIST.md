@@ -10,6 +10,9 @@ czego w specyfikacji w ogóle nie ma.
 
 ## 1. Grafika albo powolna animacja nad menu
 
+**Zrobione 2026-08-26 — wariant B.** Obracający się w przestrzeni kwadrat 3×3 z cyframi,
+które pojawiają się i znikają. Zostaje niżej jako zapis rozważanych wariantów.
+
 **Zgłoszone:** 2026-08-25.
 
 Ekran główny jest czysty, ale pusty nad przyciskami. Pomysł: wstawić tam grafikę albo
@@ -39,6 +42,8 @@ nie jest widoczny. **A**, jeśli priorytetem jest spokój.
 ---
 
 ## 2. Subtelne potrząśnięcie planszą przy błędzie
+
+**Zrobione 2026-08-26 — wariant A.** Drgnięcie samej komórki, nie całej planszy.
 
 **Zgłoszone:** 2026-08-25.
 
