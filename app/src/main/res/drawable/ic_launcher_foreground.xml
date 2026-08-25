@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A 3x3 sudoku grid with one filled cell. Drawn inside the 72dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,34 h40 v40 h-40 z" />
+    <path
+        android:fillColor="#1F3A5F"
+        android:pathData="M37,37 h34 v34 h-34 z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47.5,37 h1.5 v34 h-1.5 z M59,37 h1.5 v34 h-1.5 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,47.5 h34 v1.5 h-34 z M37,59 h34 v1.5 h-34 z" />
+
+    <path
+        android:fillColor="#7FB2E5"
+        android:pathData="M60.5,48.5 h10.5 v10.5 h-10.5 z" />
+</vector>
