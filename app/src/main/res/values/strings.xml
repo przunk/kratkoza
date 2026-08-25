@@ -22,6 +22,9 @@
     <string name="new_game_title">New game</string>
     <string name="new_game_choose_difficulty">Choose a difficulty</string>
     <string name="new_game_generating">Preparing a board…</string>
+    <string name="new_game_failed_title">Could not prepare a board</string>
+    <string name="new_game_failed_message">Generating this difficulty did not succeed. Please try again.</string>
+    <string name="new_game_failed_dismiss">OK</string>
 
     <!-- Game -->
     <string name="game_time">Time</string>

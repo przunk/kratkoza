@@ -37,15 +37,27 @@ class NewGameViewModel(private val gameRepository: GameRepository) : ViewModel()
         _uiState.value = NewGameUiState(isGenerating = true)
 
         viewModelScope.launch {
-            try {
+            _uiState.value = try {
                 val game = gameRepository.startNewGame(difficulty)
                 _createdPuzzleId.send(game.state.puzzle.id)
-            } finally {
-                _uiState.value = NewGameUiState(isGenerating = false)
+                NewGameUiState()
+            } catch (_: IllegalStateException) {
+                // The generator gives up after a bounded number of attempts rather than searching
+                // forever. Measured hit rates make that all but impossible, but "all but" is not
+                // "never", and an uncaught throw here would take the app down over a retryable
+                // failure.
+                NewGameUiState(failed = true)
             }
         }
+    }
+
+    fun dismissFailure() {
+        _uiState.value = NewGameUiState()
     }
 }
 
 @Immutable
-data class NewGameUiState(val isGenerating: Boolean = false)
+data class NewGameUiState(
+    val isGenerating: Boolean = false,
+    val failed: Boolean = false,
+)

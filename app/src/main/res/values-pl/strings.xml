@@ -22,6 +22,9 @@
     <string name="new_game_title">Nowa gra</string>
     <string name="new_game_choose_difficulty">Wybierz poziom trudności</string>
     <string name="new_game_generating">Przygotowuję planszę…</string>
+    <string name="new_game_failed_title">Nie udało się przygotować planszy</string>
+    <string name="new_game_failed_message">Wygenerowanie planszy na tym poziomie się nie powiodło. Spróbuj jeszcze raz.</string>
+    <string name="new_game_failed_dismiss">OK</string>
 
     <!-- Gra -->
     <string name="game_time">Czas</string>

@@ -46,8 +46,19 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] Testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
-      kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModel gry
+- [x] 146 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+      kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
+- [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
+
+## Czego *nie* zweryfikowano
+
+Aplikacja nie została uruchomiona na urządzeniu ani emulatorze — w tym środowisku WSL nie ma
+emulatora, a `.tooling/android-sdk` nie zawiera obrazów systemu. Zweryfikowane są: kompilacja,
+lint, testy jednostkowe całej logiki i obu ViewModeli oraz zbudowanie podpisanego APK.
+Zachowanie samego UI na ekranie — układ, czytelność planszy, dotyk — wymaga wgrania APK
+i sprawdzenia ręcznie.
+
+Testy instrumentacyjne Compose (`technical_requirements.md` §15) też czekają na urządzenie.
 
 ## Świadomie poza pierwszym etapem
 
