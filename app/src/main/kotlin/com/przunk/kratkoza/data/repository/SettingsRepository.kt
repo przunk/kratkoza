@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.przunk.kratkoza.domain.settings.AppLanguage
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.settings.ThemeMode
+import com.przunk.kratkoza.util.AppLocales
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -26,7 +27,8 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
  */
 class SettingsRepository(context: Context) {
 
-    private val dataStore = context.settingsDataStore
+    private val appContext = context.applicationContext ?: context
+    private val dataStore = appContext.settingsDataStore
 
     val settings: Flow<GameSettings> = dataStore.data
         // A DataStore read can fail on a corrupt file. Falling back to defaults keeps the app
@@ -37,9 +39,15 @@ class SettingsRepository(context: Context) {
                 themeMode = preferences[THEME_MODE]
                     ?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
                     ?: GameSettings.DEFAULT.themeMode,
-                language = preferences[LANGUAGE]
-                    ?.let(AppLanguage::fromStorageName)
-                    ?: GameSettings.DEFAULT.language,
+                language = if (AppLocales.handledByApp) {
+                    preferences[LANGUAGE]
+                        ?.let(AppLanguage::fromStorageName)
+                        ?: GameSettings.DEFAULT.language
+                } else {
+                    AppLocales.fromLocaleManager(appContext)
+                        ?: preferences[LANGUAGE]?.let(AppLanguage::fromStorageName)
+                        ?: GameSettings.DEFAULT.language
+                },
                 autoRemoveCandidates = preferences[AUTO_REMOVE_CANDIDATES]
                     ?: GameSettings.DEFAULT.autoRemoveCandidates,
                 highlightSameDigits = preferences[HIGHLIGHT_SAME_DIGITS]
@@ -55,6 +63,9 @@ class SettingsRepository(context: Context) {
 
     suspend fun setLanguage(language: AppLanguage) {
         dataStore.edit { it[LANGUAGE] = language.name }
+        if (!AppLocales.handledByApp) {
+            AppLocales.applyToSystem(appContext, language)
+        }
     }
 
     suspend fun setAutoRemoveCandidates(enabled: Boolean) {

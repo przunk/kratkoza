@@ -1,5 +1,8 @@
 package com.przunk.kratkoza.ui.settings
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -29,6 +33,7 @@ import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.settings.AppLanguage
 import com.przunk.kratkoza.domain.settings.ThemeMode
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
+import com.przunk.kratkoza.util.AppLocales
 
 @Composable
 fun SettingsScreen(
@@ -37,6 +42,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     KratkozaScaffold(
         title = stringResource(R.string.settings_title),
@@ -71,9 +77,42 @@ fun SettingsScreen(
                     // and even above it the picker is buried in system settings, so the app carries
                     // its own.
                     Column(modifier = Modifier.selectableGroup()) {
-                        LanguageOption(AppLanguage.SYSTEM, R.string.settings_language_system, settings.language, viewModel::setLanguage)
-                        LanguageOption(AppLanguage.ENGLISH, R.string.settings_language_english, settings.language, viewModel::setLanguage)
-                        LanguageOption(AppLanguage.POLISH, R.string.settings_language_polish, settings.language, viewModel::setLanguage)
+                        LanguageOption(
+                            language = AppLanguage.SYSTEM,
+                            labelRes = R.string.settings_language_system,
+                            selected = settings.language,
+                            onSelect = { language ->
+                                viewModel.setLanguage(language) {
+                                    if (AppLocales.handledByApp) {
+                                        context.findActivity()?.recreate()
+                                    }
+                                }
+                            },
+                        )
+                        LanguageOption(
+                            language = AppLanguage.ENGLISH,
+                            labelRes = R.string.settings_language_english,
+                            selected = settings.language,
+                            onSelect = { language ->
+                                viewModel.setLanguage(language) {
+                                    if (AppLocales.handledByApp) {
+                                        context.findActivity()?.recreate()
+                                    }
+                                }
+                            },
+                        )
+                        LanguageOption(
+                            language = AppLanguage.POLISH,
+                            labelRes = R.string.settings_language_polish,
+                            selected = settings.language,
+                            onSelect = { language ->
+                                viewModel.setLanguage(language) {
+                                    if (AppLocales.handledByApp) {
+                                        context.findActivity()?.recreate()
+                                    }
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -190,4 +229,10 @@ private fun SwitchRow(
         }
         Switch(checked = checked, onCheckedChange = null, modifier = Modifier.padding(start = 12.dp))
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

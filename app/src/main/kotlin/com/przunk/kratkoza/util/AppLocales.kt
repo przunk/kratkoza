@@ -29,6 +29,18 @@ object AppLocales {
     val handledByApp: Boolean get() = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
 
     /**
+     * Reads the active per-app locale from [LocaleManager] on API 33+.
+     */
+    fun fromLocaleManager(context: Context): AppLanguage? {
+        if (handledByApp) return null
+        val manager = context.getSystemService(LocaleManager::class.java) ?: return null
+        val locales = manager.applicationLocales
+        if (locales.isEmpty) return AppLanguage.SYSTEM
+        val primaryTag = locales[0].toLanguageTag()
+        return AppLanguage.entries.firstOrNull { it.tag != null && primaryTag.startsWith(it.tag) }
+    }
+
+    /**
      * Hands the choice to the platform on API 33+. No-op below that, where [wrap] does the work.
      *
      * Safe to call with the value already set: the platform ignores a no-change write, so this does
@@ -61,6 +73,8 @@ object AppLocales {
     }
 
     /** The language [context] is currently rendering in, as one of the app's own choices. */
-    fun currentOf(context: Context): String =
-        context.resources.configuration.locales[0].language
+    fun currentOf(context: Context): String {
+        val locales = context.resources.configuration.locales
+        return if (locales.isEmpty) "" else locales[0].language
+    }
 }

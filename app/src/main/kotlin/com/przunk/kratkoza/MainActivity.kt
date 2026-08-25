@@ -8,10 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.domain.settings.AppLanguage
 import com.przunk.kratkoza.domain.settings.GameSettings
@@ -52,17 +50,6 @@ class MainActivity : ComponentActivity() {
             val settings by container.settingsRepository.settings
                 .collectAsStateWithLifecycle(initialValue = GameSettings.DEFAULT)
 
-            val context = LocalContext.current
-            LaunchedEffect(settings.language) {
-                if (AppLocales.handledByApp) {
-                    // The locale is baked into this activity's base context, so a change can only
-                    // take effect by building a new one.
-                    if (!rendersIn(settings.language)) recreate()
-                } else {
-                    AppLocales.applyToSystem(context, settings.language)
-                }
-            }
-
             KratkozaTheme(themeMode = settings.themeMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -74,18 +61,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** True when this activity is already showing [language]; guards against a recreate loop. */
-    private fun rendersIn(language: AppLanguage): Boolean {
-        val tag = language.tag ?: return AppLocales.currentOf(this) == systemLanguage()
-        return AppLocales.currentOf(this) == tag
-    }
-
-    private fun systemLanguage(): String =
-        resources.configuration.locales.let { if (it.isEmpty) "" else it[0].language }
-
     private fun storedLanguage(context: Context): AppLanguage = runBlocking {
-        val application = context.applicationContext as? KratkozaApplication
-            ?: return@runBlocking AppLanguage.SYSTEM
-        application.container.settingsRepository.settings.first().language
+        com.przunk.kratkoza.data.repository.SettingsRepository(context).settings.first().language
     }
 }

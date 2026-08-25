@@ -25,8 +25,12 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
     }
 
-    fun setLanguage(language: AppLanguage) {
-        viewModelScope.launch { settingsRepository.setLanguage(language) }
+    fun setLanguage(language: AppLanguage, onApplied: () -> Unit = {}) {
+        if (language == settings.value.language) return
+        viewModelScope.launch {
+            settingsRepository.setLanguage(language)
+            onApplied()
+        }
     }
 
     fun setAutoRemoveCandidates(enabled: Boolean) {
