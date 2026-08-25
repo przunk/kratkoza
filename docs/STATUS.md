@@ -114,84 +114,21 @@ część osób nie odróżni. W trybie wysokiego kontrastu powinno wracać na **
 jasnością.
 
 
-### Podpowiedź 8/9 niedostępna w grach rankingowych
+### Wynik rankingowy Daily
 
-**Zgłoszone:** 2026-08-25. `project.md` §17 kończy się zdaniem: „Funkcja 8/9 jest niedostępna
-w publicznie rankingowanych rozgrywkach Daily."
+**Do zrobienia razem z Daily.** `project.md` §29 opisuje karę za błędy wprost:
+`wynik × 0.7^liczba_błędów` — trzy błędy to już 34% wyniku. Wzór na sam wynik bazowy zależny od
+czasu jest w §39 otwarty.
 
-Dziś nie ma czego blokować — nie ma Daily ani rankingu — więc kodu celowo nie ruszono. Do zrobienia
-**razem z Daily**, i to strukturalnie, nie przez pamiętanie: podpowiedź ma być liczona wyłącznie
-gdy gra nie kwalifikuje się do rankingu. Pole `rankedEligible` istnieje już w save'ie i w bazie,
-więc warunek ma jedno miejsce.
+To druga połowa decyzji podjętej przy XP. Warto trzymać obie obok siebie, bo łatwo je pomylić:
 
-To samo dotyczy każdej przyszłej pomocy z §18 („Pokaż następną cyfrę").
-
-### XP i poziomy gracza
-
-**Zgłoszone:** 2026-08-25. `project.md` §32 wymaga XP zależnego co najmniej od poziomu trudności
-i ukończenia gry; §39 zostawia otwarty dokładny wzór. Ustalona zasada: **im wyższy poziom gracza,
-tym trudniej go podbić.**
-
-Twarde ograniczenie z §32, którego nie wolno naruszyć: XP **nigdy** nie może blokować poziomów
-trudności, kandydatów, ustawień ani normalnej gry. Poziom gracza jest odznaką, nie bramką.
-
-**Ustalone 2026-08-25: XP i wynik rankingowy to dwie różne rzeczy i liczą się inaczej.**
-
-| | XP (§32) | Wynik rankingowy (§29) |
+| | XP (§32) — **zrobione** | Wynik rankingowy (§29) — **do zrobienia** |
 |---|---|---|
 | za co | granie i ukończenie partii | konkretna plansza Daily |
-| błędy | **nie obniżają** | obniżają mocno: `wynik × 0.7^liczba_błędów` |
+| błędy | **nie obniżają** | obniżają mocno: `× 0.7^błędy` |
 | po co | postęp gracza, odznaka | uczciwe porównanie na tej samej planszy |
 
-Powód rozdzielenia: §32 zabrania sztucznego grindu, więc XP ma płynąć za samo granie. Kara za
-zgadywanie należy do rankingu, gdzie §29 chce jej mocno — trzy błędy to już 34% wyniku.
-
-Kolumny `xpEarned` i `score` w `game_history` czekają puste. Do ustalenia przed implementacją:
-dokładna krzywa progów poziomów.
-
-### Palety kolorystyczne i tryb wysokiego kontrastu
-
-**Zgłoszone:** 2026-08-25. `project.md` §9 i §35 wymagają wyboru palety oraz opcjonalnego trybu
-wysokiego kontrastu; §39 zostawia *zestaw* palet do ustalenia.
-
-Infrastruktura jest już gotowa i to nie przypadek: `BoardColors` siedzi celowo **poza**
-`ColorScheme` Material 3, więc przemalowanie planszy i przemalowanie reszty UI to niezależne
-decyzje. Do zrobienia: przełącznik palety w Ustawieniach, wartość w DataStore i same palety.
-
-Tryb wysokiego kontrastu to ta sama warstwa i naturalne miejsce na jedną konkretną decyzję:
-podświetlanie takich samych cyfr działa dziś przez **kolor cyfry**, a barwy niebieskiej i morskiej
-część osób nie odróżni. W trybie wysokiego kontrastu powinno wracać na **tło**, które czyta się
-jasnością.
-
-
-### Skrypt budujący AAB na Google Play
-
-**Zgłoszone:** 2026-08-25. Przygotowanie do wydania alpha.
-
-Wzorzec: `/mnt/workspace/TaskFlow/scripts/build-play-bundle.sh`. Robi tam:
-`:app:bundleRelease` → podpisanie kluczem upload przez `jarsigner` z JDK → artefakt
-ze stemplem czasu do katalogu wyjściowego, z interaktywnym pytaniem o ścieżkę keystore
-i hasło, gdy nie ma ich w środowisku.
-
-Do zrobienia jako `scripts/build-kratkoza-bundle.sh`, w stylu pozostałych skryptów Kratkozy
-(krótki output, szczegóły dopiero przy porażce):
-
-- `:app:bundleRelease`, artefakt do `dist/` jako `kratkoza-<versionName>-<versionCode>.aab`
-- odczyt podpisu z **gotowego pliku**, nie z konfiguracji Gradle'a — tak samo jak robi to
-  `build-kratkoza-release.sh`; AAB podpisany kluczem debug zostanie odrzucony przy uploadzie,
-  a błąd jest inaczej niewidoczny do momentu odrzucenia
-- **twarde przerwanie**, gdy podpis nie jest kluczem upload. Przy APK fallback na klucz debug
-  ratuje wgrywanie na telefon i ma sens; przy bundlu przeznaczonym na Play jest bezużyteczny
-- sprawdzenie, czy `versionCode` jest wyższy niż ostatnio wysłany — Play odrzuca powtórzony
-
-Już gotowe i istotne dla AAB: `bundle { language { enableSplit = false } }` w
-`app/build.gradle.kts`. Bez tego Play dzieliłby zasoby po języku i przełącznik języka w
-aplikacji byłby atrapą — na telefonie po angielsku polskie stringi nigdy by się nie pobrały.
-
-Do ustalenia przed pierwszym wysłaniem: keystore upload (dziś nie ma żadnego, patrz
-[BUILD.md](BUILD.md)), `applicationId`, oraz czy `isMinifyEnabled` ma zostać wyłączone.
-
----
+Kolumna `score` w `game_history` czeka pusta.
 
 ## Wymaga decyzji
 
