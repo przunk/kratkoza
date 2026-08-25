@@ -53,23 +53,27 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(MENU_GAP_DP.dp),
         ) {
-            // Takes whatever height the menu leaves and no more, so a short screen keeps every
-            // entry reachable and simply gets less of the artwork.
-            RotatingBoardArt(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            )
+            // The artwork sits in the space above the menu and hangs from the top of it, so it
+            // stays clear of the buttons instead of crowding down onto them. The weights leave the
+            // menu near the middle — a little below it, not pushed to the bottom.
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(SPACE_ABOVE_MENU),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                RotatingBoardArt(modifier = Modifier.fillMaxWidth())
+            }
 
             val mostRecent = state.mostRecent
             if (mostRecent != null) {
+                // Taller than the rest: it carries two lines, and a height that fits one would
+                // clip the second.
                 Button(
                     onClick = { onContinue(mostRecent.puzzleId) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(BUTTON_HEIGHT_DP.dp)
-                        .padding(top = MENU_GAP_DP.dp),
+                        .height(CONTINUE_HEIGHT_DP.dp),
                 ) {
                     MenuButtonContent(painterResource(R.drawable.ic_play)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -110,7 +114,8 @@ fun HomeScreen(
                 painter = painterResource(R.drawable.ic_settings),
                 onClick = onSettings,
             )
-            Spacer(Modifier.height(BOTTOM_GAP_DP.dp))
+
+            Spacer(Modifier.weight(SPACE_BELOW_MENU))
         }
     }
 }
@@ -125,10 +130,7 @@ fun HomeScreen(
 private fun MenuButton(label: String, painter: Painter, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(BUTTON_HEIGHT_DP.dp)
-            .padding(top = MENU_GAP_DP.dp),
+        modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT_DP.dp),
     ) {
         MenuButtonContent(painter) { Text(label) }
     }
@@ -162,5 +164,12 @@ private fun MenuButtonContent(painter: Painter, label: @Composable () -> Unit) {
 private const val LABEL_INSET_DP = 40
 
 private const val BUTTON_HEIGHT_DP = 60
+
+/** Two lines of label plus the button's own padding; one line's height would clip the second. */
+private const val CONTINUE_HEIGHT_DP = 76
+
 private const val MENU_GAP_DP = 12
-private const val BOTTOM_GAP_DP = 24
+
+/** Slightly more room above the menu than below, so it sits a touch under the middle. */
+private const val SPACE_ABOVE_MENU = 1.25f
+private const val SPACE_BELOW_MENU = 0.9f

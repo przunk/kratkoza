@@ -37,7 +37,8 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * A 3x3 grid turning slowly in space above the menu, its digits fading in and out.
+ * A 3x3 grid turning slowly in space above the menu, its digits fading in and out, with sparks
+ * drifting up behind it.
  *
  * Decoration, and it behaves like it: no touch target, and hidden from TalkBack entirely — a screen
  * reader announcing nine drifting digits above the menu would be noise, not information.
@@ -74,10 +75,49 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
         label = "phase",
     )
 
-    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
-        val side = minOf(maxWidth * WIDTH_FRACTION, maxHeight)
+    val sparks = remember {
+        val random = Random(System.nanoTime() + 1)
+        List(SPARK_COUNT) {
+            Spark(
+                x = random.nextFloat(),
+                y = random.nextFloat(),
+                drift = random.nextFloat() * 2f - 1f,
+                rise = SPARK_MIN_RISE + random.nextFloat() * SPARK_RISE_RANGE,
+                radius = SPARK_MIN_RADIUS + random.nextFloat() * SPARK_RADIUS_RANGE,
+                speed = SPARK_MIN_SPEED + random.nextFloat() * SPARK_SPEED_RANGE,
+                offset = random.nextFloat(),
+            )
+        }
+    }
+
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+        val side = minOf(maxWidth * WIDTH_FRACTION, maxHeight, MAX_SIDE_DP.dp)
         if (side <= 0.dp) return@BoxWithConstraints
         val cell = side / Sudoku.BLOCK_SIZE
+
+        // Behind the plate, and drawn across the whole area rather than the square, so the sparks
+        // read as the room the board is turning in rather than as part of the board.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    for (spark in sparks) {
+                        val life = (phase * spark.speed + spark.offset).let { it - it.toInt() }
+                        // A bell: born from nothing, gone to nothing, brightest halfway up.
+                        val glow = 1f - abs(life * 2f - 1f)
+                        drawCircle(
+                            color = colors.enteredDigit,
+                            radius = spark.radius * size.minDimension * (1f - life * SPARK_SHRINK),
+                            center = Offset(
+                                x = (spark.x + spark.drift * life * SPARK_SWAY) * size.width,
+                                y = (spark.y - life * spark.rise) * size.height,
+                            ),
+                            alpha = glow * glow * SPARK_MAX_ALPHA,
+                        )
+                    }
+                }
+                .clearAndSetSemantics { },
+        )
 
         Column(
             modifier = Modifier
@@ -160,7 +200,10 @@ private const val PITCH_PERIOD_RATIO = 0.63f
 private const val PITCH_OFFSET = 1.1f
 private const val CAMERA_DISTANCE = 14f
 
-private const val WIDTH_FRACTION = 0.62f
+private const val WIDTH_FRACTION = 0.42f
+
+/** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
+private const val MAX_SIDE_DP = 180
 private const val GRID_STROKE_DP = 1f
 private const val GRID_ALPHA = 0.16f
 
@@ -169,3 +212,29 @@ private const val DIGIT_CYCLES = 7f
 private const val CELL_STAGGER = 0.37f
 private const val DIGIT_HEIGHT_FRACTION = 0.42f
 private const val DIGIT_MAX_ALPHA = 0.20f
+
+/**
+ * One drifting spark. Everything is a fraction of the drawing area, so the same description works
+ * at any size, and everything is fixed at composition — the motion comes from the shared phase, so
+ * the sparks stop with the rest of it when the app goes to the background.
+ */
+private data class Spark(
+    val x: Float,
+    val y: Float,
+    val drift: Float,
+    val rise: Float,
+    val radius: Float,
+    val speed: Float,
+    val offset: Float,
+)
+
+private const val SPARK_COUNT = 18
+private const val SPARK_MIN_RISE = 0.25f
+private const val SPARK_RISE_RANGE = 0.45f
+private const val SPARK_MIN_RADIUS = 0.004f
+private const val SPARK_RADIUS_RANGE = 0.008f
+private const val SPARK_MIN_SPEED = 1.5f
+private const val SPARK_SPEED_RANGE = 2.5f
+private const val SPARK_SWAY = 0.12f
+private const val SPARK_SHRINK = 0.35f
+private const val SPARK_MAX_ALPHA = 0.30f

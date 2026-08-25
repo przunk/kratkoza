@@ -30,8 +30,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -201,12 +204,33 @@ private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
             label = stringResource(R.string.game_mistakes),
             value = stringResource(R.string.game_mistakes_value, state.mistakeCount),
         )
-        TextButton(onClick = onTogglePause) {
-            Text(
-                stringResource(
-                    if (state.isPaused) R.string.game_resume else R.string.game_pause,
-                ),
-            )
+        PauseButton(paused = state.isPaused, onClick = onTogglePause)
+    }
+}
+
+/**
+ * Pause and resume in one slot, wide enough for whichever word is longer.
+ *
+ * The two labels are not the same length — "Pause" against "Resume", "Pauza" against "Wznów" — and
+ * a button that resized on the flip dragged the mistake counter beside it sideways. Both words are
+ * laid out and only one is painted, so the slot is the width of the wider and never moves. Doing it
+ * this way rather than with a fixed width keeps it true in a language nobody has added yet.
+ */
+@Composable
+private fun PauseButton(paused: Boolean, onClick: () -> Unit) {
+    val pause = stringResource(R.string.game_pause)
+    val resume = stringResource(R.string.game_resume)
+    val label = if (paused) resume else pause
+
+    TextButton(onClick = onClick) {
+        Box(
+            contentAlignment = Alignment.Center,
+            // The two ghosts are layout, not content; a screen reader must hear one word.
+            modifier = Modifier.clearAndSetSemantics { contentDescription = label },
+        ) {
+            Text(text = pause, modifier = Modifier.alpha(0f))
+            Text(text = resume, modifier = Modifier.alpha(0f))
+            Text(text = label)
         }
     }
 }
