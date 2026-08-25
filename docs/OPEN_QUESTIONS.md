@@ -10,7 +10,7 @@ dlaczego, oraz jakie są alternatywy.
 | 2 | Auto-usuwanie kandydatów po błędnej cyfrze | 🟢 **ustalone** — nie usuwa |
 | 3 | Zakres przycisku „Wymaż" | 🟡 tymczasowo OK — rozstrzygnie test w grze |
 | 4 | Ponowne wpisanie tej samej cyfry | 🟢 **ustalone** — brak akcji |
-| 5 | Domyślne wartości dwóch opcji z §35 | 🟡 tymczasowo ON — decyzja po testach |
+| 5 | Domyślne wartości dwóch opcji z §35 | 🟢 **ustalone** — zostaje ON |
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
@@ -129,7 +129,7 @@ w innych aplikacjach Sudoku). To zmiana UX, nie tylko techniczna.
 
 ## 5. Wartości domyślne dwóch opcji z §35
 
-**Stan: 🟡 tymczasowo ON.** Zostaje ON do czasu sprawdzenia w grze.
+**Stan: 🟢 ustalone 2026-08-25.** Zostaje ON w obu przypadkach, potwierdzone w grze.
 
 **Wymaganie źródłowe:** `project.md` §35 wymienia „podświetlanie takich samych cyfr: ON/OFF"
 (§10) oraz „licznik pozostałych cyfr: ON/OFF" (§19), ale — inaczej niż przy auto-usuwaniu

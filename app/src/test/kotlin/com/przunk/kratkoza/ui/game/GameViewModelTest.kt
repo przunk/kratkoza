@@ -364,4 +364,64 @@ class GameViewModelTest {
         assertEquals(game.state.puzzle.solution[cell], stored.state.board[cell])
         assertTrue(viewModel.uiState.value.isPaused)
     }
+
+    @Test
+    fun `the hint appears only while the option is on`() = gameTest {
+        // project.md section 17, off by default.
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        assertTrue(viewModel.uiState.value.eightOfNineHints.isEmpty())
+
+        settings.value = GameSettings.DEFAULT.copy(showEightOfNineHint = true)
+        idle()
+
+        // Fill a row bar one cell, so exactly one gap is left for the hint to name.
+        val row = Sudoku.rows[0]
+        val gap = row.last { game.state.board.isEmpty(it) }
+        for (cell in row) {
+            if (cell == gap || !game.state.board.isEmpty(cell)) continue
+            viewModel.selectCell(cell)
+            viewModel.enterDigit(game.state.puzzle.solution[cell])
+        }
+
+        assertEquals(game.state.puzzle.solution[gap], viewModel.uiState.value.eightOfNineHints[gap])
+    }
+
+    @Test
+    fun `every move carries a fresh token so an animation is not replayed`() = gameTest {
+        // project.md section 36. The board keys its animations on the token; a redraw caused by the
+        // clock or by a settings change must not look like another move.
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        assertNull(viewModel.uiState.value.lastMove)
+
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+        viewModel.selectCell(cell)
+        viewModel.enterDigit(game.state.puzzle.solution[cell])
+        val first = requireNotNull(viewModel.uiState.value.lastMove)
+        assertEquals(cell, first.cell)
+
+        settings.value = GameSettings.DEFAULT.copy(showRemainingCounts = false)
+        idle()
+        assertEquals("a settings change is not a move", first.token, viewModel.uiState.value.lastMove?.token)
+
+        viewModel.erase()
+        assertTrue(viewModel.uiState.value.lastMove!!.token > first.token)
+    }
+
+    @Test
+    fun `finishing a row reports its cells for the celebration`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val row = Sudoku.rows[0]
+
+        for (cell in row) {
+            if (!game.state.board.isEmpty(cell)) continue
+            viewModel.selectCell(cell)
+            viewModel.enterDigit(game.state.puzzle.solution[cell])
+        }
+
+        val completed = viewModel.uiState.value.lastMove!!.completedCells
+        assertTrue("the finished row must be reported", row.all { it in completed })
+    }
 }

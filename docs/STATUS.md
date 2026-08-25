@@ -33,6 +33,8 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Undo obejmujące wszystkie rodzaje ruchów, bez cofania błędu (§12)
 - [x] Wymazywanie (§11)
 - [x] Licznik pozostałych cyfr, opcjonalny (§19)
+- [x] Podpowiedź 8/9, opcjonalna, domyślnie OFF (§17)
+- [x] Subtelne animacje wpisania cyfry i ukończenia wiersza / kolumny / bloku (§36)
 - [x] Timer, pauza ręczna i przy przejściu w tło, zasłonięcie planszy (§20)
 - [x] Automatyczny zapis po każdym istotnym ruchu (§21)
 
@@ -48,7 +50,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 153 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 165 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -69,15 +71,29 @@ funkcje wyłączone z zakresu etapu:
 
 - Daily Sudoku (§26), publiczny ranking (§27–§29), Challenge (§30), backend
 - XP i osobisty score (§25, §32) — kolumny w bazie są, algorytmy czekają na ustalenie (§39)
-- Podpowiedź 8/9 (§17), pełne podpowiedzi (§18)
+- Pełne podpowiedzi (§18)
 - Palety kolorystyczne i tryb wysokiego kontrastu (§9, §35)
 - Radial / 3×3 menu cyfr przy długim przytrzymaniu (§13, nice to have)
-- Animacje wpisania cyfry i ukończenia wiersza / kolumny / bloku (§36)
 - Tablety i landscape (§2)
 
 Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE.md) §5 i §8.
 
 ## Do zrobienia
+
+Uzgodniona kolejność przed wydaniem alpha na Google Play: XP i poziomy → minifikacja → skrypt AAB.
+
+### XP i poziomy gracza
+
+**Zgłoszone:** 2026-08-25. `project.md` §32 wymaga XP zależnego co najmniej od poziomu trudności
+i ukończenia gry; §39 zostawia otwarty dokładny wzór. Ustalona zasada: **im wyższy poziom gracza,
+tym trudniej go podbić.**
+
+Twarde ograniczenie z §32, którego nie wolno naruszyć: XP **nigdy** nie może blokować poziomów
+trudności, kandydatów, ustawień ani normalnej gry. Poziom gracza jest odznaką, nie bramką.
+
+Kolumny `xpEarned` w `game_history` już czekają. Do ustalenia przed implementacją: dokładna
+krzywa i czy błędy obniżają XP.
+
 
 ### Skrypt budujący AAB na Google Play
 

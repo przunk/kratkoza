@@ -52,6 +52,8 @@ class SettingsRepository(context: Context) {
                     ?: GameSettings.DEFAULT.highlightSameDigits,
                 showRemainingCounts = preferences[SHOW_REMAINING_COUNTS]
                     ?: GameSettings.DEFAULT.showRemainingCounts,
+                showEightOfNineHint = preferences[SHOW_EIGHT_OF_NINE_HINT]
+                    ?: GameSettings.DEFAULT.showEightOfNineHint,
             )
         }
 
@@ -78,6 +80,10 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[SHOW_REMAINING_COUNTS] = enabled }
     }
 
+    suspend fun setShowEightOfNineHint(enabled: Boolean) {
+        dataStore.edit { it[SHOW_EIGHT_OF_NINE_HINT] = enabled }
+    }
+
     private companion object {
         // Stored by name, not by ordinal: an ordinal silently means something else the day an enum
         // entry is inserted in the middle.
@@ -86,5 +92,6 @@ class SettingsRepository(context: Context) {
         val AUTO_REMOVE_CANDIDATES = booleanPreferencesKey("auto_remove_candidates")
         val HIGHLIGHT_SAME_DIGITS = booleanPreferencesKey("highlight_same_digits")
         val SHOW_REMAINING_COUNTS = booleanPreferencesKey("show_remaining_counts")
+        val SHOW_EIGHT_OF_NINE_HINT = booleanPreferencesKey("show_eight_of_nine_hint")
     }
 }

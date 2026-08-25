@@ -92,6 +92,8 @@
     <string name="settings_highlight_same_digits_summary">Oznacz każde pole z tą samą cyfrą co zaznaczone.</string>
     <string name="settings_show_remaining_counts">Pokazuj licznik pozostałych cyfr</string>
     <string name="settings_show_remaining_counts_summary">Licz, ile wystąpień każdej cyfry jeszcze brakuje, i wygaś cyfrę po jej wykorzystaniu.</string>
+    <string name="settings_eight_of_nine_hint">Podpowiadaj ostatnią cyfrę</string>
+    <string name="settings_eight_of_nine_hint_summary">Gdy wierszowi, kolumnie lub blokowi brakuje jednej cyfry, pokaż ją bladym drukiem. To podpowiedź, nie odpowiedź — wpisać ją nadal musisz sam.</string>
 
     <!-- Wspólne -->
     <string name="common_back">Wstecz</string>

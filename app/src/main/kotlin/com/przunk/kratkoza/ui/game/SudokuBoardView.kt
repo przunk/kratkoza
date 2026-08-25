@@ -1,5 +1,9 @@
 package com.przunk.kratkoza.ui.game
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,11 +16,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -27,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -63,8 +70,31 @@ fun SudokuBoardView(
     onCellClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    eightOfNineHints: Map<Int, Int> = emptyMap(),
+    lastMove: GameUiState.MoveEcho? = null,
 ) {
     val colors = LocalBoardColors.current
+
+    // project.md section 36: subtle and quick. Both of these are decoration — the board has already
+    // changed by the time they start, and nothing waits for them to finish. Compose runs them
+    // through the system's animator duration scale, so a phone with animations turned off gets a
+    // board that simply updates.
+    val entrance = remember { Animatable(1f) }
+    val celebration = remember { Animatable(0f) }
+
+    LaunchedEffect(lastMove?.token) {
+        val cell = lastMove?.cell ?: return@LaunchedEffect
+        if (cell !in 0 until Sudoku.CELL_COUNT) return@LaunchedEffect
+        entrance.snapTo(ENTRANCE_FROM)
+        entrance.animateTo(1f, tween(ENTRANCE_MILLIS, easing = FastOutSlowInEasing))
+    }
+
+    LaunchedEffect(lastMove?.token) {
+        if (lastMove?.completedCells.isNullOrEmpty()) return@LaunchedEffect
+        celebration.snapTo(0f)
+        celebration.animateTo(1f, tween(CELEBRATION_RISE_MILLIS, easing = LinearOutSlowInEasing))
+        celebration.animateTo(0f, tween(CELEBRATION_FALL_MILLIS, easing = FastOutSlowInEasing))
+    }
     val boardDescription = stringResource(R.string.board_description)
 
     BoxWithConstraints(
@@ -106,6 +136,13 @@ fun SudokuBoardView(
                                     colors = colors,
                                 ),
                                 isSameDigit = index in sameDigitCells,
+                                hint = eightOfNineHints[index],
+                                entranceScale = if (index == lastMove?.cell) entrance.value else 1f,
+                                celebration = if (index in lastMove?.completedCells.orEmpty()) {
+                                    celebration.value
+                                } else {
+                                    0f
+                                },
                                 isSelected = index == selectedCell,
                                 cellSize = cellSize,
                                 colors = colors,
@@ -152,6 +189,9 @@ private fun SudokuCell(
     background: Color,
     isSameDigit: Boolean,
     isSelected: Boolean,
+    hint: Int?,
+    entranceScale: Float,
+    celebration: Float,
     cellSize: Dp,
     colors: BoardColors,
     enabled: Boolean,
@@ -164,6 +204,11 @@ private fun SudokuCell(
         modifier = Modifier
             .size(cellSize)
             .background(background)
+            .drawBehind {
+                if (celebration > 0f) {
+                    drawRect(colors.selectedCell.copy(alpha = celebration * CELEBRATION_ALPHA))
+                }
+            }
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
@@ -184,6 +229,7 @@ private fun SudokuCell(
                 isGiven = isGiven,
                 isIncorrect = isIncorrect,
                 isSameDigit = isSameDigit,
+                entranceScale = entranceScale,
                 cellSize = cellSize,
                 colors = colors,
             )
@@ -193,6 +239,10 @@ private fun SudokuCell(
                 cellSize = cellSize,
                 colors = colors,
             )
+
+            // project.md section 17. Only in a cell that is otherwise blank: laid over pencil marks
+            // it would fight them, and the marks are the player's own reasoning.
+            hint != null -> HintText(digit = hint, cellSize = cellSize, colors = colors)
         }
     }
 }
@@ -203,6 +253,7 @@ private fun DigitText(
     isGiven: Boolean,
     isIncorrect: Boolean,
     isSameDigit: Boolean,
+    entranceScale: Float,
     cellSize: Dp,
     colors: BoardColors,
 ) {
@@ -226,21 +277,49 @@ private fun DigitText(
             },
             textAlign = TextAlign.Center,
         ),
-        modifier = if (isIncorrect) {
-            // The second, non-colour cue for a mistake: a rule under the digit.
-            Modifier.drawBehind {
-                val inset = size.width * ERROR_RULE_INSET
-                val y = size.height * ERROR_RULE_BASELINE
-                drawLine(
-                    color = colors.errorDigit,
-                    start = Offset(inset, y),
-                    end = Offset(size.width - inset, y),
-                    strokeWidth = size.height * ERROR_RULE_THICKNESS,
-                )
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = entranceScale
+                scaleY = entranceScale
             }
-        } else {
-            Modifier
-        },
+            .then(
+                if (isIncorrect) {
+                    // The second, non-colour cue for a mistake: a rule under the digit.
+                    Modifier.drawBehind {
+                        val inset = size.width * ERROR_RULE_INSET
+                        val y = size.height * ERROR_RULE_BASELINE
+                        drawLine(
+                            color = colors.errorDigit,
+                            start = Offset(inset, y),
+                            end = Offset(size.width - inset, y),
+                            strokeWidth = size.height * ERROR_RULE_THICKNESS,
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
+    )
+}
+
+/**
+ * The 8-of-9 hint (project.md section 17).
+ *
+ * Deliberately unlike an entered digit: lighter, translucent and italic. The section requires it to
+ * be unmistakably distinct from what the player has written, and one of those three would not be
+ * enough on its own — italic is the cue that survives a bad screen.
+ */
+@Composable
+private fun HintText(digit: Int, cellSize: Dp, colors: BoardColors) {
+    Text(
+        text = digit.toString(),
+        style = TextStyle(
+            fontSize = with(LocalDensity.current) { (cellSize * DIGIT_HEIGHT_FRACTION).toSp() },
+            fontWeight = FontWeight.Light,
+            fontStyle = FontStyle.Italic,
+            color = colors.autoHintDigit.copy(alpha = HINT_ALPHA),
+            textAlign = TextAlign.Center,
+        ),
     )
 }
 
@@ -337,3 +416,14 @@ private const val THICK_LINE_DP = 2f
 private const val ERROR_RULE_INSET = 0.18f
 private const val ERROR_RULE_BASELINE = 0.94f
 private const val ERROR_RULE_THICKNESS = 0.05f
+
+/** A digit arrives at 88% and settles. Enough to notice, far too quick to wait for. */
+private const val ENTRANCE_FROM = 0.88f
+private const val ENTRANCE_MILLIS = 130
+
+/** A finished row, column or block glows once and fades. */
+private const val CELEBRATION_RISE_MILLIS = 140
+private const val CELEBRATION_FALL_MILLIS = 320
+private const val CELEBRATION_ALPHA = 0.5f
+
+private const val HINT_ALPHA = 0.45f

@@ -37,7 +37,30 @@ data class GameUiState(
     val remainingByDigit: List<Int> = List(10) { 0 },
     /** project.md section 19, an option. */
     val showRemainingCounts: Boolean = true,
+    /**
+     * Cell to digit, for the last gap in a row, column or block (project.md section 17). Empty
+     * unless the option is on.
+     */
+    val eightOfNineHints: Map<Int, Int> = emptyMap(),
+    /**
+     * The move just played, or `null` at the start of a game (project.md section 36).
+     *
+     * [MoveEcho.token] rises with every move, which is what lets the board tell "another move" from
+     * "the same state redrawn" — a recomposition caused by the clock or by a settings change must
+     * not replay an animation.
+     */
+    val lastMove: MoveEcho? = null,
 ) {
+    /** What the board should react to after a move. Purely decorative; nothing waits on it. */
+    @Immutable
+    data class MoveEcho(
+        val token: Int,
+        /** The cell that changed, for the digit's entrance. */
+        val cell: Int?,
+        /** Cells of any row, column or block the move just finished. Empty when none did. */
+        val completedCells: Set<Int>,
+    )
+
     enum class Phase {
         /** The board is still being read. */
         LOADING,

@@ -114,6 +114,12 @@ fun SettingsScreen(
                         checked = settings.showRemainingCounts,
                         onCheckedChange = viewModel::setShowRemainingCounts,
                     )
+                    SwitchRow(
+                        title = stringResource(R.string.settings_eight_of_nine_hint),
+                        summary = stringResource(R.string.settings_eight_of_nine_hint_summary),
+                        checked = settings.showEightOfNineHint,
+                        onCheckedChange = viewModel::setShowEightOfNineHint,
+                    )
                 }
             }
 

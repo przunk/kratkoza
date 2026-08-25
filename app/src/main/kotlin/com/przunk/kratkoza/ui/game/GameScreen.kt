@@ -150,6 +150,8 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel) {
             sameDigitCells = state.sameDigitCells,
             onCellClick = viewModel::selectCell,
             enabled = state.isPlayable,
+            eightOfNineHints = state.eightOfNineHints,
+            lastMove = state.lastMove,
         )
 
         // project.md section 20: the board must be covered while the clock is stopped, so a pause

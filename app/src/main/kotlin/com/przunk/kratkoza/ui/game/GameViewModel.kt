@@ -3,6 +3,7 @@ package com.przunk.kratkoza.ui.game
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
+import com.przunk.kratkoza.domain.game.BoardInsights
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
@@ -45,6 +46,10 @@ class GameViewModel(
 
     /** The cell the player has tapped, or `null` when nothing is selected. */
     private var selection: Int? = null
+
+    /** Rises with every move, so the board can tell a fresh move from a redraw. */
+    private var moveToken: Int = 0
+    private var lastMove: GameUiState.MoveEcho? = null
 
     /** When the running clock last started, or `null` while paused. */
     private var runningSince: Long? = null
@@ -161,6 +166,17 @@ class GameViewModel(
         val current = game ?: return
         if (state === current.state) return
 
+        moveToken++
+        lastMove = GameUiState.MoveEcho(
+            token = moveToken,
+            cell = selection,
+            completedCells = BoardInsights.newlyCompletedCells(
+                before = current.state.board,
+                after = state.board,
+                solution = state.puzzle.solution,
+            ),
+        )
+
         game = current.copy(state = state)
         render(state)
 
@@ -242,6 +258,12 @@ class GameViewModel(
                 if (digit == 0) 0 else state.remainingCountOf(digit)
             },
             showRemainingCounts = settings.showRemainingCounts,
+            eightOfNineHints = if (settings.showEightOfNineHint) {
+                BoardInsights.eightOfNineHints(state.board, state.puzzle.solution)
+            } else {
+                emptyMap()
+            },
+            lastMove = lastMove,
         )
     }
 

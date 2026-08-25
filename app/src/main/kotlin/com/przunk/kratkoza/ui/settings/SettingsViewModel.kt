@@ -45,6 +45,10 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
         viewModelScope.launch { settingsRepository.setShowRemainingCounts(enabled) }
     }
 
+    fun setShowEightOfNineHint(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowEightOfNineHint(enabled) }
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
     }

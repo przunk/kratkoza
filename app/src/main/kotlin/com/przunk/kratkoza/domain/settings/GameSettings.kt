@@ -20,6 +20,11 @@ data class GameSettings(
     val highlightSameDigits: Boolean = true,
     /** project.md section 19 — how many of each digit are still missing. */
     val showRemainingCounts: Boolean = true,
+    /**
+     * project.md section 17 — fill in the last gap of a row, column or block as a faint hint.
+     * Off by default, as the section requires: it is help, and help is opt-in.
+     */
+    val showEightOfNineHint: Boolean = false,
 ) {
     companion object {
         val DEFAULT = GameSettings()

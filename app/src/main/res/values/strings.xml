@@ -92,6 +92,8 @@
     <string name="settings_highlight_same_digits_summary">Mark every cell holding the same digit as the selected one.</string>
     <string name="settings_show_remaining_counts">Show remaining digits</string>
     <string name="settings_show_remaining_counts_summary">Count how many of each digit are still missing, and dim a digit once it is used up.</string>
+    <string name="settings_eight_of_nine_hint">Fill in the last digit</string>
+    <string name="settings_eight_of_nine_hint_summary">When a row, column or block is one digit short, show it faintly. It is a hint, not your answer — you still have to enter it.</string>
 
     <!-- Common -->
     <string name="common_back">Back</string>
