@@ -11,7 +11,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Ręczne DI przez `AppContainer` (§8)
 - [x] Zero bibliotek spoza Androida / Kotlina / Jetpacka / Material (§9)
 - [x] i18n polski + angielski od pierwszego commita (§12)
-- [x] Skrypty budowania debug i podpisanego release
+- [x] Skrypty budowania: debug, podpisany release, bundle AAB na Play
 
 ### Logika Sudoku
 - [x] Model planszy, walidator reguł (§5)
@@ -80,7 +80,61 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Do zrobienia
 
-Uzgodniona kolejność przed wydaniem alpha na Google Play: XP i poziomy → minifikacja → skrypt AAB.
+Uzgodniona kolejność przed wydaniem alpha na Google Play: XP i poziomy → minifikacja.
+Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
+
+Po stronie właściciela projektu, poza kodem: klucz upload (nie ma żadnego), konto Play,
+polityka prywatności, formularz Data safety, opis i grafiki w konsoli.
+
+### Podpowiedź 8/9 niedostępna w grach rankingowych
+
+**Zgłoszone:** 2026-08-25. `project.md` §17 kończy się zdaniem: „Funkcja 8/9 jest niedostępna
+w publicznie rankingowanych rozgrywkach Daily."
+
+Dziś nie ma czego blokować — nie ma Daily ani rankingu — więc kodu celowo nie ruszono. Do zrobienia
+**razem z Daily**, i to strukturalnie, nie przez pamiętanie: podpowiedź ma być liczona wyłącznie
+gdy gra nie kwalifikuje się do rankingu. Pole `rankedEligible` istnieje już w save'ie i w bazie,
+więc warunek ma jedno miejsce.
+
+To samo dotyczy każdej przyszłej pomocy z §18 („Pokaż następną cyfrę").
+
+### XP i poziomy gracza
+
+**Zgłoszone:** 2026-08-25. `project.md` §32 wymaga XP zależnego co najmniej od poziomu trudności
+i ukończenia gry; §39 zostawia otwarty dokładny wzór. Ustalona zasada: **im wyższy poziom gracza,
+tym trudniej go podbić.**
+
+Twarde ograniczenie z §32, którego nie wolno naruszyć: XP **nigdy** nie może blokować poziomów
+trudności, kandydatów, ustawień ani normalnej gry. Poziom gracza jest odznaką, nie bramką.
+
+**Ustalone 2026-08-25: XP i wynik rankingowy to dwie różne rzeczy i liczą się inaczej.**
+
+| | XP (§32) | Wynik rankingowy (§29) |
+|---|---|---|
+| za co | granie i ukończenie partii | konkretna plansza Daily |
+| błędy | **nie obniżają** | obniżają mocno: `wynik × 0.7^liczba_błędów` |
+| po co | postęp gracza, odznaka | uczciwe porównanie na tej samej planszy |
+
+Powód rozdzielenia: §32 zabrania sztucznego grindu, więc XP ma płynąć za samo granie. Kara za
+zgadywanie należy do rankingu, gdzie §29 chce jej mocno — trzy błędy to już 34% wyniku.
+
+Kolumny `xpEarned` i `score` w `game_history` czekają puste. Do ustalenia przed implementacją:
+dokładna krzywa progów poziomów.
+
+### Palety kolorystyczne i tryb wysokiego kontrastu
+
+**Zgłoszone:** 2026-08-25. `project.md` §9 i §35 wymagają wyboru palety oraz opcjonalnego trybu
+wysokiego kontrastu; §39 zostawia *zestaw* palet do ustalenia.
+
+Infrastruktura jest już gotowa i to nie przypadek: `BoardColors` siedzi celowo **poza**
+`ColorScheme` Material 3, więc przemalowanie planszy i przemalowanie reszty UI to niezależne
+decyzje. Do zrobienia: przełącznik palety w Ustawieniach, wartość w DataStore i same palety.
+
+Tryb wysokiego kontrastu to ta sama warstwa i naturalne miejsce na jedną konkretną decyzję:
+podświetlanie takich samych cyfr działa dziś przez **kolor cyfry**, a barwy niebieskiej i morskiej
+część osób nie odróżni. W trybie wysokiego kontrastu powinno wracać na **tło**, które czyta się
+jasnością.
+
 
 ### Podpowiedź 8/9 niedostępna w grach rankingowych
 

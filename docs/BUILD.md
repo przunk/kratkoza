@@ -9,6 +9,7 @@ z `/mnt/workspace/.tooling`. Nie trzeba niczego eksportować ręcznie.
 | `scripts/build-kratkoza-release.sh` | release APK + weryfikacja, którym kluczem podpisany, do `dist/` |
 | `scripts/test-kratkoza.sh` | testy jednostkowe |
 | `scripts/lint-kratkoza.sh` | Android Lint |
+| `scripts/build-kratkoza-bundle.sh` | AAB na Google Play, do `dist/` |
 | `scripts/kratkoza-env.sh` | wspólne środowisko, tylko do `source` |
 
 Wszystkie przyjmują dodatkowe argumenty Gradle'a, np.:
@@ -86,6 +87,43 @@ Wygenerowanie klucza (raz):
   -keystore ~/keys/kratkoza-release.jks -keyalg RSA -keysize 4096 -validity 10000 \
   -alias kratkoza
 ```
+
+## Bundle na Google Play
+
+```bash
+./scripts/build-kratkoza-bundle.sh
+```
+
+Buduje `:app:bundleRelease`, weryfikuje podpis i kładzie artefakt w `dist/` jako
+`kratkoza-<versionName>-<versionCode>.aab`.
+
+Trzy rzeczy działają tu inaczej niż w skrypcie APK:
+
+- **Twarde przerwanie przy kluczu debug.** Przy APK fallback na klucz debug ma sens — niepodpisanego
+  APK nie da się w ogóle zainstalować. Przy bundlu na Play jest bezużyteczny: upload i tak zostanie
+  odrzucony, a jedyne, co fallback kupuje, to dowiedzenie się o tym później zamiast teraz. Artefakt
+  z kluczem debug **nie trafia** do `dist/`, żeby nie leżał obok tych, które da się wysłać.
+- **Weryfikacja przez `keytool`, nie `apksigner`.** Bundle jest podpisany jak JAR, nie jak APK,
+  więc apksigner go nie przeczyta.
+- **Pilnowanie `versionCode`.** Play odrzuca kod wersji, który już widział. Skrypt mówi, gdy bundle
+  o tym kodzie już istnieje w `dist/` — przebudowa jest w porządku, zapomniane podbicie nie.
+
+Do sprawdzenia samego przebiegu bez klucza: `KRATKOZA_ALLOW_DEBUG_BUNDLE=1` zachowa artefakt pod
+nazwą z dopiskiem `DEBUGKEY-DO-NOT-UPLOAD` i **nadal zakończy się błędem**.
+
+### Klucz upload — jednorazowo
+
+```bash
+/mnt/workspace/.tooling/jdk/bin/keytool -genkeypair -v \
+  -keystore ~/keys/kratkoza-upload.jks -storetype JKS \
+  -keyalg RSA -keysize 4096 -validity 10000 -alias kratkoza
+```
+
+Potem `PRZUNK_UPLOAD_*` w `~/.gradle/gradle.properties` (patrz sekcja o podpisywaniu wyżej).
+
+**Kopia zapasowa keystore'a jest obowiązkowa.** Utrata pliku albo hasła oznacza, że nie da się już
+zaktualizować aplikacji pod tym samym `applicationId` — trzeba prosić Google o reset klucza upload
+albo publikować od nowa jako inną aplikację.
 
 ## Testy
 
