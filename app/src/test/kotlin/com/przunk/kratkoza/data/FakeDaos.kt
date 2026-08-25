@@ -115,6 +115,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
         elapsedMillis: Long,
         mistakeCount: Int,
         completed: Boolean,
+        xpEarned: Int,
     ) {
         entries.value = entries.value.map { entry ->
             if (entry.id != id) {
@@ -125,6 +126,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
                     elapsedMillis = elapsedMillis,
                     mistakeCount = mistakeCount,
                     completed = completed,
+                    xpEarned = xpEarned,
                 )
             }
         }
@@ -136,6 +138,9 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
 
     override fun observeTotalMistakes(): Flow<Int> =
         entries.map { list -> list.filter { it.completed }.sumOf { it.mistakeCount } }
+
+    override fun observeTotalXp(): Flow<Long> =
+        entries.map { list -> list.sumOf { it.xpEarned.toLong() } }
 
     override fun observeByDifficulty(): Flow<List<DifficultyStatisticsRow>> = entries.map { list ->
         list.groupBy { it.difficulty }.map { (difficulty, rows) ->

@@ -70,7 +70,8 @@ abstract class GameHistoryDao {
         SET finishedAt = :finishedAt,
             elapsedMillis = :elapsedMillis,
             mistakeCount = :mistakeCount,
-            completed = :completed
+            completed = :completed,
+            xpEarned = :xpEarned
         WHERE id = :id
         """,
     )
@@ -80,6 +81,7 @@ abstract class GameHistoryDao {
         elapsedMillis: Long,
         mistakeCount: Int,
         completed: Boolean,
+        xpEarned: Int,
     )
 
     @Query("DELETE FROM game_history")
@@ -122,6 +124,16 @@ abstract class GameHistoryDao {
 
     @Query("SELECT COALESCE(SUM(mistakeCount), 0) FROM game_history WHERE completed")
     abstract fun observeTotalMistakes(): Flow<Int>
+
+    /**
+     * Every XP the player has earned (project.md section 32).
+     *
+     * Summed from history rather than kept as a running total, like every other statistic here: a
+     * stored total that has drifted from the rows behind it cannot be repaired, and this one would
+     * carry the player's level with it.
+     */
+    @Query("SELECT COALESCE(SUM(xpEarned), 0) FROM game_history")
+    abstract fun observeTotalXp(): Flow<Long>
 
     /**
      * Per-level totals, in one pass.

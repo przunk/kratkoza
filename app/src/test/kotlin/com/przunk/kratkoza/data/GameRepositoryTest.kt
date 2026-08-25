@@ -5,6 +5,8 @@ import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.progress.PlayerProgress
+import com.przunk.kratkoza.domain.progress.Progress
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import kotlinx.coroutines.flow.first
@@ -226,5 +228,73 @@ class GameRepositoryTest {
     fun `resetting an empty record is harmless`() = runTest {
         repository.resetStatistics()
         assertEquals(0, repository.statistics.first().startedCount)
+    }
+
+    @Test
+    fun `finishing a game earns the XP its level is worth`() = runTest {
+        // project.md section 32.
+        val game = repository.startNewGame(Difficulty.HARD)
+        repository.finishGame(game.copy(elapsedMillis = 60_000), completed = true)
+
+        val progress = repository.statistics.first().progress
+        assertEquals(PlayerProgress.xpForCompleting(Difficulty.HARD).toLong(), progress.totalXp)
+    }
+
+    @Test
+    fun `an unfinished game earns nothing`() = runTest {
+        val game = repository.startNewGame(Difficulty.MASTER)
+        repository.finishGame(game, completed = false)
+
+        assertEquals(0L, repository.statistics.first().progress.totalXp)
+    }
+
+    @Test
+    fun `mistakes do not reduce XP`() = runTest {
+        // The agreed split: XP follows playing, and the penalty for guessing belongs to the ranking
+        // (project.md section 29), not here.
+        val clean = repository.startNewGame(Difficulty.NORMAL)
+        repository.finishGame(clean, completed = true)
+        val afterClean = repository.statistics.first().progress.totalXp
+
+        now = 2_000
+        val messy = repository.startNewGame(Difficulty.NORMAL)
+        var state = messy.state
+        val cells = (0 until Sudoku.CELL_COUNT).filter { state.board.isEmpty(it) }.take(4)
+        for (cell in cells) {
+            state = GameEngine.enterDigit(
+                state,
+                cell,
+                (1..9).first { it != state.puzzle.solution[cell] },
+                autoRemoveCandidates = false,
+            )
+        }
+        repository.finishGame(messy.copy(state = state), completed = true)
+
+        assertEquals(4, state.mistakeCount)
+        assertEquals(afterClean * 2, repository.statistics.first().progress.totalXp)
+    }
+
+    @Test
+    fun `XP accumulates into a level`() = runTest {
+        // Level 2 costs 100 XP; a MASTER board is worth 120.
+        val game = repository.startNewGame(Difficulty.MASTER)
+        repository.finishGame(game, completed = true)
+
+        val progress = repository.statistics.first().progress
+        assertEquals(120L, progress.totalXp)
+        assertEquals(2, progress.level)
+        assertEquals(20L, progress.xpIntoLevel)
+    }
+
+    @Test
+    fun `resetting statistics takes XP with it`() = runTest {
+        // XP is derived from history, so wiping the record wipes the level. Honest, and the reset
+        // dialog says so.
+        val game = repository.startNewGame(Difficulty.EXPERT)
+        repository.finishGame(game, completed = true)
+        assertTrue(repository.statistics.first().progress.totalXp > 0)
+
+        repository.resetStatistics()
+        assertEquals(Progress.NONE, repository.statistics.first().progress)
     }
 }

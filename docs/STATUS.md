@@ -43,6 +43,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Szybkie wznowienie ostatniej gry na ekranie głównym (§22)
 - [x] Historia zakończonych gier w Room (§23)
 - [x] Statystyki lokalne (§33)
+- [x] XP i poziomy gracza — rosnący koszt kolejnych poziomów, bez kary za błędy (§32)
 - [x] Ustawienia w DataStore (§35)
 - [x] Motyw jasny / ciemny / systemowy (§9)
 - [x] Wybór języka w aplikacji: systemowy / EN / PL (§4)
@@ -50,7 +51,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 165 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 182 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -70,7 +71,7 @@ Wymagania oznaczone w `project.md` jako „do ustalenia", „później" albo „
 funkcje wyłączone z zakresu etapu:
 
 - Daily Sudoku (§26), publiczny ranking (§27–§29), Challenge (§30), backend
-- XP i osobisty score (§25, §32) — kolumny w bazie są, algorytmy czekają na ustalenie (§39)
+- Osobisty score (§25) — kolumna w bazie jest, algorytm czeka na ustalenie (§39)
 - Pełne podpowiedzi (§18)
 - Palety kolorystyczne i tryb wysokiego kontrastu (§9, §35)
 - Radial / 3×3 menu cyfr przy długim przytrzymaniu (§13, nice to have)
@@ -80,7 +81,7 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Do zrobienia
 
-Uzgodniona kolejność przed wydaniem alpha na Google Play: XP i poziomy → minifikacja.
+Zostało przed wydaniem alpha na Google Play: minifikacja (R8).
 Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
 
 Po stronie właściciela projektu, poza kodem: klucz upload (nie ma żadnego), konto Play,
@@ -97,29 +98,6 @@ gdy gra nie kwalifikuje się do rankingu. Pole `rankedEligible` istnieje już w 
 więc warunek ma jedno miejsce.
 
 To samo dotyczy każdej przyszłej pomocy z §18 („Pokaż następną cyfrę").
-
-### XP i poziomy gracza
-
-**Zgłoszone:** 2026-08-25. `project.md` §32 wymaga XP zależnego co najmniej od poziomu trudności
-i ukończenia gry; §39 zostawia otwarty dokładny wzór. Ustalona zasada: **im wyższy poziom gracza,
-tym trudniej go podbić.**
-
-Twarde ograniczenie z §32, którego nie wolno naruszyć: XP **nigdy** nie może blokować poziomów
-trudności, kandydatów, ustawień ani normalnej gry. Poziom gracza jest odznaką, nie bramką.
-
-**Ustalone 2026-08-25: XP i wynik rankingowy to dwie różne rzeczy i liczą się inaczej.**
-
-| | XP (§32) | Wynik rankingowy (§29) |
-|---|---|---|
-| za co | granie i ukończenie partii | konkretna plansza Daily |
-| błędy | **nie obniżają** | obniżają mocno: `wynik × 0.7^liczba_błędów` |
-| po co | postęp gracza, odznaka | uczciwe porównanie na tej samej planszy |
-
-Powód rozdzielenia: §32 zabrania sztucznego grindu, więc XP ma płynąć za samo granie. Kara za
-zgadywanie należy do rankingu, gdzie §29 chce jej mocno — trzy błędy to już 34% wyniku.
-
-Kolumny `xpEarned` i `score` w `game_history` czekają puste. Do ustalenia przed implementacją:
-dokładna krzywa progów poziomów.
 
 ### Palety kolorystyczne i tryb wysokiego kontrastu
 

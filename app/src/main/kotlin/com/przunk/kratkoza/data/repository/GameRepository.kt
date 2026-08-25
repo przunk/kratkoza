@@ -16,6 +16,7 @@ import com.przunk.kratkoza.domain.game.SavedGameSummary
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.model.Puzzle
+import com.przunk.kratkoza.domain.progress.PlayerProgress
 import com.przunk.kratkoza.domain.stats.DifficultyStatistics
 import com.przunk.kratkoza.domain.stats.Statistics
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
@@ -135,6 +136,14 @@ class GameRepository(
      */
     suspend fun finishGame(game: SavedGame, completed: Boolean) {
         val now = clock()
+        // project.md section 32: XP is for finishing. An abandoned game earns none, and mistakes
+        // take none away — the penalty for guessing belongs to the ranking (section 29), not here.
+        val xp = if (completed) {
+            PlayerProgress.xpForCompleting(game.state.puzzle.difficulty)
+        } else {
+            0
+        }
+
         if (game.historyId == NO_HISTORY_ROW) {
             historyDao.insert(
                 historyEntry(game.state.puzzle, startedAt = game.startedAt).copy(
@@ -142,6 +151,7 @@ class GameRepository(
                     elapsedMillis = game.elapsedMillis,
                     mistakeCount = game.state.mistakeCount,
                     completed = completed,
+                    xpEarned = xp,
                 ),
             )
         } else {
@@ -151,6 +161,7 @@ class GameRepository(
                 elapsedMillis = game.elapsedMillis,
                 mistakeCount = game.state.mistakeCount,
                 completed = completed,
+                xpEarned = xp,
             )
         }
         savedGameDao.delete(game.state.puzzle.id)
@@ -179,12 +190,14 @@ class GameRepository(
         historyDao.observeStartedCount(),
         historyDao.observeCompletedCount(),
         historyDao.observeTotalMistakes(),
+        historyDao.observeTotalXp(),
         historyDao.observeByDifficulty(),
-    ) { started, completed, mistakes, perDifficulty ->
+    ) { started, completed, mistakes, totalXp, perDifficulty ->
         Statistics(
             startedCount = started,
             completedCount = completed,
             totalMistakes = mistakes,
+            progress = PlayerProgress.of(totalXp),
             perDifficulty = Difficulty.entries.map { difficulty ->
                 val row = perDifficulty.firstOrNull { it.difficulty == difficulty.name }
                 DifficultyStatistics(
@@ -203,8 +216,9 @@ class GameRepository(
 /**
  * An open history row for [puzzle].
  *
- * `score` and `xpEarned` stay empty: project.md section 23 wants both kept, and section 39 leaves
- * both algorithms open, so the columns exist and wait rather than holding a made-up number.
+ * `xpEarned` is filled in when the game finishes, not when it opens. `score` stays empty:
+ * project.md section 23 wants it kept and section 39 leaves the algorithm open, so the column
+ * exists and waits rather than holding a made-up number.
  */
 private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
     puzzleId = puzzle.id,

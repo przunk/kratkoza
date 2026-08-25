@@ -65,6 +65,9 @@
 
     <!-- Statistics -->
     <string name="statistics_title">Statistics</string>
+    <string name="statistics_level">Level %1$d</string>
+    <string name="statistics_xp_total">%1$s XP earned</string>
+    <string name="statistics_xp_into_level">%1$s / %2$s XP to level %3$d</string>
     <string name="statistics_overall">Overall</string>
     <string name="statistics_started">Games started</string>
     <string name="statistics_completed">Games completed</string>
@@ -101,7 +104,7 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="statistics_reset">Reset statistics</string>
     <string name="statistics_reset_title">Reset statistics?</string>
-    <string name="statistics_reset_message">Every counter goes back to zero and it cannot be undone. Games still on the board stay where they are and can be finished.</string>
+    <string name="statistics_reset_message">Every counter goes back to zero, XP and level included, and it cannot be undone. Games still on the board stay where they are and can be finished.</string>
     <string name="statistics_reset_confirm">Reset</string>
     <string name="statistics_reset_cancel">Cancel</string>
     <string name="settings_language">Language</string>

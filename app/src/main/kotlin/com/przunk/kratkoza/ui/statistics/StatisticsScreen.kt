@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
+import com.przunk.kratkoza.domain.progress.Progress
 import com.przunk.kratkoza.domain.stats.DifficultyStatistics
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
 import com.przunk.kratkoza.ui.common.labelRes
@@ -59,6 +61,10 @@ fun StatisticsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                LevelCard(progress = statistics.progress, formatCount = integerFormat::format)
+            }
+
             item {
                 Card {
                     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
@@ -133,6 +139,47 @@ fun StatisticsScreen(
                 }
             },
         )
+    }
+}
+
+/**
+ * Level and progress towards the next (project.md section 32).
+ *
+ * A badge, and only a badge. Section 32 forbids XP from gating difficulties, candidates, settings or
+ * any part of ordinary play — so this card reports, and nothing anywhere reads it to decide what the
+ * player may do.
+ */
+@Composable
+private fun LevelCard(progress: Progress, formatCount: (Number) -> String) {
+    Card {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.statistics_level, progress.level),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                text = stringResource(R.string.statistics_xp_total, formatCount(progress.totalXp)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            LinearProgressIndicator(
+                progress = { progress.fractionIntoLevel },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            )
+            // Spelled out beside the bar: a bar alone says roughly how far, never how much is left,
+            // and it is unreadable to anyone who cannot see it at all.
+            Text(
+                text = stringResource(
+                    R.string.statistics_xp_into_level,
+                    formatCount(progress.xpIntoLevel),
+                    formatCount(progress.xpForNextLevel),
+                    progress.level + 1,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

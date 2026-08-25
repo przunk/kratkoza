@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.domain.stats
 
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.progress.Progress
 
 /**
  * The player's own record (project.md section 33).
@@ -9,13 +10,15 @@ import com.przunk.kratkoza.domain.model.Difficulty
  * section 23 asks that history stay rich enough to recompute statistics later, and a stored total
  * that has drifted from the rows behind it cannot be repaired.
  *
- * Absent for now: personal score, XP and rank. Their formulas are open (project.md section 39), and
- * a made-up number shown to the player is worse than no number.
+ * Absent for now: the personal score of project.md section 25. Its formula is open (section 39),
+ * and a made-up number shown to the player is worse than no number.
  */
 data class Statistics(
     val startedCount: Int,
     val completedCount: Int,
     val totalMistakes: Int,
+    /** Experience and level (project.md section 32). */
+    val progress: Progress,
     val perDifficulty: List<DifficultyStatistics>,
 ) {
     /** `0f` when nothing has been started, rather than a division by zero. */
@@ -31,6 +34,7 @@ data class Statistics(
             startedCount = 0,
             completedCount = 0,
             totalMistakes = 0,
+            progress = Progress.NONE,
             perDifficulty = emptyList(),
         )
     }
