@@ -19,7 +19,7 @@ class GameRepositoryTest {
 
     private val puzzleDao = FakePuzzleDao()
     private val savedGameDao = FakeSavedGameDao(puzzleDao)
-    private val historyDao = FakeGameHistoryDao()
+    private val historyDao = FakeGameHistoryDao(savedGameDao)
     private var now = 1_000L
 
     private val repository = GameRepository(
@@ -181,5 +181,52 @@ class GameRepositoryTest {
         savedGameDao.upsert(stored.copy(undoHistory = "not a move"))
 
         assertNull(repository.loadGame(game.state.puzzle.id))
+    }
+
+    @Test
+    fun `resetting statistics clears finished games`() = runTest {
+        val first = repository.startNewGame(Difficulty.EASY)
+        now = 2_000
+        val second = repository.startNewGame(Difficulty.HARD)
+        repository.finishGame(first.copy(elapsedMillis = 60_000), completed = true)
+        repository.finishGame(second.copy(elapsedMillis = 90_000), completed = false)
+
+        assertEquals(2, repository.resetStatistics())
+
+        val statistics = repository.statistics.first()
+        assertEquals(0, statistics.startedCount)
+        assertEquals(0, statistics.completedCount)
+        assertEquals(0, statistics.totalMistakes)
+        assertTrue(statistics.perDifficulty.all { it.startedCount == 0 })
+    }
+
+    @Test
+    fun `resetting statistics leaves a game still on the board playable and countable`() = runTest {
+        // The save points at its open history row; dropping that row would make finishing the game
+        // record nothing at all.
+        val finished = repository.startNewGame(Difficulty.EASY)
+        repository.finishGame(finished, completed = true)
+        now = 2_000
+        val inProgress = repository.startNewGame(Difficulty.MASTER)
+
+        assertEquals(1, repository.resetStatistics())
+        assertNotNull(repository.loadGame(inProgress.state.puzzle.id))
+
+        val afterReset = repository.statistics.first()
+        assertEquals(1, afterReset.startedCount)
+        assertEquals(0, afterReset.completedCount)
+
+        repository.finishGame(inProgress.copy(elapsedMillis = 30_000), completed = true)
+        val afterFinishing = repository.statistics.first()
+        assertEquals(1, afterFinishing.completedCount)
+        assertEquals(
+            30_000L,
+            afterFinishing.perDifficulty.single { it.difficulty == Difficulty.MASTER }.bestTimeMillis,
+        )
+    }
+
+    @Test
+    fun `resetting an empty record removes nothing`() = runTest {
+        assertEquals(0, repository.resetStatistics())
     }
 }

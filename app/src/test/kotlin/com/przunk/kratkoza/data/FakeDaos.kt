@@ -74,12 +74,23 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
     override fun observeMostRecentId(): Flow<String?> = saves.map { current ->
         current.values.maxByOrNull { it.lastPlayedAt }?.puzzleId
     }
+
+    /** Stands in for the `SELECT historyId FROM saved_games` subquery of `deleteFinished`. */
+    fun openHistoryIds(): Set<Long> = saves.value.values.mapTo(mutableSetOf()) { it.historyId }
 }
 
-class FakeGameHistoryDao : GameHistoryDao {
+class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : GameHistoryDao {
     private val entries = MutableStateFlow<List<GameHistoryEntity>>(emptyList())
 
     val all: List<GameHistoryEntity> get() = entries.value
+
+    override suspend fun deleteFinished(): Int {
+        val protectedIds = savedGameDao?.openHistoryIds().orEmpty()
+        val kept = entries.value.filter { it.id in protectedIds }
+        val removed = entries.value.size - kept.size
+        entries.value = kept
+        return removed
+    }
 
     override suspend fun insert(entry: GameHistoryEntity): Long {
         val id = entries.value.size + 1L

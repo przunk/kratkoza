@@ -61,6 +61,17 @@ android {
         }
     }
 
+    bundle {
+        language {
+            // The in-app language switcher would otherwise be a lie in a Play-installed build:
+            // Play splits an App Bundle by language and ships only the device's own, so picking
+            // Polish on an English phone would find no Polish resources to show. Two languages of
+            // strings cost a few kilobytes; keeping them both in every install is the only way the
+            // setting can work.
+            enableSplit = false
+        }
+    }
+
     buildFeatures {
         compose = true
     }

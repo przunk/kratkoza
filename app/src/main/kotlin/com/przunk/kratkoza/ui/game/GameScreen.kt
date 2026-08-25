@@ -82,6 +82,18 @@ fun GameScreen(
                         Text(text = "‹", style = MaterialTheme.typography.headlineMedium)
                     }
                 },
+                actions = {
+                    if (state.phase == GameUiState.Phase.PLAYING) {
+                        TextButton(
+                            onClick = {
+                                viewModel.saveAndStop()
+                                onNavigateBack()
+                            },
+                        ) {
+                            Text(stringResource(R.string.game_save_and_exit))
+                        }
+                    }
+                },
             )
         },
     ) { padding ->

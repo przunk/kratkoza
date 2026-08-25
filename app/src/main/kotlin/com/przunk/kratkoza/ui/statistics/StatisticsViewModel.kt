@@ -7,9 +7,10 @@ import com.przunk.kratkoza.domain.stats.Statistics
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /** project.md section 33 — the player's own record, straight from the repository. */
-class StatisticsViewModel(gameRepository: GameRepository) : ViewModel() {
+class StatisticsViewModel(private val gameRepository: GameRepository) : ViewModel() {
 
     val statistics: StateFlow<Statistics> = gameRepository.statistics
         .stateIn(
@@ -17,6 +18,14 @@ class StatisticsViewModel(gameRepository: GameRepository) : ViewModel() {
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = Statistics.EMPTY,
         )
+
+    /**
+     * Clears the record. Games still in progress keep counting — see
+     * [GameRepository.resetStatistics].
+     */
+    fun resetStatistics() {
+        viewModelScope.launch { gameRepository.resetStatistics() }
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L

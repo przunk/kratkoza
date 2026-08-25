@@ -118,7 +118,25 @@ zastąpione:
 | type-safe routes | zwykłe stringi | wymuszałyby kotlinx-serialization dla jednego argumentu |
 | material-icons-extended | glif tekstowy w przycisku wstecz | jedna strzałka nie jest warta całego pakietu ikon |
 
-## 7. Dostępność
+## 7. Język aplikacji
+
+`project.md` §4 wymaga i18n; osobną sprawą jest **przełączenie** języka bez zmiany ustawień
+telefonu. Platforma dorosła do tego w połowie zakresu, który wspieramy, więc `AppLocales` ma dwie
+ścieżki:
+
+- **API 33+** — `LocaleManager.applicationLocales`. System sam rozwiązuje zasoby, restartuje
+  Activity i pokazuje wybór w Ustawieniach → Aplikacje → Kratkoza → Język.
+- **API 29–32** — nic takiego nie istnieje. Kontekst bazowy Activity jest owijany
+  `createConfigurationContext` w `attachBaseContext`, a zmiana wyboru powoduje `recreate()`.
+
+`androidx.appcompat` ukryłby tę różnicę, ale to duża zależność dla zachowania wartego jednego
+ekranu — a powyższe to dokładnie wszystko, co by dało (`technical_requirements.md` §9).
+
+Osobna pułapka: App Bundle domyślnie dzieli zasoby po języku, więc na telefonie po angielsku
+polskie stringi nigdy by się nie pobrały i przełącznik byłby atrapą. `bundle { language {
+enableSplit = false } }` to wyłącza. Dwa języki stringów kosztują kilka kilobajtów.
+
+## 8. Dostępność
 
 - Każde pole planszy to osobny cel dotykowy z własnym opisem dla TalkBacka
   („wiersz 3, kolumna 5, 7, cyfra startowa").
@@ -130,7 +148,7 @@ zastąpione:
   §8 prosi o respektowanie powiększonej czcionki „tam, gdzie nie niszczy geometrii planszy" —
   wewnątrz 1/9 szerokości ekranu niszczy.
 
-## 8. Czego jeszcze nie ma
+## 9. Czego jeszcze nie ma
 
 Zgodnie z zakresem pierwszego etapu: Daily, publiczny ranking, Challenge, backend, XP, score,
 podpowiedź 8/9, palety kolorystyczne, tryb wysokiego kontrastu, radial menu.

@@ -8,12 +8,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -35,6 +41,7 @@ fun StatisticsScreen(
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val none = stringResource(R.string.statistics_none)
+    var confirmingReset by remember { mutableStateOf(false) }
 
     // Locale-aware throughout: project.md section 4 asks for numbers and percentages to be
     // formatted for the reader, not for the developer.
@@ -91,7 +98,41 @@ fun StatisticsScreen(
                     formatDecimal = decimalFormat::format,
                 )
             }
+
+            item {
+                OutlinedButton(
+                    onClick = { confirmingReset = true },
+                    enabled = statistics.startedCount > 0,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                ) {
+                    Text(stringResource(R.string.statistics_reset))
+                }
+            }
         }
+    }
+
+    if (confirmingReset) {
+        // Deleting a record cannot be undone, so it is asked for twice.
+        AlertDialog(
+            onDismissRequest = { confirmingReset = false },
+            title = { Text(stringResource(R.string.statistics_reset_title)) },
+            text = { Text(stringResource(R.string.statistics_reset_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.resetStatistics()
+                        confirmingReset = false
+                    },
+                ) {
+                    Text(stringResource(R.string.statistics_reset_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingReset = false }) {
+                    Text(stringResource(R.string.statistics_reset_cancel))
+                }
+            },
+        )
     }
 }
 

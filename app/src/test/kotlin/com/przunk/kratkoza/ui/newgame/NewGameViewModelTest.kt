@@ -25,7 +25,7 @@ class NewGameViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val puzzleDao = FakePuzzleDao()
     private val savedGameDao = FakeSavedGameDao(puzzleDao)
-    private val historyDao = FakeGameHistoryDao()
+    private val historyDao = FakeGameHistoryDao(savedGameDao)
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)

@@ -93,6 +93,16 @@
     <string name="common_back">Wstecz</string>
     <string name="duration_hours_minutes_seconds">%1$d:%2$02d:%3$02d</string>
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
+    <string name="statistics_reset">Resetuj statystyki</string>
+    <string name="statistics_reset_title">Zresetować statystyki?</string>
+    <string name="statistics_reset_message">Cały dorobek zostanie usunięty i nie da się go przywrócić. Gry będące w toku liczą się dalej.</string>
+    <string name="statistics_reset_confirm">Resetuj</string>
+    <string name="statistics_reset_cancel">Anuluj</string>
+    <string name="settings_language">Język</string>
+    <string name="settings_language_system">Zgodny z systemem</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_polish">Polski</string>
+    <string name="game_save_and_exit">Zapisz</string>
 
     <plurals name="mistake_count">
         <item quantity="one">%1$d błąd</item>

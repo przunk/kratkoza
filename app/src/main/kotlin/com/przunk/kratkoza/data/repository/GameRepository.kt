@@ -158,6 +158,17 @@ class GameRepository(
     /** Abandons a game. The history row stays open, so it still counts as started but not completed. */
     suspend fun deleteSave(puzzleId: String) = savedGameDao.delete(puzzleId)
 
+    /**
+     * Clears the player's record.
+     *
+     * Games still in progress keep their history row, so finishing one after a reset still counts.
+     * The alternative — dropping those rows too — would quietly lose the game the player is in the
+     * middle of, which is not what "reset statistics" should mean.
+     *
+     * Returns how many rows went, so the caller can tell a real reset from a no-op.
+     */
+    suspend fun resetStatistics(): Int = historyDao.deleteFinished()
+
     /** Unfinished games, most recently played first (project.md section 22). */
     val savedGames: Flow<List<SavedGameSummary>> =
         savedGameDao.observeAll().map { rows -> rows.mapNotNull(SavedGameSummaryRow::toSummary) }

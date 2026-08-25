@@ -3,6 +3,7 @@ package com.przunk.kratkoza.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.SettingsRepository
+import com.przunk.kratkoza.domain.settings.AppLanguage
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.settings.ThemeMode
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +23,10 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
+    }
+
+    fun setLanguage(language: AppLanguage) {
+        viewModelScope.launch { settingsRepository.setLanguage(language) }
     }
 
     fun setAutoRemoveCandidates(enabled: Boolean) {

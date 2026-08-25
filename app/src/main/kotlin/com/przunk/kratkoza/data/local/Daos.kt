@@ -81,6 +81,22 @@ interface GameHistoryDao {
         completed: Boolean,
     )
 
+    /**
+     * Wipes the record, except for games still in progress.
+     *
+     * A save points at the history row opened when its game started, and finishing that game
+     * updates that row. Deleting it would leave the save pointing at nothing, and the game would
+     * silently fail to be recorded when it was completed. A game still on the board has not
+     * finished being played, so its row is not history yet.
+     */
+    @Query(
+        """
+        DELETE FROM game_history
+        WHERE id NOT IN (SELECT historyId FROM saved_games)
+        """,
+    )
+    suspend fun deleteFinished(): Int
+
     @Query("SELECT COUNT(*) FROM game_history")
     fun observeStartedCount(): Flow<Int>
 

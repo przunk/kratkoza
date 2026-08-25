@@ -136,6 +136,16 @@ class GameViewModel(
     }
 
     /**
+     * The Save button: banks the clock and writes the game out, then the screen leaves.
+     *
+     * project.md section 21 already has the game saved after every move, so this adds no durability
+     * the player did not have. What it adds is the clock — which is only banked when it stops — and
+     * a visible answer to "can I leave without losing this?". A guarantee nobody can see is a
+     * guarantee nobody trusts.
+     */
+    fun saveAndStop() = onLeftForeground()
+
+    /**
      * Called when the app goes to the background (project.md section 20: minimising pauses the
      * game). Also the last chance to write the clock out before the process may be killed.
      */

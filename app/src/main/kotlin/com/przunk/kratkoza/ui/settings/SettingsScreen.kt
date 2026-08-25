@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
+import com.przunk.kratkoza.domain.settings.AppLanguage
 import com.przunk.kratkoza.domain.settings.ThemeMode
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
 
@@ -60,6 +61,19 @@ fun SettingsScreen(
                         ThemeOption(ThemeMode.SYSTEM, R.string.settings_theme_system, settings.themeMode, viewModel::setThemeMode)
                         ThemeOption(ThemeMode.LIGHT, R.string.settings_theme_light, settings.themeMode, viewModel::setThemeMode)
                         ThemeOption(ThemeMode.DARK, R.string.settings_theme_dark, settings.themeMode, viewModel::setThemeMode)
+                    }
+                }
+            }
+
+            item {
+                SettingsSection(stringResource(R.string.settings_language)) {
+                    // project.md section 4. Below API 33 Android offers no per-app language at all,
+                    // and even above it the picker is buried in system settings, so the app carries
+                    // its own.
+                    Column(modifier = Modifier.selectableGroup()) {
+                        LanguageOption(AppLanguage.SYSTEM, R.string.settings_language_system, settings.language, viewModel::setLanguage)
+                        LanguageOption(AppLanguage.ENGLISH, R.string.settings_language_english, settings.language, viewModel::setLanguage)
+                        LanguageOption(AppLanguage.POLISH, R.string.settings_language_polish, settings.language, viewModel::setLanguage)
                     }
                 }
             }
@@ -111,26 +125,45 @@ private fun ThemeOption(
     selected: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
 ) {
+    RadioRow(
+        label = stringResource(labelRes),
+        selected = mode == selected,
+        onClick = { onSelect(mode) },
+    )
+}
+
+@Composable
+private fun RadioRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .selectable(
-                selected = mode == selected,
-                onClick = { onSelect(mode) },
-                role = Role.RadioButton,
-            )
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // The row carries the click and the semantics; the button itself must not announce a
         // second, competing control.
-        RadioButton(selected = mode == selected, onClick = null)
+        RadioButton(selected = selected, onClick = null)
         Text(
-            text = stringResource(labelRes),
+            text = label,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(start = 12.dp),
         )
     }
+}
+
+@Composable
+private fun LanguageOption(
+    language: AppLanguage,
+    @StringRes labelRes: Int,
+    selected: AppLanguage,
+    onSelect: (AppLanguage) -> Unit,
+) {
+    RadioRow(
+        label = stringResource(labelRes),
+        selected = language == selected,
+        onClick = { onSelect(language) },
+    )
 }
 
 @Composable

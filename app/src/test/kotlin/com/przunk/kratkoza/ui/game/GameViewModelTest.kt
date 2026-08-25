@@ -36,7 +36,7 @@ class GameViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val puzzleDao = FakePuzzleDao()
     private val savedGameDao = FakeSavedGameDao(puzzleDao)
-    private val historyDao = FakeGameHistoryDao()
+    private val historyDao = FakeGameHistoryDao(savedGameDao)
     private val settings = MutableStateFlow(GameSettings.DEFAULT)
     private var now = 0L
 
@@ -343,5 +343,25 @@ class GameViewModelTest {
         viewModel.enterDigit(digit)
 
         assertEquals(before - 1, viewModel.uiState.value.remainingByDigit[digit])
+    }
+
+    @Test
+    fun `the save button banks the clock and writes the game out`() = gameTest {
+        // project.md section 21 already saves after every move; what Save adds is the clock, which
+        // is only banked when it stops.
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        viewModel.enterDigit(game.state.puzzle.solution[cell])
+        now = 45_000
+        viewModel.saveAndStop()
+        idle()
+
+        val stored = requireNotNull(repository.loadGame(game.state.puzzle.id))
+        assertEquals(45_000L, stored.elapsedMillis)
+        assertEquals(game.state.puzzle.solution[cell], stored.state.board[cell])
+        assertTrue(viewModel.uiState.value.isPaused)
     }
 }
