@@ -1,6 +1,7 @@
 package com.przunk.kratkoza
 
 import android.app.Application
+import com.przunk.kratkoza.di.AppContainer
 
 /**
  * Owns the app-wide object graph.
@@ -9,4 +10,13 @@ import android.app.Application
  * container built here and read by the composition through
  * [com.przunk.kratkoza.di.LocalAppContainer].
  */
-class KratkozaApplication : Application()
+class KratkozaApplication : Application() {
+
+    lateinit var container: AppContainer
+        private set
+
+    override fun onCreate() {
+        super.onCreate()
+        container = AppContainer(this)
+    }
+}

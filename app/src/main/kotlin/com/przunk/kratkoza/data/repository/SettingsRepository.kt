@@ -1,0 +1,65 @@
+package com.przunk.kratkoza.data.repository
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.przunk.kratkoza.domain.settings.GameSettings
+import com.przunk.kratkoza.domain.settings.ThemeMode
+import java.io.IOException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+
+private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+/**
+ * User preferences in DataStore (technical_requirements.md section 6).
+ *
+ * Every value has a default, so a missing key is not an error — which is what makes adding an option
+ * later a one-line change rather than a migration.
+ */
+class SettingsRepository(context: Context) {
+
+    private val dataStore = context.settingsDataStore
+
+    val settings: Flow<GameSettings> = dataStore.data
+        // A DataStore read can fail on a corrupt file. Falling back to defaults keeps the app
+        // playable; refusing to emit would leave the UI waiting forever on its first frame.
+        .catch { cause -> if (cause is IOException) emit(emptyPreferences()) else throw cause }
+        .map { preferences ->
+            GameSettings(
+                themeMode = preferences[THEME_MODE]
+                    ?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
+                    ?: GameSettings.DEFAULT.themeMode,
+                autoRemoveCandidates = preferences[AUTO_REMOVE_CANDIDATES]
+                    ?: GameSettings.DEFAULT.autoRemoveCandidates,
+                highlightSameDigits = preferences[HIGHLIGHT_SAME_DIGITS]
+                    ?: GameSettings.DEFAULT.highlightSameDigits,
+            )
+        }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[THEME_MODE] = mode.name }
+    }
+
+    suspend fun setAutoRemoveCandidates(enabled: Boolean) {
+        dataStore.edit { it[AUTO_REMOVE_CANDIDATES] = enabled }
+    }
+
+    suspend fun setHighlightSameDigits(enabled: Boolean) {
+        dataStore.edit { it[HIGHLIGHT_SAME_DIGITS] = enabled }
+    }
+
+    private companion object {
+        // Stored by name, not by ordinal: an ordinal silently means something else the day an enum
+        // entry is inserted in the middle.
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val AUTO_REMOVE_CANDIDATES = booleanPreferencesKey("auto_remove_candidates")
+        val HIGHLIGHT_SAME_DIGITS = booleanPreferencesKey("highlight_same_digits")
+    }
+}
