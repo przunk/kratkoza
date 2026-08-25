@@ -19,8 +19,8 @@ android {
         // Bumped on every approved change, so the version shown in Settings identifies exactly
         // which build is on a phone. A screenshot from the wrong APK has already cost us a round
         // trip once; the number is what makes that impossible to repeat.
-        versionCode = 7
-        versionName = "0.3.1"
+        versionCode = 8
+        versionName = "0.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -56,7 +56,12 @@ android {
             // cannot be installed at all, so falling back keeps the sideload workflow alive.
             signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
                 ?: signingConfigs.getByName("debug")
-            isMinifyEnabled = false
+            // On, and on before the first upload rather than after it. R8 removes code it cannot
+            // see being used, and what it removes wrongly shows up on a device, not in the tests —
+            // which run against unminified code. The rules it needs are in proguard-rules.pro, each
+            // with the reason it is there.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

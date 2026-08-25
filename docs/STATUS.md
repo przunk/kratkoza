@@ -12,6 +12,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Zero bibliotek spoza Androida / Kotlina / Jetpacka / Material (§9)
 - [x] i18n polski + angielski od pierwszego commita (§12)
 - [x] Skrypty budowania: debug, podpisany release, bundle AAB na Play
+- [x] Minifikacja R8 z regułami chroniącymi format zapisu (25 MB → 2,3 MB)
 
 ### Logika Sudoku
 - [x] Model planszy, walidator reguł (§5)
@@ -81,7 +82,7 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Do zrobienia
 
-Zostało przed wydaniem alpha na Google Play: minifikacja (R8).
+Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
 Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
 
 Po stronie właściciela projektu, poza kodem: klucz upload (nie ma żadnego), konto Play,

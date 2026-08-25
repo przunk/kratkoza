@@ -138,6 +138,30 @@ Jeśli go jeszcze nie ma:
 zaktualizować aplikacji pod tym samym `applicationId` — zostaje prośba do Google o reset klucza
 upload albo publikacja od nowa jako inna aplikacja.
 
+## Minifikacja (R8)
+
+Build release ma `isMinifyEnabled` i `isShrinkResources` włączone. Efekt: **25 MB → 2,3 MB**,
+z czego sam `classes.dex` spadł z 25,5 MB do 2,1 MB.
+
+`app/proguard-rules.pro` trzyma tylko to, co naprawdę musi tam być, każda reguła z powodem.
+Najważniejsza dotyczy **nazw stałych enum**: `Difficulty`, `GameType`, `ThemeMode` i `AppLanguage`
+zapisujemy do Roomu i DataStore przez `name`, więc nazwa stałej jest częścią formatu na dysku.
+R8 może swobodnie zmieniać nazwy pól, a `name()` zwraca to, jak pole ostatecznie się nazywa — bez
+tej reguły build release zapisywałby `a` tam, gdzie debug zapisał `EASY`, i wszystko zapisane
+wcześniej przestałoby się parsować. Po cichu, bo nieznana nazwa jest traktowana jako „nie ma".
+
+Że reguła działa, widać w `app/build/outputs/mapping/release/mapping.txt` — stałe mapują się na
+siebie (`EASY -> EASY`). Room jest bezpieczny dzięki własnym regułom biblioteki: `KratkozaDatabase`
+i `KratkozaDatabase_Impl` zachowują pełne nazwy, bo Room szuka implementacji przez refleksję.
+
+**Testy jednostkowe nie sprawdzają buildu release** — chodzą po kodzie niezminifikowanym. Co R8
+zepsuje, widać dopiero na urządzeniu, i zwykle jako dane, które się nie wczytują, a nie jako awaria.
+Po każdej zmianie reguł warto na telefonie przejść: nowa gra → zapis → wznowienie → ustawienia →
+zmiana języka → statystyki.
+
+Plik `mapping.txt` należy wysłać do Play razem z bundlem — bez niego raport awarii z telefonu to
+lista ponumerowanych metod w klasie `a`.
+
 ## Repozytorium
 
 `master` jest bazą, praca idzie na `develop`. Wydania powstają przez scalenie `develop` w `master`.
