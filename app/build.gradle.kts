@@ -16,8 +16,11 @@ android {
         applicationId = "com.przunk.kratkoza"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // Bumped on every approved change, so the version shown in Settings identifies exactly
+        // which build is on a phone. A screenshot from the wrong APK has already cost us a round
+        // trip once; the number is what makes that impossible to repeat.
+        versionCode = 2
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -74,6 +77,8 @@ android {
 
     buildFeatures {
         compose = true
+        // Only for BuildConfig.VERSION_NAME / VERSION_CODE, which the settings screen shows.
+        buildConfig = true
     }
 
     testOptions {

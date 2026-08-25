@@ -42,8 +42,9 @@ class StatisticsViewModelTest {
 
     @Test
     fun `resetting clears what the screen shows`() = runTest(dispatcher) {
-        val game = repository.startNewGame(Difficulty.EASY)
-        repository.finishGame(game.copy(elapsedMillis = 60_000), completed = true)
+        val finished = repository.startNewGame(Difficulty.EASY)
+        repository.finishGame(finished.copy(elapsedMillis = 60_000), completed = true)
+        repository.startNewGame(Difficulty.HARD)
 
         val viewModel = StatisticsViewModel(repository)
         assertEquals(1, viewModel.statistics.first().completedCount)

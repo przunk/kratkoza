@@ -3,6 +3,7 @@ package com.przunk.kratkoza.data
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
@@ -184,49 +185,46 @@ class GameRepositoryTest {
     }
 
     @Test
-    fun `resetting statistics clears finished games`() = runTest {
+    fun `resetting statistics takes every counter to zero`() = runTest {
         val first = repository.startNewGame(Difficulty.EASY)
         now = 2_000
         val second = repository.startNewGame(Difficulty.HARD)
         repository.finishGame(first.copy(elapsedMillis = 60_000), completed = true)
-        repository.finishGame(second.copy(elapsedMillis = 90_000), completed = false)
 
-        assertEquals(2, repository.resetStatistics())
+        // `second` is still on the board — the case that used to leave the counters standing.
+        repository.resetStatistics()
 
         val statistics = repository.statistics.first()
         assertEquals(0, statistics.startedCount)
         assertEquals(0, statistics.completedCount)
         assertEquals(0, statistics.totalMistakes)
         assertTrue(statistics.perDifficulty.all { it.startedCount == 0 })
+        assertNotNull("the game in progress must survive", repository.loadGame(second.state.puzzle.id))
     }
 
     @Test
-    fun `resetting statistics leaves a game still on the board playable and countable`() = runTest {
-        // The save points at its open history row; dropping that row would make finishing the game
-        // record nothing at all.
-        val finished = repository.startNewGame(Difficulty.EASY)
-        repository.finishGame(finished, completed = true)
-        now = 2_000
-        val inProgress = repository.startNewGame(Difficulty.MASTER)
+    fun `a game finished after a reset is recorded against the fresh record`() = runTest {
+        val game = repository.startNewGame(Difficulty.MASTER)
+        repository.resetStatistics()
 
-        assertEquals(1, repository.resetStatistics())
-        assertNotNull(repository.loadGame(inProgress.state.puzzle.id))
+        val reloaded = requireNotNull(repository.loadGame(game.state.puzzle.id))
+        assertEquals(NO_HISTORY_ROW, reloaded.historyId)
 
-        val afterReset = repository.statistics.first()
-        assertEquals(1, afterReset.startedCount)
-        assertEquals(0, afterReset.completedCount)
+        now = 9_000
+        repository.finishGame(reloaded.copy(elapsedMillis = 45_000), completed = true)
 
-        repository.finishGame(inProgress.copy(elapsedMillis = 30_000), completed = true)
-        val afterFinishing = repository.statistics.first()
-        assertEquals(1, afterFinishing.completedCount)
+        val statistics = repository.statistics.first()
+        assertEquals("started and finished at once, as far as the record is concerned", 1, statistics.startedCount)
+        assertEquals(1, statistics.completedCount)
         assertEquals(
-            30_000L,
-            afterFinishing.perDifficulty.single { it.difficulty == Difficulty.MASTER }.bestTimeMillis,
+            45_000L,
+            statistics.perDifficulty.single { it.difficulty == Difficulty.MASTER }.bestTimeMillis,
         )
     }
 
     @Test
-    fun `resetting an empty record removes nothing`() = runTest {
-        assertEquals(0, repository.resetStatistics())
+    fun `resetting an empty record is harmless`() = runTest {
+        repository.resetStatistics()
+        assertEquals(0, repository.statistics.first().startedCount)
     }
 }

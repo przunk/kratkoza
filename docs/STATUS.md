@@ -44,11 +44,11 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Ustawienia w DataStore (§35)
 - [x] Motyw jasny / ciemny / systemowy (§9)
 - [x] Wybór języka w aplikacji: systemowy / EN / PL (§4)
-- [x] Reset statystyk (gry w toku liczą się dalej)
+- [x] Reset statystyk — wszystkie liczniki do zera, gry w toku zostają grywalne
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 151 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 153 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 

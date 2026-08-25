@@ -84,6 +84,8 @@
     <string name="settings_theme_light">Jasny</string>
     <string name="settings_theme_dark">Ciemny</string>
     <string name="settings_gameplay">Rozgrywka</string>
+    <string name="settings_about">O aplikacji</string>
+    <string name="settings_version">Wersja</string>
     <string name="settings_auto_remove_candidates">Automatycznie usuwaj kandydatów</string>
     <string name="settings_auto_remove_candidates_summary">Po poprawnej cyfrze usuń ją z kandydatów w tym samym wierszu, kolumnie i bloku.</string>
     <string name="settings_highlight_same_digits">Podświetlaj takie same cyfry</string>
@@ -97,7 +99,7 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="statistics_reset">Resetuj statystyki</string>
     <string name="statistics_reset_title">Zresetować statystyki?</string>
-    <string name="statistics_reset_message">Cały dorobek zostanie usunięty i nie da się go przywrócić. Gry będące w toku liczą się dalej.</string>
+    <string name="statistics_reset_message">Wszystkie liczniki wrócą do zera i nie da się tego cofnąć. Gry będące w toku zostaną na miejscu i można je dokończyć.</string>
     <string name="statistics_reset_confirm">Resetuj</string>
     <string name="statistics_reset_cancel">Anuluj</string>
     <string name="settings_language">Język</string>

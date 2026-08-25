@@ -84,6 +84,8 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_gameplay">Gameplay</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version</string>
     <string name="settings_auto_remove_candidates">Remove candidates automatically</string>
     <string name="settings_auto_remove_candidates_summary">After a correct digit, clear it from candidates in the same row, column and block.</string>
     <string name="settings_highlight_same_digits">Highlight matching digits</string>
@@ -97,7 +99,7 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="statistics_reset">Reset statistics</string>
     <string name="statistics_reset_title">Reset statistics?</string>
-    <string name="statistics_reset_message">Your whole record is deleted and cannot be brought back. Games still on the board keep counting.</string>
+    <string name="statistics_reset_message">Every counter goes back to zero and it cannot be undone. Games still on the board stay where they are and can be finished.</string>
     <string name="statistics_reset_confirm">Reset</string>
     <string name="statistics_reset_cancel">Cancel</string>
     <string name="settings_language">Language</string>

@@ -17,10 +17,17 @@ data class SavedGame(
     val lastPlayedAt: Long,
     /** Time actually played, pauses excluded (project.md section 20). */
     val elapsedMillis: Long,
+    /** The record row this game belongs to, or [NO_HISTORY_ROW] after the record was reset. */
     val historyId: Long,
     /** project.md section 28. Always false while only solo games exist. */
     val rankedEligible: Boolean,
 )
+
+/**
+ * No record row: the statistics were reset while this game was still on the board. Room's generated
+ * ids start at 1, so this can never collide with a real row.
+ */
+const val NO_HISTORY_ROW = 0L
 
 /**
  * A row of the saved-games list (project.md section 22).

@@ -8,6 +8,7 @@ import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
+import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -52,6 +53,11 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
         saves.value = saves.value - puzzleId
     }
 
+    /** Stands in for the `UPDATE saved_games SET historyId = 0` of the reset transaction. */
+    fun detachFromHistory() {
+        saves.value = saves.value.mapValues { (_, save) -> save.copy(historyId = NO_HISTORY_ROW) }
+    }
+
     override fun observeAll(): Flow<List<SavedGameSummaryRow>> = saves.map { current ->
         current.values
             .sortedByDescending { it.lastPlayedAt }
@@ -75,21 +81,26 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
         current.values.maxByOrNull { it.lastPlayedAt }?.puzzleId
     }
 
-    /** Stands in for the `SELECT historyId FROM saved_games` subquery of `deleteFinished`. */
-    fun openHistoryIds(): Set<Long> = saves.value.values.mapTo(mutableSetOf()) { it.historyId }
 }
 
-class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : GameHistoryDao {
+/**
+ * Extends the real DAO rather than reimplementing it.
+ *
+ * That matters here: `resetStatistics` is concrete on [GameHistoryDao], so this fake inherits the
+ * actual transaction body and only the storage underneath is swapped. An earlier fake reimplemented
+ * the reset, which is precisely why a reset that did the wrong thing passed its tests.
+ */
+class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : GameHistoryDao() {
     private val entries = MutableStateFlow<List<GameHistoryEntity>>(emptyList())
 
     val all: List<GameHistoryEntity> get() = entries.value
 
-    override suspend fun deleteFinished(): Int {
-        val protectedIds = savedGameDao?.openHistoryIds().orEmpty()
-        val kept = entries.value.filter { it.id in protectedIds }
-        val removed = entries.value.size - kept.size
-        entries.value = kept
-        return removed
+    override suspend fun deleteAllHistory() {
+        entries.value = emptyList()
+    }
+
+    override suspend fun detachSavesFromHistory() {
+        savedGameDao?.detachFromHistory()
     }
 
     override suspend fun insert(entry: GameHistoryEntity): Long {

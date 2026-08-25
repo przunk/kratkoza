@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.settings.AppLanguage
 import com.przunk.kratkoza.domain.settings.ThemeMode
@@ -113,6 +114,27 @@ fun SettingsScreen(
                         checked = settings.showRemainingCounts,
                         onCheckedChange = viewModel::setShowRemainingCounts,
                     )
+                }
+            }
+
+            item {
+                SettingsSection(stringResource(R.string.settings_about)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_version),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        // Shown so a screenshot or a phone identifies its own build. Without it
+                        // there is no way to tell whether a report is about the code as it stands.
+                        Text(
+                            text = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

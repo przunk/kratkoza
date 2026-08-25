@@ -10,6 +10,7 @@ import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.game.GameState
+import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.game.SavedGameSummary
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -54,23 +55,7 @@ class GameRepository(
         puzzleDao.insert(puzzle.toEntity())
 
         val now = clock()
-        val historyId = historyDao.insert(
-            GameHistoryEntity(
-                puzzleId = puzzle.id,
-                gameType = puzzle.gameType.name,
-                difficulty = puzzle.difficulty.name,
-                startedAt = now,
-                finishedAt = null,
-                elapsedMillis = 0,
-                mistakeCount = 0,
-                completed = false,
-                score = null,
-                xpEarned = 0,
-                publiclyRanked = false,
-                autoRemoveCandidates = true,
-                rulesetVersion = SudokuGenerator.GENERATOR_VERSION,
-            ),
-        )
+        val historyId = historyDao.insert(historyEntry(puzzle, startedAt = now))
 
         val save = SavedGame(
             state = GameState.newGame(puzzle),
@@ -139,19 +124,35 @@ class GameRepository(
     }
 
     /**
-     * Closes a game out: updates its history row and drops the save.
+     * Closes a game out: records the result and drops the save.
      *
      * [completed] is the caller's answer to "is the board correctly solved" — project.md section 16
      * is explicit that a game only counts as finished when it actually is.
+     *
+     * A game whose record was wiped by [resetStatistics] has no row to update, so it opens one now.
+     * The game is then counted as both started and finished at this moment, which is the honest
+     * reading: as far as the record is concerned, it began when the record did.
      */
     suspend fun finishGame(game: SavedGame, completed: Boolean) {
-        historyDao.markFinished(
-            id = game.historyId,
-            finishedAt = clock(),
-            elapsedMillis = game.elapsedMillis,
-            mistakeCount = game.state.mistakeCount,
-            completed = completed,
-        )
+        val now = clock()
+        if (game.historyId == NO_HISTORY_ROW) {
+            historyDao.insert(
+                historyEntry(game.state.puzzle, startedAt = game.startedAt).copy(
+                    finishedAt = now,
+                    elapsedMillis = game.elapsedMillis,
+                    mistakeCount = game.state.mistakeCount,
+                    completed = completed,
+                ),
+            )
+        } else {
+            historyDao.markFinished(
+                id = game.historyId,
+                finishedAt = now,
+                elapsedMillis = game.elapsedMillis,
+                mistakeCount = game.state.mistakeCount,
+                completed = completed,
+            )
+        }
         savedGameDao.delete(game.state.puzzle.id)
     }
 
@@ -159,15 +160,12 @@ class GameRepository(
     suspend fun deleteSave(puzzleId: String) = savedGameDao.delete(puzzleId)
 
     /**
-     * Clears the player's record.
+     * Clears the player's record: every counter goes to zero.
      *
-     * Games still in progress keep their history row, so finishing one after a reset still counts.
-     * The alternative — dropping those rows too — would quietly lose the game the player is in the
-     * middle of, which is not what "reset statistics" should mean.
-     *
-     * Returns how many rows went, so the caller can tell a real reset from a no-op.
+     * Games on the board are untouched and stay playable; they simply stop belonging to the record
+     * that was just thrown away, and finishing one afterwards opens a fresh row.
      */
-    suspend fun resetStatistics(): Int = historyDao.deleteFinished()
+    suspend fun resetStatistics() = historyDao.resetStatistics()
 
     /** Unfinished games, most recently played first (project.md section 22). */
     val savedGames: Flow<List<SavedGameSummary>> =
@@ -201,6 +199,28 @@ class GameRepository(
         )
     }
 }
+
+/**
+ * An open history row for [puzzle].
+ *
+ * `score` and `xpEarned` stay empty: project.md section 23 wants both kept, and section 39 leaves
+ * both algorithms open, so the columns exist and wait rather than holding a made-up number.
+ */
+private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
+    puzzleId = puzzle.id,
+    gameType = puzzle.gameType.name,
+    difficulty = puzzle.difficulty.name,
+    startedAt = startedAt,
+    finishedAt = null,
+    elapsedMillis = 0,
+    mistakeCount = 0,
+    completed = false,
+    score = null,
+    xpEarned = 0,
+    publiclyRanked = false,
+    autoRemoveCandidates = true,
+    rulesetVersion = SudokuGenerator.GENERATOR_VERSION,
+)
 
 private fun Puzzle.toEntity() = PuzzleEntity(
     puzzleId = id,

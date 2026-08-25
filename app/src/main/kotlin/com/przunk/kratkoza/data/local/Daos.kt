@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -58,10 +59,10 @@ interface SavedGameDao {
 }
 
 @Dao
-interface GameHistoryDao {
+abstract class GameHistoryDao {
 
     @Insert
-    suspend fun insert(entry: GameHistoryEntity): Long
+    abstract suspend fun insert(entry: GameHistoryEntity): Long
 
     @Query(
         """
@@ -73,7 +74,7 @@ interface GameHistoryDao {
         WHERE id = :id
         """,
     )
-    suspend fun markFinished(
+    abstract suspend fun markFinished(
         id: Long,
         finishedAt: Long,
         elapsedMillis: Long,
@@ -81,30 +82,46 @@ interface GameHistoryDao {
         completed: Boolean,
     )
 
+    @Query("DELETE FROM game_history")
+    protected abstract suspend fun deleteAllHistory()
+
     /**
-     * Wipes the record, except for games still in progress.
+     * Cuts every save loose from its history row.
      *
-     * A save points at the history row opened when its game started, and finishing that game
-     * updates that row. Deleting it would leave the save pointing at nothing, and the game would
-     * silently fail to be recorded when it was completed. A game still on the board has not
-     * finished being played, so its row is not history yet.
+     * [SavedGameEntity.historyId] `0` means "not recorded yet" — Room's generated ids start at 1, so
+     * the value can never collide with a real row.
      */
-    @Query(
-        """
-        DELETE FROM game_history
-        WHERE id NOT IN (SELECT historyId FROM saved_games)
-        """,
-    )
-    suspend fun deleteFinished(): Int
+    @Query("UPDATE saved_games SET historyId = 0")
+    protected abstract suspend fun detachSavesFromHistory()
+
+    /**
+     * Clears the player's whole record.
+     *
+     * Games still on the board survive; only their link to the old record is cut, and finishing one
+     * afterwards opens a fresh row (see [com.przunk.kratkoza.data.repository.GameRepository]).
+     *
+     * An earlier version kept the history rows of games in progress, on the grounds that a game
+     * still being played is not history yet. That was defensible and wrong: it left "games started"
+     * showing whatever was unfinished, so a reset looked like it had done nothing. A reset means
+     * zero.
+     *
+     * One transaction, because a deleted row with saves still pointing at it is exactly the
+     * dangling reference this is meant to avoid.
+     */
+    @Transaction
+    open suspend fun resetStatistics() {
+        deleteAllHistory()
+        detachSavesFromHistory()
+    }
 
     @Query("SELECT COUNT(*) FROM game_history")
-    fun observeStartedCount(): Flow<Int>
+    abstract fun observeStartedCount(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM game_history WHERE completed")
-    fun observeCompletedCount(): Flow<Int>
+    abstract fun observeCompletedCount(): Flow<Int>
 
     @Query("SELECT COALESCE(SUM(mistakeCount), 0) FROM game_history WHERE completed")
-    fun observeTotalMistakes(): Flow<Int>
+    abstract fun observeTotalMistakes(): Flow<Int>
 
     /**
      * Per-level totals, in one pass.
@@ -127,7 +144,7 @@ interface GameHistoryDao {
         GROUP BY difficulty
         """,
     )
-    fun observeByDifficulty(): Flow<List<DifficultyStatisticsRow>>
+    abstract fun observeByDifficulty(): Flow<List<DifficultyStatisticsRow>>
 
 }
 
