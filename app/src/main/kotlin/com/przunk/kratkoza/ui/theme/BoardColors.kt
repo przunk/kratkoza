@@ -13,9 +13,13 @@ import androidx.compose.ui.graphics.Color
  * harder to retheme later.
  *
  * Only two background tiers, ordered by strength: selected cell > peer (row/column/block) > plain
- * surface. Matching digits (project.md section 10) are marked by *weight* instead of a third tint —
- * a fourth shade of grey on the board was harder to read than the thing it was pointing at, and a
- * bolder digit says "here is another one of these" without touching the background at all.
+ * surface. Matching digits (project.md section 10) are marked by the *colour of the digit* instead
+ * of a third tint: a fourth shade of grey read as mud, and bolding them was tried and looked
+ * restless.
+ *
+ * Recolouring the digit does not cost the given/entered distinction, because that is carried by
+ * weight — a given stays light, a player's digit stays semi-bold, whatever colour it takes. Nothing
+ * here rests on hue alone (project.md section 8).
  *
  * The tiers separate by lightness, not by hue — each step is a visibly different grey carrying a
  * trace of the accent. A reader who cannot tell the hues apart still sees three distinct steps, and
@@ -36,6 +40,7 @@ data class BoardColors(
     val errorCell: Color,
     val givenDigit: Color,
     val enteredDigit: Color,
+    val matchedDigit: Color,
     val errorDigit: Color,
     val candidate: Color,
     val autoHintDigit: Color,
@@ -50,6 +55,7 @@ internal val LightBoardColors = BoardColors(
     errorCell = Error90,
     givenDigit = Neutral30,
     enteredDigit = EnteredLight,
+    matchedDigit = MatchedLight,
     errorDigit = Error40,
     candidate = Neutral50,
     autoHintDigit = Neutral60,
@@ -64,6 +70,7 @@ internal val DarkBoardColors = BoardColors(
     errorCell = Error20,
     givenDigit = Neutral80,
     enteredDigit = EnteredDark,
+    matchedDigit = MatchedDark,
     errorDigit = Error80,
     candidate = Neutral60,
     autoHintDigit = Neutral50,

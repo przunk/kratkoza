@@ -421,7 +421,44 @@ class GameViewModelTest {
             viewModel.enterDigit(game.state.puzzle.solution[cell])
         }
 
-        val completed = viewModel.uiState.value.lastMove!!.completedCells
-        assertTrue("the finished row must be reported", row.all { it in completed })
+        val echo = viewModel.uiState.value.lastMove!!
+        assertEquals(GameUiState.FlashKind.COMPLETED, echo.flashKind)
+        assertTrue("the finished row must be reported", row.all { it in echo.flashCells })
     }
+
+    @Test
+    fun `a wrong digit flashes its row, column and block`() = gameTest {
+        // project.md section 36. The cell already says it is wrong; the flash says where it sits.
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        viewModel.enterDigit(GameFixturesFor(game).wrongDigitAt(cell))
+
+        val echo = viewModel.uiState.value.lastMove!!
+        assertEquals(GameUiState.FlashKind.MISTAKE, echo.flashKind)
+        assertEquals(21, echo.flashCells.size)
+        assertTrue(Sudoku.peers[cell].all { it in echo.flashCells })
+        assertTrue(cell in echo.flashCells)
+    }
+
+    @Test
+    fun `a correct digit that finishes nothing flashes nothing`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        viewModel.enterDigit(game.state.puzzle.solution[cell])
+
+        val echo = viewModel.uiState.value.lastMove!!
+        assertEquals(GameUiState.FlashKind.NONE, echo.flashKind)
+        assertTrue(echo.flashCells.isEmpty())
+    }
+}
+
+/** Picks a digit the solution disagrees with, for a board the generator produced. */
+private class GameFixturesFor(private val game: com.przunk.kratkoza.domain.game.SavedGame) {
+    fun wrongDigitAt(cell: Int): Int = (1..9).first { it != game.state.puzzle.solution[cell] }
 }

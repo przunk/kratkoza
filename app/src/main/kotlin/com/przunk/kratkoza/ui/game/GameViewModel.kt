@@ -167,15 +167,7 @@ class GameViewModel(
         if (state === current.state) return
 
         moveToken++
-        lastMove = GameUiState.MoveEcho(
-            token = moveToken,
-            cell = selection,
-            completedCells = BoardInsights.newlyCompletedCells(
-                before = current.state.board,
-                after = state.board,
-                solution = state.puzzle.solution,
-            ),
-        )
+        lastMove = echoOf(before = current.state, after = state)
 
         game = current.copy(state = state)
         render(state)
@@ -186,6 +178,44 @@ class GameViewModel(
         } else {
             persist()
         }
+    }
+
+    /**
+     * What the board should show for a move that has just been applied.
+     *
+     * A mistake takes precedence and lights the cell's whole row, column and block — the point is
+     * to show *where* the wrong digit now sits, not merely that it is wrong, which the cell itself
+     * already says. project.md section 16 counts a mistake on the digit being committed, so the
+     * counter rising is exactly the signal.
+     */
+    private fun echoOf(before: GameState, after: GameState): GameUiState.MoveEcho {
+        val cell = selection
+        val isMistake = after.mistakeCount > before.mistakeCount
+
+        if (isMistake && cell != null) {
+            return GameUiState.MoveEcho(
+                token = moveToken,
+                cell = cell,
+                flashCells = Sudoku.unitsOf[cell].flatMapTo(mutableSetOf(), IntArray::asList),
+                flashKind = GameUiState.FlashKind.MISTAKE,
+            )
+        }
+
+        val completed = BoardInsights.newlyCompletedCells(
+            before = before.board,
+            after = after.board,
+            solution = after.puzzle.solution,
+        )
+        return GameUiState.MoveEcho(
+            token = moveToken,
+            cell = cell,
+            flashCells = completed,
+            flashKind = if (completed.isEmpty()) {
+                GameUiState.FlashKind.NONE
+            } else {
+                GameUiState.FlashKind.COMPLETED
+            },
+        )
     }
 
     private suspend fun finish() {

@@ -36,6 +36,16 @@ internal val HighlightDarkSelected = Color(0xFF3D5B77)
 internal val EnteredLight = Color(0xFF15599E)
 internal val EnteredDark = Color(0xFF8CC6F5)
 
+/**
+ * Digits matching the selected one (project.md section 10).
+ *
+ * Green rather than another blue: it has to separate from the entered digits at a glance, and hue
+ * is what is left once weight is spoken for. Several cells change together, so the eye catches the
+ * group even where it would not catch one cell on its own.
+ */
+internal val MatchedLight = Color(0xFF1E6F5A)
+internal val MatchedDark = Color(0xFF7FD3BA)
+
 internal val Teal40 = Color(0xFF2C6E63)
 internal val Teal80 = Color(0xFF9CD1C6)
 

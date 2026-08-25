@@ -80,7 +80,7 @@ fun SudokuBoardView(
     // through the system's animator duration scale, so a phone with animations turned off gets a
     // board that simply updates.
     val entrance = remember { Animatable(1f) }
-    val celebration = remember { Animatable(0f) }
+    val flash = remember { Animatable(0f) }
 
     LaunchedEffect(lastMove?.token) {
         val cell = lastMove?.cell ?: return@LaunchedEffect
@@ -90,10 +90,18 @@ fun SudokuBoardView(
     }
 
     LaunchedEffect(lastMove?.token) {
-        if (lastMove?.completedCells.isNullOrEmpty()) return@LaunchedEffect
-        celebration.snapTo(0f)
-        celebration.animateTo(1f, tween(CELEBRATION_RISE_MILLIS, easing = LinearOutSlowInEasing))
-        celebration.animateTo(0f, tween(CELEBRATION_FALL_MILLIS, easing = FastOutSlowInEasing))
+        val kind = lastMove?.flashKind ?: GameUiState.FlashKind.NONE
+        if (kind == GameUiState.FlashKind.NONE || lastMove?.flashCells.isNullOrEmpty()) {
+            return@LaunchedEffect
+        }
+        // A mistake lights 21 cells at once, so it gets less of everything: less time and, at the
+        // draw below, less opacity. project.md section 8 asks that the board never burn the eyes,
+        // and a full-strength red across a third of it would.
+        val rise = if (kind == GameUiState.FlashKind.MISTAKE) MISTAKE_RISE_MILLIS else FLASH_RISE_MILLIS
+        val fall = if (kind == GameUiState.FlashKind.MISTAKE) MISTAKE_FALL_MILLIS else FLASH_FALL_MILLIS
+        flash.snapTo(0f)
+        flash.animateTo(1f, tween(rise, easing = LinearOutSlowInEasing))
+        flash.animateTo(0f, tween(fall, easing = FastOutSlowInEasing))
     }
     val boardDescription = stringResource(R.string.board_description)
 
@@ -138,11 +146,12 @@ fun SudokuBoardView(
                                 isSameDigit = index in sameDigitCells,
                                 hint = eightOfNineHints[index],
                                 entranceScale = if (index == lastMove?.cell) entrance.value else 1f,
-                                celebration = if (index in lastMove?.completedCells.orEmpty()) {
-                                    celebration.value
+                                flash = if (index in lastMove?.flashCells.orEmpty()) {
+                                    flash.value
                                 } else {
                                     0f
                                 },
+                                flashKind = lastMove?.flashKind ?: GameUiState.FlashKind.NONE,
                                 isSelected = index == selectedCell,
                                 cellSize = cellSize,
                                 colors = colors,
@@ -191,7 +200,8 @@ private fun SudokuCell(
     isSelected: Boolean,
     hint: Int?,
     entranceScale: Float,
-    celebration: Float,
+    flash: Float,
+    flashKind: GameUiState.FlashKind,
     cellSize: Dp,
     colors: BoardColors,
     enabled: Boolean,
@@ -205,9 +215,12 @@ private fun SudokuCell(
             .size(cellSize)
             .background(background)
             .drawBehind {
-                if (celebration > 0f) {
-                    drawRect(colors.selectedCell.copy(alpha = celebration * CELEBRATION_ALPHA))
+                if (flash <= 0f) return@drawBehind
+                val (tint, peak) = when (flashKind) {
+                    GameUiState.FlashKind.MISTAKE -> colors.errorDigit to MISTAKE_ALPHA
+                    else -> colors.selectedCell to FLASH_ALPHA
                 }
+                drawRect(tint.copy(alpha = flash * peak))
             }
             .clickable(
                 enabled = enabled,
@@ -261,17 +274,15 @@ private fun DigitText(
         text = value.toString(),
         style = TextStyle(
             fontSize = with(LocalDensity.current) { (cellSize * DIGIT_HEIGHT_FRACTION).toSp() },
-            // Three weights, each earning its step. A given is the quietest; a digit the player
-            // entered is heavier; a digit matching the selected one is heaviest of all
-            // (project.md section 10). Weight carries all of it alongside colour, so none of it
-            // rests on hue (project.md section 8).
-            fontWeight = when {
-                isSameDigit -> FontWeight.ExtraBold
-                isGiven -> FontWeight.Normal
-                else -> FontWeight.SemiBold
-            },
+            // Weight says given or entered, and keeps saying it whatever colour the digit takes —
+            // which is what lets matching digits be recoloured without the distinction going with
+            // them (project.md section 8).
+            fontWeight = if (isGiven) FontWeight.Normal else FontWeight.SemiBold,
+            // A wrong digit stays wrong-coloured whatever else is true of it; matching the selected
+            // digit never outranks that (project.md section 10).
             color = when {
                 isIncorrect -> colors.errorDigit
+                isSameDigit -> colors.matchedDigit
                 isGiven -> colors.givenDigit
                 else -> colors.enteredDigit
             },
@@ -422,8 +433,13 @@ private const val ENTRANCE_FROM = 0.88f
 private const val ENTRANCE_MILLIS = 130
 
 /** A finished row, column or block glows once and fades. */
-private const val CELEBRATION_RISE_MILLIS = 140
-private const val CELEBRATION_FALL_MILLIS = 320
-private const val CELEBRATION_ALPHA = 0.5f
+private const val FLASH_RISE_MILLIS = 140
+private const val FLASH_FALL_MILLIS = 320
+private const val FLASH_ALPHA = 0.5f
+
+/** A mistake lights three units at once, so it is quieter and quicker than a completion. */
+private const val MISTAKE_RISE_MILLIS = 110
+private const val MISTAKE_FALL_MILLIS = 260
+private const val MISTAKE_ALPHA = 0.22f
 
 private const val HINT_ALPHA = 0.45f

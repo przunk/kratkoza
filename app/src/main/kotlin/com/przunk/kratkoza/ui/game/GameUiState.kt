@@ -57,9 +57,26 @@ data class GameUiState(
         val token: Int,
         /** The cell that changed, for the digit's entrance. */
         val cell: Int?,
-        /** Cells of any row, column or block the move just finished. Empty when none did. */
-        val completedCells: Set<Int>,
+        /** Cells to flash, if any. */
+        val flashCells: Set<Int> = emptySet(),
+        val flashKind: FlashKind = FlashKind.NONE,
     )
+
+    /**
+     * Why the board is flashing (project.md section 36).
+     *
+     * One channel for both, because they cannot happen together: a wrong digit never finishes a
+     * unit correctly. The two differ in colour and in how loudly they are allowed to speak.
+     */
+    enum class FlashKind {
+        NONE,
+
+        /** A row, column or block just came out right. */
+        COMPLETED,
+
+        /** A digit was committed that the solution disagrees with (project.md section 16). */
+        MISTAKE,
+    }
 
     enum class Phase {
         /** The board is still being read. */
