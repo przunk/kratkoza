@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.ui.game
 
 import com.przunk.kratkoza.data.FakeGameHistoryDao
+import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
@@ -42,6 +43,7 @@ class GameViewModelTest {
 
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
+        dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
@@ -482,6 +484,52 @@ class GameViewModelTest {
 
         assertTrue("the finished digit must not land", settled.board[elsewhere] == 0)
         assertEquals(0, viewModel.uiState.value.mistakeCount)
+    }
+
+    @Test
+    fun `a daily that still counts cannot be paused`() = gameTest {
+        // project.md section 28.
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY)
+        val viewModel = viewModelFor(daily)
+
+        assertTrue(viewModel.uiState.value.rankedEligible)
+        assertFalse("no pause button while it counts", viewModel.uiState.value.canPause)
+
+        now = 5_000
+        viewModel.setPaused(true)
+        assertFalse("the request must be refused, not merely hidden", viewModel.uiState.value.isPaused)
+    }
+
+    @Test
+    fun `going to the background costs a daily its ranking and gives back the pause`() = gameTest {
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.HARD)
+        val viewModel = viewModelFor(daily)
+
+        now = 20_000
+        viewModel.onLeftForeground()
+        idle()
+
+        assertFalse("project.md section 28", viewModel.uiState.value.rankedEligible)
+        assertTrue("and it becomes an ordinary game, so it may pause", viewModel.uiState.value.canPause)
+        assertEquals(
+            "the loss must survive a restart",
+            false,
+            repository.loadGame(daily.state.puzzle.id)?.rankedEligible,
+        )
+    }
+
+    @Test
+    fun `a solo game may always be paused`() = gameTest {
+        val viewModel = viewModelFor(startGame())
+
+        assertFalse(viewModel.uiState.value.rankedEligible)
+        assertTrue(viewModel.uiState.value.canPause)
+        viewModel.setPaused(true)
+        assertTrue(viewModel.uiState.value.isPaused)
     }
 }
 

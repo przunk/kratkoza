@@ -19,6 +19,16 @@ interface PuzzleDao {
 }
 
 @Dao
+interface DailyPuzzleDao {
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(entries: List<DailyPuzzleEntity>)
+
+    @Query("SELECT * FROM daily_puzzles WHERE date = :date AND rulesetVersion = :rulesetVersion")
+    suspend fun forDate(date: String, rulesetVersion: Int): List<DailyPuzzleEntity>
+}
+
+@Dao
 interface SavedGameDao {
 
     @Upsert
@@ -135,6 +145,15 @@ abstract class GameHistoryDao {
         deleteAllHistory()
         detachSavesFromHistory()
     }
+
+    /**
+     * Every recorded attempt at these boards.
+     *
+     * A board can have more than one row — abandoned and started again — so the caller decides what
+     * to make of them rather than the query guessing.
+     */
+    @Query("SELECT * FROM game_history WHERE puzzleId IN (:puzzleIds)")
+    abstract suspend fun attemptsOn(puzzleIds: List<String>): List<GameHistoryEntity>
 
     @Query("SELECT COUNT(*) FROM game_history")
     abstract fun observeStartedCount(): Flow<Int>

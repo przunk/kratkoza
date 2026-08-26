@@ -5,6 +5,8 @@ import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.progress.PlayerProgress
 import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.share.BoardImportResult
@@ -30,9 +32,11 @@ class GameRepositoryTest {
     private val savedGameDao = FakeSavedGameDao(puzzleDao)
     private val historyDao = FakeGameHistoryDao(savedGameDao)
     private var now = 1_000L
+    private val DAY: java.time.LocalDate = java.time.LocalDate.parse("2026-08-26")
 
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
+        dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
@@ -414,11 +418,102 @@ class GameRepositoryTest {
         val saves = FakeSavedGameDao(puzzles)
         return GameRepository(
             puzzleDao = puzzles,
+            dailyPuzzleDao = FakeDailyPuzzleDao(),
             savedGameDao = saves,
             historyDao = FakeGameHistoryDao(saves),
             generator = SudokuGenerator(),
             computationDispatcher = UnconfinedTestDispatcher(),
             clock = { now },
         )
+    }
+
+    @Test
+    fun `a day offers three untouched boards the first time it is asked for`() = runTest {
+        val entries = repository.dailySet(DAY)
+
+        assertEquals(DailyPuzzles.DIFFICULTIES, entries.map { it.difficulty })
+        assertTrue(entries.all { it.status == DailyStatus.NOT_STARTED })
+        assertTrue("an untouched daily still counts", entries.all { it.rankedEligible })
+    }
+
+    @Test
+    fun `asking twice returns the same boards, not new ones`() = runTest {
+        // The whole point of storing them: a board the player has met must not be swapped out.
+        val first = repository.dailySet(DAY).map { it.puzzleId }
+        val second = repository.dailySet(DAY).map { it.puzzleId }
+
+        assertEquals(first, second)
+    }
+
+    @Test
+    fun `two devices see the same boards on the same day`() = runTest {
+        // project.md section 26, reached without a server.
+        val here = repository.dailySet(DAY).map { it.puzzleId }
+        val there = freshRepository().dailySet(DAY).map { it.puzzleId }
+
+        assertEquals(here, there)
+    }
+
+    @Test
+    fun `starting a daily marks it in progress and eligible for the ranking`() = runTest {
+        repository.dailySet(DAY)
+        val game = repository.startDaily(DAY, Difficulty.HARD)
+
+        assertTrue("project.md section 28: a Daily starts eligible", game.rankedEligible)
+        assertEquals(GameType.DAILY, game.state.puzzle.gameType)
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
+        assertEquals(DailyStatus.IN_PROGRESS, entry.status)
+    }
+
+    @Test
+    fun `opening a daily already under way returns that game rather than restarting it`() = runTest {
+        repository.dailySet(DAY)
+        val started = repository.startDaily(DAY, Difficulty.EASY)
+        val cell = (0 until Sudoku.CELL_COUNT).first { started.state.board.isEmpty(it) }
+        val played = GameEngine.enterDigit(
+            started.state,
+            cell,
+            started.state.puzzle.solution[cell],
+            autoRemoveCandidates = true,
+        )
+        repository.save(started.copy(state = played, elapsedMillis = 30_000))
+
+        val again = repository.startDaily(DAY, Difficulty.EASY)
+
+        assertEquals(played.board, again.state.board)
+        assertEquals(30_000L, again.elapsedMillis)
+        assertEquals("no second game may be opened", 1, historyDao.all.size)
+    }
+
+    @Test
+    fun `a finished daily is reported as completed with its time and mistakes`() = runTest {
+        repository.dailySet(DAY)
+        val game = repository.startDaily(DAY, Difficulty.MASTER)
+        repository.finishGame(game.copy(elapsedMillis = 240_000), completed = true)
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        assertEquals(DailyStatus.COMPLETED, entry.status)
+        assertEquals(240_000L, entry.elapsedMillis)
+    }
+
+    @Test
+    fun `each day is a different set of boards`() = runTest {
+        val today = repository.dailySet(DAY).map { it.puzzleId }.toSet()
+        val tomorrow = repository.dailySet(DAY.plusDays(1)).map { it.puzzleId }.toSet()
+
+        assertTrue("no board may repeat the next day", (today intersect tomorrow).isEmpty())
+    }
+
+    @Test
+    fun `a daily counts towards statistics and XP like any other game`() = runTest {
+        // project.md section 28: a Daily that lost its ranking still feeds the personal record.
+        repository.dailySet(DAY)
+        val game = repository.startDaily(DAY, Difficulty.EASY)
+        repository.finishGame(game.copy(elapsedMillis = 60_000), completed = true)
+
+        val statistics = repository.statistics.first()
+        assertEquals(1, statistics.completedCount)
+        assertTrue(statistics.progress.totalXp > 0)
     }
 }

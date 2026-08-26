@@ -29,6 +29,39 @@ data class PuzzleEntity(
 )
 
 /**
+ * Which board is a given day's Daily at a given level (project.md section 26).
+ *
+ * The board itself is derived, not stored — the same date and level always generate the same grid.
+ * What this table records is that *this device already generated it*, so an app update that changes
+ * the generator cannot swap a puzzle out from under a game in progress.
+ *
+ * [rulesetVersion] travels with the row for the same reason: a row written under an older recipe
+ * describes a board today's code would no longer produce, and pretending otherwise would silently
+ * corrupt the day's identity.
+ */
+@Entity(
+    tableName = "daily_puzzles",
+    primaryKeys = ["date", "difficulty"],
+    foreignKeys = [
+        ForeignKey(
+            entity = PuzzleEntity::class,
+            parentColumns = ["puzzleId"],
+            childColumns = ["puzzleId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("puzzleId")],
+)
+data class DailyPuzzleEntity(
+    /** ISO date of the Daily day, yyyy-MM-dd, as decided by the 08:00 Warsaw changeover. */
+    val date: String,
+    /** [com.przunk.kratkoza.domain.model.Difficulty] by name. */
+    val difficulty: String,
+    val puzzleId: String,
+    val rulesetVersion: Int,
+)
+
+/**
  * A game in progress (project.md section 22).
  *
  * One save per board: resuming the same puzzle continues the same game rather than starting a

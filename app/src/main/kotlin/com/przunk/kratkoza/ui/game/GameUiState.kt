@@ -38,6 +38,14 @@ data class GameUiState(
     /** project.md section 19, an option. */
     val showRemainingCounts: Boolean = true,
     /**
+     * Whether finishing would still count for a public ranking (project.md section 28).
+     *
+     * While true the game cannot be paused, which is the whole of what section 28 asks. Losing it
+     * is one-way: a game that went to the background stays unranked even though it becomes
+     * pausable, and the board is untouched either way.
+     */
+    val rankedEligible: Boolean = false,
+    /**
      * Cell to digit, for the last gap in a row, column or block (project.md section 17). Empty
      * unless the option is on.
      */
@@ -94,4 +102,7 @@ data class GameUiState(
     }
 
     val isPlayable: Boolean get() = phase == Phase.PLAYING && !isPaused
+
+    /** project.md section 28: no pause button while the game still counts. */
+    val canPause: Boolean get() = !rankedEligible
 }

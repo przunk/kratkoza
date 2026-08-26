@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 242 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 268 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -128,6 +128,25 @@ Do rozważenia przy strojeniu:
 Czego nie wolno przy tym zepsuć: `PalettesTest` pilnuje, że stopnie rozdziela jasność w rosnącej
 kolejności, że wysoki kontrast nigdy nie *zmniejsza* rozdzielenia i że podpowiedź 8/9 zostaje
 cichsza od cyfry gracza (§17). Progi są w L*, nie w luminancji — patrz komentarz w teście.
+
+### Daily Sudoku — etap 2: ranking
+
+**Etap 1 zrobiony 2026-08-26** (plansze, ekran, brak pauzy w grze rankingowej). Zostaje ranking.
+
+Uzgodnione: **Google Play Games Services**, tablice wyników z wbudowanym okresem dziennym. Darmowe,
+niesie tożsamość gracza i nie wymaga serwera — czyli w projekcie nie powstaje usługa do utrzymania.
+Koszt: zależność `play-services-games-v2`, wbrew zasadzie minimalizmu z `technical_requirements.md`
+§9, ale alternatywą jest własny backend.
+
+Do sprawdzenia przed decyzją: **ile tablic wyników wolno mieć w jednej grze**. Regiony wymagałyby
+osobnej tablicy na region i poziom (16 województw × 3 = 48, plus globalne), a limitu nie znam.
+
+Do zrobienia poza tym:
+
+- podpięcie logowania Play Games, opcjonalne — udział w rankingu musi być świadomym wyborem
+  (`project.md` §27),
+- **blokada podpowiedzi 8/9 w grach rankingowych** (§17) — patrz osobna pozycja niżej,
+- wybór regionu z listy; decyzje funkcjonalne są już podjęte, patrz „Wybór regionu do rankingu".
 
 ### Wynik rankingowy Daily
 

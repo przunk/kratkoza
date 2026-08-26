@@ -233,7 +233,11 @@ private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
             )
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            // Absent, not disabled: a greyed-out pause invites the player to wonder what they did
+        // wrong, when the answer is simply that this game counts (project.md section 28).
+        if (state.canPause) {
             PauseButton(paused = state.isPaused, onClick = onTogglePause)
+        }
         }
     }
 }

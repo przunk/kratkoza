@@ -2,6 +2,8 @@ package com.przunk.kratkoza.data.repository
 
 import com.przunk.kratkoza.data.local.GameHistoryDao
 import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyPuzzleDao
+import com.przunk.kratkoza.data.local.DailyPuzzleEntity
 import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.MoveHistoryCodec
@@ -10,6 +12,9 @@ import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
+import com.przunk.kratkoza.domain.daily.DailyEntry
+import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
@@ -28,6 +33,7 @@ import com.przunk.kratkoza.domain.sudoku.PuzzleId
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
 import com.przunk.kratkoza.domain.sudoku.SudokuSolver
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
+import java.time.LocalDate
 import kotlin.math.roundToLong
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +50,7 @@ import kotlinx.coroutines.withContext
  */
 class GameRepository(
     private val puzzleDao: PuzzleDao,
+    private val dailyPuzzleDao: DailyPuzzleDao,
     private val savedGameDao: SavedGameDao,
     private val historyDao: GameHistoryDao,
     private val generator: SudokuGenerator,
@@ -65,7 +72,7 @@ class GameRepository(
     }
 
     /** Opens the history row project.md section 33 counts as a started game, and the save for it. */
-    private suspend fun openGame(puzzle: Puzzle): SavedGame {
+    private suspend fun openGame(puzzle: Puzzle, rankedEligible: Boolean = false): SavedGame {
         val now = clock()
         val historyId = historyDao.insert(historyEntry(puzzle, startedAt = now))
 
@@ -75,11 +82,90 @@ class GameRepository(
             lastPlayedAt = now,
             elapsedMillis = 0,
             historyId = historyId,
-            // project.md section 24: solo games have no public leaderboard.
-            rankedEligible = false,
+            // project.md section 24: solo games have no public leaderboard. Only a Daily starts
+            // eligible, and section 28 can take that away.
+            rankedEligible = rankedEligible,
         )
         save(save)
         return save
+    }
+
+    /**
+     * The three boards of [date], with what the player has done about each (project.md section 26).
+     *
+     * Generates and stores them the first time the day is asked for, then reads the same rows back
+     * for good. Deriving the boards afresh each time would give the same answer today and a
+     * different one after any change to the generator — storing them means the day a player met
+     * keeps being that day.
+     */
+    suspend fun dailySet(date: LocalDate): List<DailyEntry> {
+        val stored = ensureDailyPuzzles(date)
+        val attempts = historyDao.attemptsOn(stored.map { it.puzzleId })
+
+        return stored.map { row ->
+            val difficulty = Difficulty.fromStorageName(row.difficulty)
+                ?: error("Unreadable difficulty stored for the daily of $date")
+            val finished = attempts.firstOrNull { it.puzzleId == row.puzzleId && it.completed }
+            val save = savedGameDao.byId(row.puzzleId)
+
+            DailyEntry(
+                date = date,
+                difficulty = difficulty,
+                puzzleId = row.puzzleId,
+                status = when {
+                    finished != null -> DailyStatus.COMPLETED
+                    save != null -> DailyStatus.IN_PROGRESS
+                    else -> DailyStatus.NOT_STARTED
+                },
+                elapsedMillis = finished?.elapsedMillis ?: save?.elapsedMillis,
+                mistakeCount = finished?.mistakeCount ?: save?.mistakeCount,
+                // An untouched board is still eligible; the rule only takes eligibility away.
+                rankedEligible = save?.rankedEligible ?: (finished?.publiclyRanked ?: true),
+            )
+        }
+    }
+
+    /** Opens one of the day's boards, or returns the game already under way on it. */
+    suspend fun startDaily(date: LocalDate, difficulty: Difficulty): SavedGame {
+        val row = ensureDailyPuzzles(date).firstOrNull { it.difficulty == difficulty.name }
+            ?: error("No daily board for $date at $difficulty")
+
+        loadGame(row.puzzleId)?.let { return it }
+
+        val puzzle = puzzleDao.byId(row.puzzleId)?.toPuzzle()
+            ?: error("The daily board for $date at $difficulty is missing from storage")
+
+        // project.md section 28: a Daily starts eligible for the public ranking and can only lose
+        // that, never regain it.
+        return openGame(puzzle, rankedEligible = true)
+    }
+
+    /**
+     * The day's boards, generating them once if this device has not met them before.
+     *
+     * Rows written under an older ruleset are ignored rather than reused: they describe boards this
+     * code would no longer produce, and a day whose identity quietly changed is worse than a day
+     * generated afresh.
+     */
+    private suspend fun ensureDailyPuzzles(date: LocalDate): List<DailyPuzzleEntity> {
+        val stored = dailyPuzzleDao.forDate(date.toString(), DailyPuzzles.RULESET_VERSION)
+        if (stored.size == DailyPuzzles.DIFFICULTIES.size) return stored
+
+        val puzzles = withContext(computationDispatcher) {
+            DailyPuzzles.DIFFICULTIES.map { DailyPuzzles.generate(generator, date, it) }
+        }
+        puzzles.forEach { puzzleDao.insert(it.toEntity()) }
+        dailyPuzzleDao.insert(
+            puzzles.map {
+                DailyPuzzleEntity(
+                    date = date.toString(),
+                    difficulty = it.difficulty.name,
+                    puzzleId = it.id,
+                    rulesetVersion = DailyPuzzles.RULESET_VERSION,
+                )
+            },
+        )
+        return dailyPuzzleDao.forDate(date.toString(), DailyPuzzles.RULESET_VERSION)
     }
 
     /**

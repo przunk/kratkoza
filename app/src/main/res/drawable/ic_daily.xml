@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A calendar page: a body with a torn-off header band and two rings above it.
+
+    Drawn here rather than taken from a Material icon package, like the rest of the set: see
+    ic_saved_games.xml for why. Geometry stated in final coordinates and checked to sit inside the
+    24x24 viewport.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M7.4,2.2h1.8v3.2h-1.8z M14.8,2.2h1.8v3.2h-1.8z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M3.6,4.4h16.8v17.4h-16.8z M5.4,9.4h13.2v10.6h-13.2z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M7.6,12.2h3v3h-3z M10.6,12.2h3v3h-3z M13.6,12.2h3v3h-3z M7.6,15.2h3v3h-3z M10.6,15.2h3v3h-3z" />
+</vector>

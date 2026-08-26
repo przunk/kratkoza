@@ -141,6 +141,9 @@ class GameViewModel(
     /** The pause button (project.md section 20). */
     fun setPaused(paused: Boolean) {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
+        // project.md section 28: a game that still counts for the ranking has no pause. Refused
+        // here rather than only hidden in the UI, so no other caller can reach around it.
+        if (paused && game?.rankedEligible == true) return
         if (paused == _uiState.value.isPaused) return
         if (paused) pauseClock() else resumeClock()
         game?.let { render(it.state) }
@@ -172,6 +175,12 @@ class GameViewModel(
      */
     fun onLeftForeground() {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
+
+        // project.md section 28: going to the background costs a Daily its place in the ranking.
+        // The game itself survives and can be finished later — as an ordinary one, which is also
+        // what makes it pausable from here on.
+        game?.takeIf { it.rankedEligible }?.let { game = it.copy(rankedEligible = false) }
+
         pauseClock()
         game?.let { render(it.state) }
         persist()
@@ -304,6 +313,7 @@ class GameViewModel(
                 if (digit == 0) 0 else state.remainingCountOf(digit)
             },
             showRemainingCounts = settings.showRemainingCounts,
+            rankedEligible = game?.rankedEligible == true,
             eightOfNineHints = if (settings.showEightOfNineHint) {
                 BoardInsights.eightOfNineHints(state.board, state.puzzle.solution)
             } else {
