@@ -47,7 +47,8 @@ interface SavedGameDao {
                p.difficulty AS difficulty,
                p.gameType AS gameType,
                p.givens AS givens,
-               p.solution AS solution
+               p.solution AS solution,
+               p.generatorVersion AS generatorVersion
         FROM saved_games s
         JOIN puzzles p ON p.puzzleId = s.puzzleId
         ORDER BY s.lastPlayedAt DESC
@@ -197,6 +198,7 @@ data class SavedGameSummaryRow(
     val gameType: String,
     val givens: String,
     val solution: String,
+    val generatorVersion: Int,
 )
 
 /** Projection for per-level statistics; the aggregates are null until something is completed. */

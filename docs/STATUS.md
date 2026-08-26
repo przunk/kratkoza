@@ -42,6 +42,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Dane
 - [x] Zapisywanie i wznawianie rozgrywek, lista z podglądem planszy (§22)
+- [x] Udostępnianie planszy kodem i wczytywanie cudzej (poza specyfikacją)
 - [x] Szybkie wznowienie ostatniej gry na ekranie głównym (§22)
 - [x] Historia zakończonych gier w Room (§23)
 - [x] Statystyki lokalne (§33), z liczbą gier w toku i stopniem ich wypełnienia
@@ -54,7 +55,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 212 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 238 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 

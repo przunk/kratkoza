@@ -30,6 +30,7 @@ class SavedGameTest {
         board = board,
         givens = givens,
         solution = solution,
+        generatorVersion = 1,
     )
 
     private val emptyCells = (0 until Sudoku.CELL_COUNT).filter { givens.isEmpty(it) }
@@ -88,6 +89,7 @@ class SavedGameTest {
             board = solution,
             givens = solution,
             solution = solution,
+            generatorVersion = 1,
         )
 
         assertEquals(1f, summary.completionFraction, 0f)
