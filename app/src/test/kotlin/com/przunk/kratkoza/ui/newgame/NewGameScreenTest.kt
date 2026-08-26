@@ -14,6 +14,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.data.FakeGameHistoryDao
+import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
@@ -56,6 +57,7 @@ class NewGameScreenTest {
         viewModel = NewGameViewModel(
             GameRepository(
                 puzzleDao = puzzleDao,
+                dailyPuzzleDao = FakeDailyPuzzleDao(),
                 savedGameDao = savedGameDao,
                 historyDao = FakeGameHistoryDao(savedGameDao),
                 generator = SudokuGenerator(),
