@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -193,18 +195,24 @@ private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LabelledValue(
-            label = stringResource(R.string.game_time),
-            value = formatDuration(context, state.elapsedMillis),
-        )
-        LabelledValue(
-            label = stringResource(R.string.game_mistakes),
-            value = stringResource(R.string.game_mistakes_value, state.mistakeCount),
-        )
-        PauseButton(paused = state.isPaused, onClick = onTogglePause)
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            LabelledValue(
+                label = stringResource(R.string.game_time),
+                value = formatDuration(context, state.elapsedMillis),
+            )
+        }
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            LabelledValue(
+                label = stringResource(R.string.game_mistakes),
+                value = stringResource(R.string.game_mistakes_value, state.mistakeCount),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            )
+        }
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            PauseButton(paused = state.isPaused, onClick = onTogglePause)
+        }
     }
 }
 
@@ -236,8 +244,12 @@ private fun PauseButton(paused: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun LabelledValue(label: String, value: String) {
-    Column {
+private fun LabelledValue(
+    label: String,
+    value: String,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+) {
+    Column(horizontalAlignment = horizontalAlignment) {
         Text(text = label, style = MaterialTheme.typography.labelSmall)
         Text(text = value, style = MaterialTheme.typography.titleMedium)
     }
@@ -285,15 +297,17 @@ private fun GameActionsRow(
             onClick = onUndo,
             enabled = enabled && canUndo,
             modifier = Modifier.weight(1f).fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {
-            Text(stringResource(R.string.game_undo))
+            Text(stringResource(R.string.game_undo), style = MaterialTheme.typography.labelMedium)
         }
         OutlinedButton(
             onClick = onErase,
             enabled = enabled,
             modifier = Modifier.weight(1f).fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {
-            Text(stringResource(R.string.game_erase))
+            Text(stringResource(R.string.game_erase), style = MaterialTheme.typography.labelMedium)
         }
         // Filled only while candidate mode is on. Filling it in both states made the button
         // contradict its own label — a filled button reads as "active". Off now matches Undo and
@@ -303,7 +317,8 @@ private fun GameActionsRow(
             FilledTonalButton(
                 onClick = onToggleCandidates,
                 enabled = enabled,
-                modifier = Modifier.weight(1f).fillMaxSize(),
+                modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
             ) {
                 CandidateLabel(candidateMode = true)
             }
@@ -311,7 +326,8 @@ private fun GameActionsRow(
             OutlinedButton(
                 onClick = onToggleCandidates,
                 enabled = enabled,
-                modifier = Modifier.weight(1f).fillMaxSize(),
+                modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
             ) {
                 CandidateLabel(candidateMode = false)
             }
@@ -319,15 +335,31 @@ private fun GameActionsRow(
     }
 }
 
-/** Two words that wrap on a narrow phone, so the label is centred rather than left-aligned. */
+/** A short stable label plus a shape marker, so state never depends on colour or extra prose. */
 @Composable
 private fun CandidateLabel(candidateMode: Boolean) {
-    Text(
-        text = stringResource(
-            if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
-        ),
-        textAlign = TextAlign.Center,
+    val description = stringResource(
+        if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
     )
+
+    Row(
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(CANDIDATE_MARKER_GAP_DP.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (candidateMode) "✓" else "○",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = stringResource(R.string.game_candidates),
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            softWrap = false,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable
@@ -366,3 +398,6 @@ private const val SCREEN_PADDING_DP = 12
 private const val SECTION_GAP_DP = 12
 private const val ACTION_HEIGHT_DP = 52
 private const val ACTION_GAP_DP = 8
+private const val ACTION_HORIZONTAL_PADDING_DP = 4
+private const val CANDIDATE_ACTION_WEIGHT = 1.7f
+private const val CANDIDATE_MARKER_GAP_DP = 4

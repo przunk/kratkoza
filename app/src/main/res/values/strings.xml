@@ -38,6 +38,7 @@
     <string name="game_erase">Erase</string>
     <string name="game_candidates_on">Candidates on</string>
     <string name="game_candidates_off">Candidates off</string>
+    <string name="game_candidates">Candidates</string>
     <string name="game_loading">Loading…</string>
     <string name="game_solved_title">Solved</string>
     <string name="game_solved_message">%1$s in %2$s, %3$s.</string>
