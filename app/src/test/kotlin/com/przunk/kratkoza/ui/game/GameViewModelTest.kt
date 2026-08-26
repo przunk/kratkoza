@@ -9,6 +9,7 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
+import com.przunk.kratkoza.domain.sudoku.SudokuValidator
 import androidx.lifecycle.ViewModelStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -197,15 +198,38 @@ class GameViewModelTest {
         val game = startGame()
         val viewModel = viewModelFor(game)
         val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+        val candidate = SudokuValidator.candidatesFor(game.state.board, cell).first()
 
         viewModel.selectCell(cell)
         viewModel.toggleCandidateMode()
-        viewModel.enterDigit(4)
+        viewModel.enterDigit(candidate)
 
         val state = viewModel.uiState.value
         assertTrue(state.candidateMode)
         assertTrue(state.board.isEmpty(cell))
-        assertEquals(setOf(4), state.candidates[cell])
+        assertEquals(setOf(candidate), state.candidates[cell])
+    }
+
+    @Test
+    fun `candidate mode exposes and accepts only digits allowed in the selected cell`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = (0 until Sudoku.CELL_COUNT).first { candidateCell ->
+            game.state.board.isEmpty(candidateCell) && Sudoku.peers[candidateCell].any { peer ->
+                !game.state.board.isEmpty(peer)
+            }
+        }
+        val allowed = SudokuValidator.candidatesFor(game.state.board, cell)
+        val unavailable = Sudoku.peers[cell]
+            .map { game.state.board[it] }
+            .first { it != Sudoku.EMPTY }
+
+        viewModel.selectCell(cell)
+        viewModel.toggleCandidateMode()
+
+        assertEquals(allowed, viewModel.uiState.value.availableCandidateDigits)
+        viewModel.enterDigit(unavailable)
+        assertTrue(viewModel.uiState.value.candidates[cell].isEmpty())
     }
 
     @Test

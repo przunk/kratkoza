@@ -9,6 +9,7 @@ import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
+import com.przunk.kratkoza.domain.sudoku.SudokuValidator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -106,12 +107,13 @@ class GameViewModel(
         val index = selection ?: return
         if (!_uiState.value.isPlayable) return
 
-        // project.md section 19: once all nine are correctly placed the digit can go nowhere
-        // else, so pressing it could only ever be a mistake. Guarded here as well as on the pad —
-        // a rule that lives only in a button is a rule the next caller does not have.
-        if (state.isDigitComplete(digit)) return
+        val candidateMode = _uiState.value.candidateMode
+        // A completed digit cannot be entered again, but an old pencil mark must remain removable
+        // even after its digit becomes complete. Candidate availability distinguishes those cases.
+        if (!candidateMode && state.isDigitComplete(digit)) return
 
-        val updated = if (_uiState.value.candidateMode) {
+        val updated = if (candidateMode) {
+            if (digit !in _uiState.value.availableCandidateDigits) return
             GameEngine.toggleCandidate(state, index, digit)
         } else {
             GameEngine.enterDigit(state, index, digit, settings.autoRemoveCandidates)
@@ -288,6 +290,9 @@ class GameViewModel(
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,
             candidateMode = _uiState.value.candidateMode,
+            availableCandidateDigits = selected?.let { cell ->
+                SudokuValidator.candidatesFor(state.board, cell) + state.candidates[cell]
+            }.orEmpty(),
             canUndo = state.canUndo,
             remainingByDigit = List(10) { digit ->
                 if (digit == 0) 0 else state.remainingCountOf(digit)

@@ -51,6 +51,7 @@ fun NumberPad(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     candidateMode: Boolean = false,
+    availableCandidateDigits: Set<Int> = Sudoku.DIGITS.toSet(),
     showRemainingCounts: Boolean = true,
 ) {
     Row(
@@ -63,6 +64,7 @@ fun NumberPad(
                 remaining = remainingByDigit.getOrElse(digit) { 0 },
                 showRemaining = showRemainingCounts,
                 candidateMode = candidateMode,
+                candidateAvailable = digit in availableCandidateDigits,
                 enabled = enabled,
                 onClick = onDigitClick,
                 modifier = Modifier.weight(1f),
@@ -77,11 +79,13 @@ private fun DigitKey(
     remaining: Int,
     showRemaining: Boolean,
     candidateMode: Boolean,
+    candidateAvailable: Boolean,
     enabled: Boolean,
     onClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val exhausted = remaining == 0
+    val unavailable = if (candidateMode) !candidateAvailable else exhausted
     val colors = MaterialTheme.colorScheme
     val description = stringResource(R.string.game_digit, digit)
 
@@ -90,12 +94,12 @@ private fun DigitKey(
             .fillMaxWidth()
             .clip(RoundedCornerShape(KEY_CORNER_DP.dp))
             .background(if (candidateMode) colors.secondaryContainer else colors.surfaceContainerHigh)
-            .clickable(enabled = enabled && !exhausted) { onClick(digit) }
-            .alpha(if (exhausted) EXHAUSTED_ALPHA else 1f)
+            .clickable(enabled = enabled && !unavailable) { onClick(digit) }
+            .alpha(if (unavailable) UNAVAILABLE_ALPHA else 1f)
             .clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button
-                if (!enabled || exhausted) disabled()
+                if (!enabled || unavailable) disabled()
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -123,4 +127,4 @@ private const val KEY_GAP_DP = 4
 private const val KEY_CORNER_DP = 10
 private const val KEY_DIGIT_SP = 24
 private const val KEY_REMAINING_SP = 10
-private const val EXHAUSTED_ALPHA = 0.20f
+private const val UNAVAILABLE_ALPHA = 0.12f
