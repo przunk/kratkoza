@@ -12,7 +12,7 @@ dlaczego, oraz jakie są alternatywy.
 | 4 | Ponowne wpisanie tej samej cyfry | 🟢 **ustalone** — brak akcji |
 | 5 | Domyślne wartości dwóch opcji z §35 | 🟢 **ustalone** — zostaje ON |
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
-| 7 | Edycja poprawnie wpisanej cyfry | 🟡 **otwarte** — do przemyślenia |
+| 7 | Edycja poprawnie wpisanej cyfry | 🟢 **ustalone** — zablokowana, cofa tylko Undo |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
 🟡 = przyjęte tymczasowo, czeka na decyzję.
@@ -173,7 +173,17 @@ i panel cyfr zjedzie poza ekran. Nie testowano tego, bo tablety są poza zakrese
 
 ## 7. Czy poprawnie wpisana cyfra powinna stać się nieedytowalna
 
-**Stan: 🟡 otwarte.** Do przemyślenia przed zmianą reguł inputu i Undo.
+**Stan: 🟢 ustalone 2026-08-26 — tak, blokowana.** Poprawnie wpisanej cyfry nie da się zastąpić
+ani wymazać; jedyną drogą wstecz jest Undo. Blokada jest wyprowadzana z porównania z rozwiązaniem,
+a nie zapisywana, więc obowiązuje też natychmiast po wznowieniu zapisanej gry.
+
+**To jest zmiana wymagania, nie tylko implementacja.** `project.md` §5 mówi: „Gracz może edytować
+wyłącznie pola, które były puste w planszy początkowej" — czyli **każde** takie pole. Po tej decyzji
+§5 należy czytać z zastrzeżeniem: pole puste na starcie pozostaje edytowalne dopóty, dopóki nie
+przyjmie cyfry zgodnej z rozwiązaniem.
+
+Wymazywanie jest zablokowane razem ze zmianą, bo inaczej blokada byłaby atrapą — wystarczyłoby
+wymazać i wpisać co innego.
 
 **Zgłoszone:** 2026-08-26.
 

@@ -32,6 +32,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Automatyczne usuwanie kandydatów, domyślnie ON (§15)
 - [x] Wykrywanie i oznaczanie błędów, bez systemu żyć (§16)
 - [x] Undo obejmujące wszystkie rodzaje ruchów, bez cofania błędu (§12)
+- [x] Poprawnie wpisana cyfra jest zablokowana; cofa ją tylko Undo (decyzja z 2026-08-26)
 - [x] Wymazywanie (§11)
 - [x] Licznik pozostałych cyfr, opcjonalny (§19)
 - [x] Podpowiedź 8/9, opcjonalna, domyślnie OFF (§17)
@@ -55,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 238 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 242 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -186,14 +187,16 @@ Do rozważenia przy okazji:
 
 ## Wymaga decyzji
 
-Sześć rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
+Siedem rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
 [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); poniżej sam stan.
 
-Ustalone 2026-08-25 — kod jest zgodny, wracamy tylko jeśli coś się zmieni:
+Ustalone — kod jest zgodny, wracamy tylko jeśli coś się zmieni:
 
 - auto-usuwanie kandydatów **nie** rusza notatek sąsiadów po błędnej cyfrze
 - ponowne wpisanie tej samej cyfry w to samo pole **nie robi nic**
 - „portrait only" zostaje jak jest, mimo że Android 16 ignoruje je na ekranach ≥ 600dp
+- **poprawnie wpisana cyfra jest zablokowana** — cofa ją wyłącznie Undo, a `project.md` §5 należy
+  odtąd czytać z tym zastrzeżeniem
 
 Czeka na granie na urządzeniu:
 
