@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 270 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 271 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -188,6 +188,25 @@ Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudno
 w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
 poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
 
+### Podpowiedź dla gracza
+
+**Zgłoszone:** 2026-08-26. `project.md` §18 zostawia tę funkcję do ustalenia.
+
+Podpowiedź wstawia **następną poprawną cyfrę w wolne pole**. Limit 1–3 użyć na partię — dokładna
+liczba do ustalenia.
+
+Ustalone przy okazji decyzji o kwalifikacji rankingowej (patrz [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)
+§8): **użycie podpowiedzi odbiera Daily kwalifikację do rankingu** albo zabiera punkty — to jedyne
+zdarzenie, które ma to robić, skoro minimalizacja już tego nie robi. `GameViewModel.loseRanking()`
+czeka gotowa na wywołanie i przełącza liczenie czasu z zegara ściennego na zwykły, żeby licznik nie
+skoczył wstecz.
+
+Do ustalenia poza liczbą użyć:
+
+- czy podpowiedź odbiera kwalifikację, czy tylko obniża wynik (§29 ma już karę mnożnikową za błędy),
+- czy w grze solo działa bez ograniczeń (§18 dopuszcza),
+- czy pole wstawione podpowiedzią jest oznaczone i czy liczy się do XP.
+
 ## Wymaga decyzji
 
 Siedem rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
@@ -200,6 +219,8 @@ Ustalone — kod jest zgodny, wracamy tylko jeśli coś się zmieni:
 - „portrait only" zostaje jak jest, mimo że Android 16 ignoruje je na ekranach ≥ 600dp
 - **poprawnie wpisana cyfra jest zablokowana** — cofa ją wyłącznie Undo, a `project.md` §5 należy
   odtąd czytać z tym zastrzeżeniem
+- **minimalizacja nie odbiera Daily kwalifikacji rankingowej** — zegar biegnie dalej, co realizuje
+  cel `project.md` §28 bez karania odebrania telefonu
 
 Czeka na granie na urządzeniu:
 

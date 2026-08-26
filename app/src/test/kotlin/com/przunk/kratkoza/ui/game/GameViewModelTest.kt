@@ -504,23 +504,39 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `going to the background costs a daily its ranking and gives back the pause`() = gameTest {
+    fun `going to the background keeps a daily ranked and keeps its clock running`() = gameTest {
+        // The rule project.md section 28 states was relaxed on 2026-08-26: minimising no longer
+        // costs the ranking, because a clock that keeps running already denies the free thinking
+        // time the section is protecting against. See docs/OPEN_QUESTIONS.md.
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
         val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.HARD)
         val viewModel = viewModelFor(daily)
 
-        now = 20_000
+        now = daily.startedAt + 10_000
         viewModel.onLeftForeground()
         idle()
+        assertTrue("minimising must not cost the ranking", viewModel.uiState.value.rankedEligible)
 
-        assertFalse("project.md section 28", viewModel.uiState.value.rankedEligible)
-        assertTrue("and it becomes an ordinary game, so it may pause", viewModel.uiState.value.canPause)
-        assertEquals(
-            "the loss must survive a restart",
-            false,
-            repository.loadGame(daily.state.puzzle.id)?.rankedEligible,
-        )
+        // Five minutes away. It has to count, or closing the app would buy free thinking time.
+        now = daily.startedAt + 310_000
+        viewModel.selectCell(0)
+        assertEquals(310_000L, viewModel.uiState.value.elapsedMillis)
+    }
+
+    @Test
+    fun `a ranked game away long enough to be killed still counts the time`() = gameTest {
+        // Measured against the wall clock rather than an in-app ticker, so a process that was shut
+        // down while backgrounded cannot hand back free minutes on reopening.
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY)
+
+        now = daily.startedAt + 3_600_000
+        val reopened = viewModelFor(requireNotNull(repository.loadGame(daily.state.puzzle.id)))
+
+        assertEquals("an hour away is an hour played", 3_600_000L, reopened.uiState.value.elapsedMillis)
+        assertTrue(reopened.uiState.value.rankedEligible)
     }
 
     @Test
