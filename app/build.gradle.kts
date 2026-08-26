@@ -198,6 +198,10 @@ dependencies {
     testImplementation("androidx.test:core-ktx:1.7.0")
     testImplementation("androidx.test.ext:junit-ktx:1.3.0")
     testImplementation("org.robolectric:robolectric:4.16.1")
+    // Compose UI tests run on the JVM through Robolectric, so the one gap nothing else covers —
+    // that a screen actually shows what its state says — is closed without a device in the room.
+    testImplementation(composeBom)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

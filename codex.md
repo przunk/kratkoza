@@ -1,69 +1,86 @@
-# Zadanie: blokada poprawnie wpisanej cyfry
+# Zadanie: testy Compose UI dla ekranów pomocniczych
 
-> Zadanie przyjęte przez właściciela 2026-08-26. Nie realizować go na gałęzi
-> `fix/game-screen-readability`. Rozpocząć dopiero po scaleniu tej gałęzi i utworzeniu nowej gałęzi
-> z aktualnego `develop`.
+> Zasady współpracy — worktree, gałęzie, konwencje, kto scala — są w `codex_instructions.md`.
+> Przeczytaj je najpierw. Ten plik opisuje wyłącznie bieżące zadanie.
 
-**Proponowana gałąź:** `fix/lock-correct-player-digits` z aktualnego `develop`.
+**Gałąź:** `test/compose-ui-screens` z `develop`.
 
-## Cel
+**Pliki, których dotyczy zadanie — same testy:**
+- `app/src/test/kotlin/com/przunk/kratkoza/ui/settings/`
+- `app/src/test/kotlin/com/przunk/kratkoza/ui/statistics/`
+- `app/src/test/kotlin/com/przunk/kratkoza/ui/saves/`
+- `app/src/test/kotlin/com/przunk/kratkoza/ui/newgame/`
 
-Gdy gracz wpisze do edytowalnego pola cyfrę zgodną z rozwiązaniem planszy, nie może później
-zastąpić jej inną, błędną cyfrą.
+**Nie zmieniaj kodu produkcyjnego.** Jeśli test czegoś nie da się napisać bez zmiany w `app/src/main`,
+to jest wynik sam w sobie — zapisz co i dlaczego, i zostaw resztę zadania zrobioną.
 
-Blokada jest regułą domenową, a nie zabezpieczeniem pojedynczego przycisku. Każda droga wywołująca
-zmianę planszy ma zachowywać się tak samo.
+Równolegle trwa praca nad Daily, która dotyka `ui/game/*`, `ui/daily/*`, `ui/home/*`,
+`domain/daily/*`, `data/*` i `navigation/*`. **Tych ekranów nie testuj w tym zadaniu** — zmieniają
+się pod ręką i testy do nich trzeba będzie pisać po scaleniu.
 
-## Ustalone zachowanie
+---
 
-- Cyfry startowe pozostają nieedytowalne tak jak dotychczas.
-- Niepoprawna cyfra wpisana przez gracza nadal może zostać zastąpiona inną cyfrą, poprawiona albo
-  wymazana.
-- Poprawna cyfra wpisana przez gracza staje się zablokowana:
-  - próba wpisania w jej miejsce innej cyfry niczego nie zmienia,
-  - przycisk „Wymaż” jej nie usuwa,
-  - próba nie dopisuje ruchu do historii, nie uruchamia zapisu, nie zwiększa licznika błędów i nie
-    wywołuje animacji błędu.
-- „Wymaż” również musi respektować blokadę. Pozostawienie możliwości wymazania byłoby prostym
-  obejściem: gracz mógłby usunąć poprawną cyfrę, a potem wpisać błędną.
-- **Cofnij jest jedynym wyjątkiem.** Bezpośrednio po wpisaniu poprawnej cyfry Undo nadal odtwarza
-  poprzednią wartość pola oraz wszystkie zmiany kandydatów. Licznik wcześniej popełnionych błędów
-  nadal nie maleje, zgodnie z `project.md` §12 i §16.
-- Blokada ma wynikać z bieżącego stanu planszy i rozwiązania (`board[index] == solution[index]`),
-  bez nowej flagi w bazie. Dzięki temu działa również po zapisaniu i ponownym otwarciu gry, bez
-  migracji danych.
-- Tryb kandydatów nie wymaga osobnego wyjątku: zajęte pole już teraz nie przyjmuje kandydatów.
-- Nie dodajemy podpowiedzi ani nowego wizualnego oznaczenia poprawności. Reguła nie może ujawniać
-  rozwiązania pustych pól.
+## Dlaczego to zadanie
 
-## Miejsce implementacji
+`technical_requirements.md` §15 wymaga testów Compose dla najważniejszych interakcji, a projekt nie
+ma ich wcale. `docs/STATUS.md` mówi wprost: **żadna zmiana wizualna nie jest wyłapywana maszynowo.**
+To ostatnia duża dziura w pokryciu — logika, warstwa danych i ViewModele są przetestowane.
 
-Podstawowa kontrola powinna znaleźć się w `GameEngine`, ponieważ jest to reguła gry, a nie UI.
-`GameViewModel` może dalej delegować ruchy do silnika. Zwrócenie tej samej instancji `GameState`
-zachowa istniejący kontrakt „brak zmiany = brak zapisu”.
+**Infrastruktura jest już gotowa i sprawdzona.** Testy Compose działają w tym projekcie na JVM przez
+Robolectrica, bez urządzenia — patrz `ComposeSmokeTest`, który to potwierdza i celowo został jako
+osobny plik. Nie musisz nic konfigurować; `createComposeRule()` i `@RunWith(AndroidJUnit4::class)`
+wystarczą.
 
-Przewidywany zakres plików:
+## Co ma być pokryte
 
-- `app/src/main/kotlin/com/przunk/kratkoza/domain/game/GameEngine.kt`
-- `app/src/test/kotlin/com/przunk/kratkoza/domain/game/GameEngineTest.kt`
-- `app/src/test/kotlin/com/przunk/kratkoza/domain/game/UndoTest.kt` — tylko jeśli istniejące testy
-  Undo nie pokrywają nowego przypadku
-- `app/src/test/kotlin/com/przunk/kratkoza/ui/game/GameViewModelTest.kt` — aktualizacja scenariuszy,
-  które przed przyjęciem blokady używały wymazania poprawnej cyfry jako przykładowego ruchu
-- `docs/STATUS.md` — usunięcie rozstrzygniętego punktu „blokowanie poprawnie wpisanej cyfry”
+Ekrany, których dotyczy zadanie, mają ViewModele o prostych zależnościach — użyj istniejących
+atrap z `app/src/test/kotlin/com/przunk/kratkoza/data/FakeDaos.kt`, tak jak robią to testy
+ViewModeli obok.
 
-Jeśli podczas implementacji okaże się, że potrzebna jest zmiana UI lub pliku spoza tej listy,
-najpierw rozszerzyć zakres jawnie, zamiast dodawać ją przy okazji.
+**Ustawienia** (`SettingsScreen`)
+- każda sekcja jest widoczna: język, paleta, wygląd, rozgrywka, o aplikacji,
+- przełącznik faktycznie zmienia stan — kliknięcie „Automatycznie usuwaj kandydatów" odbija się
+  w `GameSettings`,
+- wybór palety zaznacza właściwą pozycję i pokazuje podgląd dla każdej z czterech,
+- wersja z `BuildConfig` jest wypisana.
 
-## Kryteria akceptacji i testy
+**Statystyki** (`StatisticsScreen`)
+- pusty dorobek nie pokazuje „—" tam, gdzie powinna być liczba, ani odwrotnie,
+- poziom i pasek XP zgadzają się z `Progress`,
+- wiersz „W toku" pojawia się tylko dla poziomów, które faktycznie coś mają,
+- przycisk resetu jest nieaktywny przy pustym dorobku i pyta o potwierdzenie przy niepustym.
 
-1. `poprawna → błędna` zwraca niezmieniony stan.
-2. `poprawna → Wymaż` zwraca niezmieniony stan.
-3. Zablokowana próba zachowuje planszę, kandydatów, licznik błędów i stos Undo.
-4. `błędna → inna błędna` nadal działa i nalicza kolejne zdarzenie błędu.
-5. `błędna → poprawna` nadal działa, nie usuwa wcześniejszej kary i blokuje pole od tej chwili.
-6. Undo poprawnego ruchu nadal przywraca poprzednią cyfrę lub puste pole oraz automatycznie usunięte
-   kandydaty.
-7. Stan wczytany z zapisu blokuje poprawne cyfry bez dodatkowych danych trwałych.
-8. Uruchomić celowane testy `GameEngineTest` i `UndoTest`, a na końcu pełną weryfikację wymaganą
-   przez `codex_instructions.md`.
+**Zapisane gry** (`SavedGamesScreen`)
+- pusta lista pokazuje komunikat, a nie pustą kartę,
+- wiersz pokazuje poziom, czas, procent wypełnienia i liczbę błędów,
+- **dwustopniowe usuwanie**: kosz → „USUŃ" → dopiero drugie kliknięcie usuwa; po 3 s wraca kosz,
+- uzbrojenie jednego wiersza rozbraja poprzedni.
+
+**Nowa gra** (`NewGameScreen`)
+- pięć poziomów, każdy klikalny,
+- okno wklejania kodu przyjmuje tekst i zamyka się,
+- trzy komunikaty błędu importu pojawiają się dla trzech różnych przyczyn.
+
+## Na co uważać
+
+- **Testuj to, co widzi gracz, nie strukturę.** Wyszukiwanie po tekście z zasobów jest odporne na
+  przestawienie układu; wyszukiwanie po pozycji w drzewie nie jest.
+- Teksty biorą się z zasobów, a testy chodzą po angielsku — pobieraj je przez kontekst zamiast
+  wpisywać na sztywno, inaczej test przestanie przechodzić przy pierwszej korekcie tłumaczenia.
+- Dwustopniowe usuwanie ma **odliczanie 3 s**. `ComposeTestRule` domyślnie sam przesuwa zegar; jeśli
+  będzie z tym kłopot, `mainClock.advanceTimeBy` daje kontrolę.
+- Jeżeli test przechodzi, ale nie umiałbyś powiedzieć, co by go zepsuło — usuń go. Test, który nie
+  potrafi zawieść, kosztuje czas budowania i niczego nie chroni.
+
+## Weryfikacja
+
+```bash
+cd <twój worktree>
+./scripts/test-kratkoza.sh
+./scripts/lint-kratkoza.sh
+```
+
+Wersji **nie podbijaj** — robi to scalający.
+
+W opisie commita napisz, czego **nie** udało się przetestować i dlaczego. To cenniejsze niż lista
+tego, co przeszło.
