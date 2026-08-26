@@ -20,7 +20,7 @@ source "$SCRIPT_DIR/kratkoza-env.sh"
 cd "$KRATKOZA_DIR"
 
 DIST_DIR="$KRATKOZA_DIR/dist"
-LOG_FILE="/tmp/kratkoza-release.log"
+LOG_FILE="$KRATKOZA_LOG_PREFIX-release.log"
 BUILD_APK="$KRATKOZA_DIR/app/build/outputs/apk/release/app-release.apk"
 
 started_at=$(date +%s)

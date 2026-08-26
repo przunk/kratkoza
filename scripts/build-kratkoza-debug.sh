@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/kratkoza-env.sh"
 cd "$KRATKOZA_DIR"
 
-LOG_FILE="/tmp/kratkoza-build.log"
+LOG_FILE="$KRATKOZA_LOG_PREFIX-build.log"
 echo "🔨 Kratkoza — debug APK…"
 
 if ./gradlew :app:assembleDebug --no-daemon --console=plain "$@" > "$LOG_FILE" 2>&1; then

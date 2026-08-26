@@ -17,7 +17,7 @@ source "$SCRIPT_DIR/kratkoza-env.sh"
 cd "$KRATKOZA_DIR"
 
 DIST_DIR="$KRATKOZA_DIR/dist"
-LOG_FILE="/tmp/kratkoza-bundle.log"
+LOG_FILE="$KRATKOZA_LOG_PREFIX-bundle.log"
 BUILD_AAB="$KRATKOZA_DIR/app/build/outputs/bundle/release/app-release.aab"
 
 fail() {

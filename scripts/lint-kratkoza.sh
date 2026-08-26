@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/kratkoza-env.sh"
 cd "$KRATKOZA_DIR"
 
-LOG_FILE="/tmp/kratkoza-lint.log"
+LOG_FILE="$KRATKOZA_LOG_PREFIX-lint.log"
 started_at=$(date +%s)
 echo "🔍 Kratkoza — lint…"
 
