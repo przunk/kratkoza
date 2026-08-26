@@ -205,13 +205,13 @@ private const val WIDTH_FRACTION = 0.42f
 /** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
 private const val MAX_SIDE_DP = 180
 private const val GRID_STROKE_DP = 1f
-private const val GRID_ALPHA = 0.16f
+private const val GRID_ALPHA = 0.24f
 
 /** How many digits each cell shows per full cycle. */
 private const val DIGIT_CYCLES = 7f
 private const val CELL_STAGGER = 0.37f
 private const val DIGIT_HEIGHT_FRACTION = 0.42f
-private const val DIGIT_MAX_ALPHA = 0.20f
+private const val DIGIT_MAX_ALPHA = 0.30f
 
 /**
  * One drifting spark. Everything is a fraction of the drawing area, so the same description works
@@ -237,4 +237,4 @@ private const val SPARK_MIN_SPEED = 1.5f
 private const val SPARK_SPEED_RANGE = 2.5f
 private const val SPARK_SWAY = 0.12f
 private const val SPARK_SHRINK = 0.35f
-private const val SPARK_MAX_ALPHA = 0.30f
+private const val SPARK_MAX_ALPHA = 0.34f
