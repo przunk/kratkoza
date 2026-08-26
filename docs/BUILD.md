@@ -162,6 +162,25 @@ zmiana języka → statystyki.
 Plik `mapping.txt` należy wysłać do Play razem z bundlem — bez niego raport awarii z telefonu to
 lista ponumerowanych metod w klasie `a`.
 
+## Wersjonowanie
+
+`versionCode` i `versionName` podbija **jedna osoba, scalając do `develop`** — nigdy nie robi się
+tego na gałęzi zadaniowej, bo dwie gałęzie zgłosiłyby ten sam numer dla różnego kodu.
+
+Żeby build z gałęzi dało się mimo to rozpoznać, `app/build.gradle.kts` dokleja do `versionName`
+nazwę gałęzi, gdy nie jest to `develop` ani `master`:
+
+| Skąd build | Wersja w Ustawieniach |
+|---|---|
+| `develop` / `master` | `0.6.0 (12)` |
+| gałąź zadaniowa | `0.6.0+fix/game-screen-readability (12)` |
+
+Wydania na Play pochodzą z gałęzi integracyjnych, więc nie niosą przyrostka.
+
+Ten sam `versionCode` **nie przeszkadza w instalacji** na urządzeniu — Android blokuje tylko wersję
+niższą od zainstalowanej. Play jest inne: tam każdy wysłany `versionCode` musi być nowy, i o to
+dba `build-kratkoza-bundle.sh`.
+
 ## Repozytorium
 
 `master` jest bazą, praca idzie na `develop`. Wydania powstają przez scalenie `develop` w `master`.

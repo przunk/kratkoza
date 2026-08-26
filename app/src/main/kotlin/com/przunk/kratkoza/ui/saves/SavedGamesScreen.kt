@@ -49,6 +49,7 @@ import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.ui.theme.LocalBoardColors
 import com.przunk.kratkoza.util.formatDateTime
 import com.przunk.kratkoza.util.formatDuration
+import java.text.NumberFormat
 
 @Composable
 fun SavedGamesScreen(
@@ -122,6 +123,8 @@ private fun SavedGameRow(
     onConfirmDelete: () -> Unit,
 ) {
     val context = LocalContext.current
+    // Locale-aware, like every other number the app shows (project.md section 4).
+    val percentFormat = remember { NumberFormat.getPercentInstance() }
 
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
         Row(
@@ -145,10 +148,14 @@ private fun SavedGameRow(
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
-                    text = pluralStringResource(
-                        R.plurals.mistake_count,
-                        save.mistakeCount,
-                        save.mistakeCount,
+                    text = stringResource(
+                        R.string.saved_games_progress,
+                        percentFormat.format(save.completionFraction),
+                        pluralStringResource(
+                            R.plurals.mistake_count,
+                            save.mistakeCount,
+                            save.mistakeCount,
+                        ),
                     ),
                     style = MaterialTheme.typography.bodySmall,
                 )

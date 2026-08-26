@@ -1,8 +1,62 @@
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
+import org.gradle.process.ExecOperations
+import java.io.ByteArrayOutputStream
+import javax.inject.Inject
+
 plugins {
     id("androidx.room")
     id("com.android.application")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+/**
+ * The branch this build came from, or an empty string outside a git checkout.
+ *
+ * A ValueSource rather than a plain `exec`, so the configuration cache knows the value depends on
+ * git state instead of silently freezing whatever it saw first.
+ */
+abstract class GitBranchSource : ValueSource<String, GitBranchSource.Parameters> {
+    interface Parameters : ValueSourceParameters {
+        val projectDirectory: DirectoryProperty
+    }
+
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    override fun obtain(): String = try {
+        val output = ByteArrayOutputStream()
+        execOperations.exec {
+            commandLine("git", "rev-parse", "--abbrev-ref", "HEAD")
+            workingDir = parameters.projectDirectory.get().asFile
+            standardOutput = output
+            errorOutput = ByteArrayOutputStream()
+            isIgnoreExitValue = true
+        }
+        output.toString().trim()
+    } catch (_: Exception) {
+        // No git, or no commit yet. A build must not depend on either.
+        ""
+    }
+}
+
+/**
+ * Marks builds made off an integration branch, so a test APK says so in Settings.
+ *
+ * Two people work on two branches, and `versionCode` is bumped once, by whoever merges — otherwise
+ * both would claim the same number for different code. That leaves branch builds sharing a version
+ * with `develop`, which is exactly the trap that already cost a round trip once: a screenshot of an
+ * APK nobody could identify.
+ *
+ * The suffix closes that without touching `versionCode`, so installing over an existing build still
+ * works and Play still sees one number per release. Releases come off `develop` or `master` and
+ * carry no suffix.
+ */
+val versionSuffix: String = providers.of(GitBranchSource::class) {
+    parameters.projectDirectory.set(rootProject.layout.projectDirectory)
+}.get().let { branch ->
+    if (branch.isEmpty() || branch in setOf("develop", "master", "HEAD")) "" else "+$branch"
 }
 
 android {
@@ -16,11 +70,11 @@ android {
         applicationId = "com.przunk.kratkoza"
         minSdk = 29
         targetSdk = 36
-        // Bumped on every approved change, so the version shown in Settings identifies exactly
-        // which build is on a phone. A screenshot from the wrong APK has already cost us a round
-        // trip once; the number is what makes that impossible to repeat.
-        versionCode = 11
-        versionName = "0.5.0"
+        // Bumped once per merge into `develop`, by whoever performs the merge — never on a task
+        // branch, or two branches would claim the same number for different code. Branch builds are
+        // told apart by `versionSuffix` above instead.
+        versionCode = 12
+        versionName = "0.6.0$versionSuffix"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -137,6 +191,13 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    // Room's SQL is the one part of the data layer a hand-written fake cannot stand in for: a fake
+    // reimplements the query instead of running it, which is how a broken reset once passed its
+    // tests. These four let the real database run on the JVM.
+    testImplementation("androidx.room:room-testing:2.8.4")
+    testImplementation("androidx.test:core-ktx:1.7.0")
+    testImplementation("androidx.test.ext:junit-ktx:1.3.0")
+    testImplementation("org.robolectric:robolectric:4.16.1")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

@@ -72,6 +72,8 @@
     <string name="statistics_overall">Overall</string>
     <string name="statistics_started">Games started</string>
     <string name="statistics_completed">Games completed</string>
+    <string name="statistics_in_progress">In progress</string>
+    <string name="saved_games_progress">%1$s done · %2$s</string>
     <string name="statistics_completion_rate">Completion rate</string>
     <string name="statistics_total_mistakes">Total mistakes</string>
     <string name="statistics_average_mistakes">Mistakes per game</string>
