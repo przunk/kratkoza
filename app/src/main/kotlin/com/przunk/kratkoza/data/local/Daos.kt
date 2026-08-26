@@ -46,7 +46,8 @@ interface SavedGameDao {
                s.board AS board,
                p.difficulty AS difficulty,
                p.gameType AS gameType,
-               p.givens AS givens
+               p.givens AS givens,
+               p.solution AS solution
         FROM saved_games s
         JOIN puzzles p ON p.puzzleId = s.puzzleId
         ORDER BY s.lastPlayedAt DESC
@@ -56,6 +57,24 @@ interface SavedGameDao {
 
     @Query("SELECT puzzleId FROM saved_games ORDER BY lastPlayedAt DESC LIMIT 1")
     fun observeMostRecentId(): Flow<String?>
+
+    /**
+     * How many games are still on the board, per difficulty.
+     *
+     * Counted from the saves rather than from `game_history`, and the difference matters: history
+     * knows a game was started and not finished, but not whether it is still playable. A game the
+     * player abandoned from the saved-games list is unfinished forever and has no board left to
+     * describe, so counting it here would promise a progress figure that cannot be computed.
+     */
+    @Query(
+        """
+        SELECT p.difficulty AS difficulty, COUNT(*) AS inProgressCount
+        FROM saved_games s
+        JOIN puzzles p ON p.puzzleId = s.puzzleId
+        GROUP BY p.difficulty
+        """,
+    )
+    fun observeInProgressByDifficulty(): Flow<List<InProgressCountRow>>
 }
 
 @Dao
@@ -160,6 +179,12 @@ abstract class GameHistoryDao {
 
 }
 
+/** Projection for the count of games still on the board, per difficulty. */
+data class InProgressCountRow(
+    val difficulty: String,
+    val inProgressCount: Int,
+)
+
 /** Projection for the saved-games list. */
 data class SavedGameSummaryRow(
     val puzzleId: String,
@@ -171,6 +196,7 @@ data class SavedGameSummaryRow(
     val difficulty: String,
     val gameType: String,
     val givens: String,
+    val solution: String,
 )
 
 /** Projection for per-level statistics; the aggregates are null until something is completed. */

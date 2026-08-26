@@ -7,6 +7,7 @@ import com.przunk.kratkoza.data.local.PuzzleDao
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
+import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,14 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
         saves.value = saves.value - puzzleId
     }
 
+    override fun observeInProgressByDifficulty(): Flow<List<InProgressCountRow>> = saves.map { current ->
+        current.values
+            .mapNotNull { puzzleDao.puzzles[it.puzzleId]?.difficulty }
+            .groupingBy { it }
+            .eachCount()
+            .map { (difficulty, count) -> InProgressCountRow(difficulty, count) }
+    }
+
     /** Stands in for the `UPDATE saved_games SET historyId = 0` of the reset transaction. */
     fun detachFromHistory() {
         saves.value = saves.value.mapValues { (_, save) -> save.copy(historyId = NO_HISTORY_ROW) }
@@ -73,6 +82,7 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
                     difficulty = puzzle.difficulty,
                     gameType = puzzle.gameType,
                     givens = puzzle.givens,
+                    solution = puzzle.solution,
                 )
             }
     }

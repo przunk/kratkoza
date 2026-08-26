@@ -44,7 +44,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Zapisywanie i wznawianie rozgrywek, lista z podglądem planszy (§22)
 - [x] Szybkie wznowienie ostatniej gry na ekranie głównym (§22)
 - [x] Historia zakończonych gier w Room (§23)
-- [x] Statystyki lokalne (§33)
+- [x] Statystyki lokalne (§33), z liczbą gier w toku i stopniem ich wypełnienia
 - [x] XP i poziomy gracza — rosnący koszt kolejnych poziomów, bez kary za błędy (§32)
 - [x] Ustawienia w DataStore (§35)
 - [x] Motyw jasny / ciemny / systemowy (§9)
@@ -54,7 +54,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 190 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 212 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -62,11 +62,15 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 Aplikacja nie została uruchomiona na urządzeniu ani emulatorze — w tym środowisku WSL nie ma
 emulatora, a `.tooling/android-sdk` nie zawiera obrazów systemu. Zweryfikowane są: kompilacja,
-lint, testy jednostkowe całej logiki i obu ViewModeli oraz zbudowanie podpisanego APK.
+lint, testy jednostkowe całej logiki, warstwy danych i ViewModeli oraz zbudowanie podpisanego APK.
 Zachowanie samego UI na ekranie — układ, czytelność planszy, dotyk — wymaga wgrania APK
 i sprawdzenia ręcznie.
 
-Testy instrumentacyjne Compose (`technical_requirements.md` §15) też czekają na urządzenie.
+Testy instrumentacyjne Compose (`technical_requirements.md` §15) czekają na urządzenie. To jedyna
+pozostała dziura w pokryciu: **żadna zmiana wizualna nie jest wyłapywana maszynowo.**
+
+Warstwa Roomu **nie jest już** taką dziurą. Zapytania agregujące, transakcja resetu, JOIN listy
+zapisanych gier i kaskada kluczy obcych chodzą w testach po prawdziwym SQLite na Robolectriku.
 
 ## Świadomie poza pierwszym etapem
 
@@ -182,14 +186,6 @@ niedostępności.
 Napis „Kandydaci włączeni/wyłączeni” rozjeżdża się w polskiej wersji, szczególnie na telefonach
 z większą systemową czcionką. Przycisk wymaga układu odpornego na dłuższe tłumaczenia i skalowanie
 fontu, bez zmniejszania touch targetu ani wypychania sąsiednich akcji.
-
-### Statystyki nieukończonych gier
-
-**Zgłoszone:** 2026-08-26.
-
-Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudności oraz informację,
-w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
-poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
 
 ## Wymaga decyzji
 
