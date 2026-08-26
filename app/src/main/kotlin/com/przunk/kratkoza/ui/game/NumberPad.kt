@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -84,14 +86,22 @@ private fun DigitKey(
     val exhausted = remaining == 0
     val colors = MaterialTheme.colorScheme
     val description = stringResource(R.string.game_digit, digit)
+    val availableBackground =
+        if (candidateMode) colors.secondaryContainer else colors.surfaceContainerHigh
+    // Keeping the container opaque preserves its silhouette; fading the entire key made the
+    // exhausted state blend into the screen instead of looking deliberately unavailable.
+    val background = if (exhausted) {
+        lerp(availableBackground, Color.Black, UNAVAILABLE_BACKGROUND_DARKENING)
+    } else {
+        availableBackground
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(KEY_CORNER_DP.dp))
-            .background(if (candidateMode) colors.secondaryContainer else colors.surfaceContainerHigh)
+            .background(background)
             .clickable(enabled = enabled && !exhausted) { onClick(digit) }
-            .alpha(if (exhausted) UNAVAILABLE_ALPHA else 1f)
             .clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button
@@ -99,7 +109,10 @@ private fun DigitKey(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.alpha(if (exhausted) UNAVAILABLE_CONTENT_ALPHA else 1f),
+        ) {
             Text(
                 text = digit.toString(),
                 fontSize = KEY_DIGIT_SP.sp,
@@ -123,4 +136,5 @@ private const val KEY_GAP_DP = 4
 private const val KEY_CORNER_DP = 10
 private const val KEY_DIGIT_SP = 24
 private const val KEY_REMAINING_SP = 10
-private const val UNAVAILABLE_ALPHA = 0.12f
+private const val UNAVAILABLE_CONTENT_ALPHA = 0.12f
+private const val UNAVAILABLE_BACKGROUND_DARKENING = 0.32f
