@@ -1,76 +1,67 @@
-# Zadanie: trzy poprawki czytelności ekranu gry
+# Zadanie: blokada poprawnie wpisanej cyfry
 
-> Zasady współpracy — worktree, gałęzie, konwencje, weryfikacja — są w `codex_instructions.md`.
-> Przeczytaj je najpierw. Ten plik opisuje wyłącznie bieżące zadanie.
+> Zadanie przyjęte przez właściciela 2026-08-26. Nie realizować go na gałęzi
+> `fix/game-screen-readability`. Rozpocząć dopiero po scaleniu tej gałęzi i utworzeniu nowej gałęzi
+> z aktualnego `develop`.
 
-**Gałąź:** `fix/game-screen-readability` z `develop`.
+**Proponowana gałąź:** `fix/lock-correct-player-digits` z aktualnego `develop`.
 
-**Pliki, których dotyczy zadanie:**
-- `app/src/main/kotlin/com/przunk/kratkoza/ui/game/NumberPad.kt`
-- `app/src/main/kotlin/com/przunk/kratkoza/ui/game/GameScreen.kt`
-- `res/values*/strings.xml` — tylko jeśli zmieniasz teksty, i tylko w sekcji „Gra"
-- `docs/STATUS.md` — usuń stamtąd pozycje, które domkniesz
+## Cel
 
-Równolegle ktoś pracuje w `ui/theme/*`, `domain/settings/*`, `data/repository/SettingsRepository.kt`
-i `ui/settings/*`. **Tych plików nie ruszaj.**
+Gdy gracz wpisze do edytowalnego pola cyfrę zgodną z rozwiązaniem planszy, nie może później
+zastąpić jej inną, błędną cyfrą.
 
-Wszystkie trzy pozycje pochodzą z `docs/STATUS.md`. Żadna nie czeka na decyzję produktową.
+Blokada jest regułą domenową, a nie zabezpieczeniem pojedynczego przycisku. Każda droga wywołująca
+zmianę planszy ma zachowywać się tak samo.
 
----
+## Ustalone zachowanie
 
-## 1. Mocniejsze wyszarzenie niedostępnych cyfr
+- Cyfry startowe pozostają nieedytowalne tak jak dotychczas.
+- Niepoprawna cyfra wpisana przez gracza nadal może zostać zastąpiona inną cyfrą, poprawiona albo
+  wymazana.
+- Poprawna cyfra wpisana przez gracza staje się zablokowana:
+  - próba wpisania w jej miejsce innej cyfry niczego nie zmienia,
+  - przycisk „Wymaż” jej nie usuwa,
+  - próba nie dopisuje ruchu do historii, nie uruchamia zapisu, nie zwiększa licznika błędów i nie
+    wywołuje animacji błędu.
+- „Wymaż” również musi respektować blokadę. Pozostawienie możliwości wymazania byłoby prostym
+  obejściem: gracz mógłby usunąć poprawną cyfrę, a potem wpisać błędną.
+- **Cofnij jest jedynym wyjątkiem.** Bezpośrednio po wpisaniu poprawnej cyfry Undo nadal odtwarza
+  poprzednią wartość pola oraz wszystkie zmiany kandydatów. Licznik wcześniej popełnionych błędów
+  nadal nie maleje, zgodnie z `project.md` §12 i §16.
+- Blokada ma wynikać z bieżącego stanu planszy i rozwiązania (`board[index] == solution[index]`),
+  bez nowej flagi w bazie. Dzięki temu działa również po zapisaniu i ponownym otwarciu gry, bez
+  migracji danych.
+- Tryb kandydatów nie wymaga osobnego wyjątku: zajęte pole już teraz nie przyjmuje kandydatów.
+- Nie dodajemy podpowiedzi ani nowego wizualnego oznaczenia poprawności. Reguła nie może ujawniać
+  rozwiązania pustych pól.
 
-**Plik:** `NumberPad.kt`
+## Miejsce implementacji
 
-Klawisz cyfry, której wszystkie dziewięć wystąpień jest już poprawnie na planszy, jest wygaszony
-(`EXHAUSTED_ALPHA = 0.35f`) i odmawia kliknięcia. Za słabo to widać — stan powinien być czytelny
-bez próby dotknięcia.
+Podstawowa kontrola powinna znaleźć się w `GameEngine`, ponieważ jest to reguła gry, a nie UI.
+`GameViewModel` może dalej delegować ruchy do silnika. Zwrócenie tej samej instancji `GameState`
+zachowa istniejący kontrakt „brak zmiany = brak zapisu”.
 
-- Kontrast tekstu musi zostać czytelny w obu motywach. Samo zejście z alfą pogarsza kontrast;
-  rozważ zamiast tego zmianę tła i koloru tekstu na role `surfaceVariant` / `onSurfaceVariant`,
-  zamiast przezroczystości nałożonej na wszystko.
-- **Musi zostać sygnał niekolorystyczny** — dziś jest nim tylko wygaszenie, czyli kolor. Dodaj
-  drugi nośnik: przekreślenie, obramowanie zamiast wypełnienia, wyraźnie inna grubość.
-- Wygaszenie i odmowa kliknięcia **nie zależą** od opcji „licznik pozostałych cyfr" (§19) — ona
-  rządzi wyłącznie małą liczbą pod klawiszem. Nie wiąż tych dwóch rzeczy.
-- Zachowaj rozmiar celu dotykowego: klawisze stykają się i mają 64dp wysokości.
-- TalkBack powinien rozpoznać klawisz jako niedostępny; dziś ma tylko `contentDescription` z cyfrą.
+Przewidywany zakres plików:
 
-## 2. Układ napisu trybu kandydatów
+- `app/src/main/kotlin/com/przunk/kratkoza/domain/game/GameEngine.kt`
+- `app/src/test/kotlin/com/przunk/kratkoza/domain/game/GameEngineTest.kt`
+- `app/src/test/kotlin/com/przunk/kratkoza/domain/game/UndoTest.kt` — tylko jeśli istniejące testy
+  Undo nie pokrywają nowego przypadku
+- `docs/STATUS.md` — usunięcie rozstrzygniętego punktu „blokowanie poprawnie wpisanej cyfry”
 
-**Plik:** `GameScreen.kt` — `CandidateLabel`, `GameActionsRow`
+Jeśli podczas implementacji okaże się, że potrzebna jest zmiana UI lub pliku spoza tej listy,
+najpierw rozszerzyć zakres jawnie, zamiast dodawać ją przy okazji.
 
-Napis „Kandydaci włączeni" / „Kandydaci wyłączeni" rozjeżdża się w polskiej wersji, szczególnie przy
-powiększonej systemowej czcionce. Przycisk jest jednym z trzech w rzędzie o stałej wysokości 52dp.
+## Kryteria akceptacji i testy
 
-- Układ ma znieść dłuższe tłumaczenie i powiększoną czcionkę bez ucinania tekstu i bez wypychania
-  sąsiadów.
-- Nie schodź z celem dotykowym poniżej 52dp.
-- Stan musi dalej być czytelny **nie tylko z koloru** — dziś niesie go treść napisu plus wypełnienie
-  przycisku. Jeśli skrócisz napis, zadbaj o zastępczy nośnik.
-- Rozważ krótszy napis („Kandydaci") plus osobny znacznik stanu, zamiast walki o zmieszczenie dwóch
-  słów.
-
-Precedens z tego samego pliku: przycisk pauzy zmieniał szerokość razem z napisem i przeciągał
-sąsiada. Rozwiązaniem było zmierzenie obu etykiet i pomalowanie jednej — patrz `PauseButton`. Tam
-chodziło o stabilną szerokość, tu o zmieszczenie treści, więc nie kopiuj bezmyślnie.
-
-## 3. Wyśrodkowanie licznika błędów
-
-**Plik:** `GameScreen.kt` — `GameStatusRow`
-
-Licznik błędów nie stoi na środku ekranu. Przyczyna jest już rozpoznana i opisana w `docs/STATUS.md`:
-`Arrangement.SpaceBetween` rozkłada **odstępy**, nie elementy, więc środkowy trafia na środek tylko
-wtedy, gdy skrajne mają równą szerokość — a „Czas / 4:04" i przycisk pauzy jej nie mają.
-
-- Trzy sloty o równych wagach, treść środkowego wyśrodkowana.
-- Czas zostaje przy lewej krawędzi, pauza przy prawej.
-- Nie psuj stabilnej szerokości `PauseButton` — to osobna, już naprawiona rzecz.
-
----
-
-## Na koniec
-
-Wszystkie trzy pozycje są wizualne i **żaden test jednostkowy ich nie złapie** — projekt nie ma
-testów Compose UI. W opisie commita napisz wprost, co zweryfikowałeś maszynowo, a co wymaga
-obejrzenia na urządzeniu.
+1. `poprawna → błędna` zwraca niezmieniony stan.
+2. `poprawna → Wymaż` zwraca niezmieniony stan.
+3. Zablokowana próba zachowuje planszę, kandydatów, licznik błędów i stos Undo.
+4. `błędna → inna błędna` nadal działa i nalicza kolejne zdarzenie błędu.
+5. `błędna → poprawna` nadal działa, nie usuwa wcześniejszej kary i blokuje pole od tej chwili.
+6. Undo poprawnego ruchu nadal przywraca poprzednią cyfrę lub puste pole oraz automatycznie usunięte
+   kandydaty.
+7. Stan wczytany z zapisu blokuje poprawne cyfry bez dodatkowych danych trwałych.
+8. Uruchomić celowane testy `GameEngineTest` i `UndoTest`, a na końcu pełną weryfikację wymaganą
+   przez `codex_instructions.md`.
