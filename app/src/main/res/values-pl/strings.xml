@@ -86,6 +86,14 @@
     <string name="settings_theme_system">Zgodny z systemem</string>
     <string name="settings_theme_light">Jasny</string>
     <string name="settings_theme_dark">Ciemny</string>
+    <string name="settings_palette">Paleta kolorów</string>
+    <string name="settings_palette_slate">Łupek</string>
+    <string name="settings_palette_sepia">Sepia</string>
+    <string name="settings_palette_forest">Las</string>
+    <string name="settings_palette_graphite">Grafit</string>
+    <string name="settings_high_contrast">Wysoki kontrast</string>
+    <string name="settings_high_contrast_summary">Mocniej rozdziel odcienie planszy i przyciemnij tekst. Podgląd powyżej uwzględnia to ustawienie.</string>
+    <string name="settings_palette_preview">Podgląd palety %1$s</string>
     <string name="settings_gameplay">Rozgrywka</string>
     <string name="settings_about">O aplikacji</string>
     <string name="settings_version">Wersja</string>

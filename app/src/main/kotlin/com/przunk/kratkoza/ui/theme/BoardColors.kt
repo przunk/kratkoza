@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.Color
  * (row/column/block) > plain surface. They separate by *lightness*, in even steps, so the order is
  * legible without telling any two hues apart.
  *
+ * The values for each palette live in [Palettes], which is also where the high-contrast variant is
+ * computed.
+ *
  * Matching digits (project.md section 10) took three tries to place. A tint too near the peer tint
  * was invisible; bolding the digits looked restless; giving them their own colour put a third
  * colour on a board that already carries grey, blue and red, and the result was hard to look at.
@@ -48,36 +51,6 @@ data class BoardColors(
     val errorDigit: Color,
     val candidate: Color,
     val autoHintDigit: Color,
-)
-
-internal val LightBoardColors = BoardColors(
-    surface = Neutral100,
-    gridLine = Neutral80,
-    blockLine = Neutral30,
-    selectedCell = HighlightLightSelected,
-    peerCell = HighlightLightPeer,
-    sameDigitCell = HighlightLightSameDigit,
-    errorCell = Error90,
-    givenDigit = Neutral30,
-    enteredDigit = EnteredLight,
-    errorDigit = Error40,
-    candidate = Neutral50,
-    autoHintDigit = Neutral60,
-)
-
-internal val DarkBoardColors = BoardColors(
-    surface = Neutral12,
-    gridLine = Neutral30,
-    blockLine = Neutral60,
-    selectedCell = HighlightDarkSelected,
-    peerCell = HighlightDarkPeer,
-    sameDigitCell = HighlightDarkSameDigit,
-    errorCell = Error20,
-    givenDigit = Neutral80,
-    enteredDigit = EnteredDark,
-    errorDigit = Error80,
-    candidate = Neutral60,
-    autoHintDigit = Neutral50,
 )
 
 /**

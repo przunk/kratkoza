@@ -14,6 +14,10 @@ data class GameSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     /** project.md section 4; follows the phone unless the player says otherwise. */
     val language: AppLanguage = AppLanguage.SYSTEM,
+    /** project.md sections 9 and 35. */
+    val palette: BoardPalette = BoardPalette.SLATE,
+    /** project.md section 35 — stronger separation, still meant to look calm. */
+    val highContrast: Boolean = false,
     /** project.md section 15, default ON. */
     val autoRemoveCandidates: Boolean = true,
     /** project.md section 10. */

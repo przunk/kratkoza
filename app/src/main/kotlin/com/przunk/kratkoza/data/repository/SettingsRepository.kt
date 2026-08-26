@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.przunk.kratkoza.domain.settings.AppLanguage
+import com.przunk.kratkoza.domain.settings.BoardPalette
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.settings.ThemeMode
 import com.przunk.kratkoza.util.AppLocales
@@ -46,6 +47,11 @@ class SettingsRepository(context: Context) {
                     } else {
                         GameSettings.DEFAULT.language
                     },
+                palette = preferences[PALETTE]
+                    ?.let(BoardPalette::fromStorageName)
+                    ?: GameSettings.DEFAULT.palette,
+                highContrast = preferences[HIGH_CONTRAST]
+                    ?: GameSettings.DEFAULT.highContrast,
                 autoRemoveCandidates = preferences[AUTO_REMOVE_CANDIDATES]
                     ?: GameSettings.DEFAULT.autoRemoveCandidates,
                 highlightSameDigits = preferences[HIGHLIGHT_SAME_DIGITS]
@@ -66,6 +72,14 @@ class SettingsRepository(context: Context) {
             AppLocales.applyToSystem(appContext, language)
         }
         dataStore.edit { it[LANGUAGE] = language.name }
+    }
+
+    suspend fun setPalette(palette: BoardPalette) {
+        dataStore.edit { it[PALETTE] = palette.name }
+    }
+
+    suspend fun setHighContrast(enabled: Boolean) {
+        dataStore.edit { it[HIGH_CONTRAST] = enabled }
     }
 
     suspend fun setAutoRemoveCandidates(enabled: Boolean) {
@@ -89,6 +103,8 @@ class SettingsRepository(context: Context) {
         // entry is inserted in the middle.
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val LANGUAGE = stringPreferencesKey("language")
+        val PALETTE = stringPreferencesKey("board_palette")
+        val HIGH_CONTRAST = booleanPreferencesKey("high_contrast")
         val AUTO_REMOVE_CANDIDATES = booleanPreferencesKey("auto_remove_candidates")
         val HIGHLIGHT_SAME_DIGITS = booleanPreferencesKey("highlight_same_digits")
         val SHOW_REMAINING_COUNTS = booleanPreferencesKey("show_remaining_counts")

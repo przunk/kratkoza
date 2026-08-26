@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -32,8 +33,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.settings.AppLanguage
+import com.przunk.kratkoza.domain.settings.BoardPalette
 import com.przunk.kratkoza.domain.settings.ThemeMode
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
+import com.przunk.kratkoza.ui.theme.Palettes
+import com.przunk.kratkoza.ui.theme.isDarkTheme
 import com.przunk.kratkoza.util.AppLocales
 
 @Composable
@@ -69,6 +73,35 @@ fun SettingsScreen(
                         ThemeOption(ThemeMode.LIGHT, R.string.settings_theme_light, settings.themeMode, viewModel::setThemeMode)
                         ThemeOption(ThemeMode.DARK, R.string.settings_theme_dark, settings.themeMode, viewModel::setThemeMode)
                     }
+                }
+            }
+
+            item {
+                SettingsSection(stringResource(R.string.settings_palette)) {
+                    // Previews are drawn for the theme that is actually in force, so what is on
+                    // screen is what the board will look like — not a light sample above a dark app.
+                    val dark = isDarkTheme(settings.themeMode)
+
+                    Column(modifier = Modifier.selectableGroup()) {
+                        for (palette in BoardPalette.entries) {
+                            PaletteOption(
+                                palette = palette,
+                                selected = settings.palette,
+                                dark = dark,
+                                highContrast = settings.highContrast,
+                                onSelect = viewModel::setPalette,
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    SwitchRow(
+                        title = stringResource(R.string.settings_high_contrast),
+                        summary = stringResource(R.string.settings_high_contrast_summary),
+                        checked = settings.highContrast,
+                        onCheckedChange = viewModel::setHighContrast,
+                    )
                 }
             }
 
@@ -193,6 +226,47 @@ private fun RadioRow(label: String, selected: Boolean, onClick: () -> Unit) {
             modifier = Modifier.padding(start = 12.dp),
         )
     }
+}
+
+/** One palette: its preview, its name, and the radio that picks it. */
+@Composable
+private fun PaletteOption(
+    palette: BoardPalette,
+    selected: BoardPalette,
+    dark: Boolean,
+    highContrast: Boolean,
+    onSelect: (BoardPalette) -> Unit,
+) {
+    val label = stringResource(palette.labelRes())
+    val isSelected = palette == selected
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = isSelected, onClick = { onSelect(palette) }, role = Role.RadioButton)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = isSelected, onClick = null)
+        PalettePreview(
+            colors = Palettes.boardColors(palette, dark, highContrast),
+            description = stringResource(R.string.settings_palette_preview, label),
+            modifier = Modifier.padding(start = 12.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 16.dp),
+        )
+    }
+}
+
+@StringRes
+private fun BoardPalette.labelRes(): Int = when (this) {
+    BoardPalette.SLATE -> R.string.settings_palette_slate
+    BoardPalette.SEPIA -> R.string.settings_palette_sepia
+    BoardPalette.FOREST -> R.string.settings_palette_forest
+    BoardPalette.GRAPHITE -> R.string.settings_palette_graphite
 }
 
 @Composable
