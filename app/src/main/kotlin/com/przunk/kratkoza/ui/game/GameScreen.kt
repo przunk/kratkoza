@@ -1,14 +1,19 @@
 package com.przunk.kratkoza.ui.game
 
+import android.widget.Toast
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -27,11 +32,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -45,6 +55,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.ui.common.shareBoard
 import com.przunk.kratkoza.util.formatDuration
@@ -64,6 +75,20 @@ fun GameScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // The moment eligibility is lost is the one worth saying out loud: it happens while the player
+    // is looking at something else, and the only trace otherwise is a pause button that quietly
+    // appeared. Fired on the transition, not on the state, so a game that was never ranked and one
+    // that has already been told both stay silent.
+    val context = LocalContext.current
+    val lostMessage = stringResource(R.string.game_ranking_lost)
+    var wasRanked by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.rankedEligible) {
+        if (wasRanked && !state.rankedEligible) {
+            Toast.makeText(context, lostMessage, Toast.LENGTH_LONG).show()
+        }
+        wasRanked = state.rankedEligible
+    }
 
     // Nothing to play: the save was deleted from the saved-games list, or could not be read back.
     LaunchedEffect(state.phase) {
@@ -94,19 +119,6 @@ fun GameScreen(
                         )
                     }
                 },
-                actions = {
-                    if (state.phase == GameUiState.Phase.PLAYING) {
-                        ShareBoardAction(state.difficulty, viewModel::shareCode)
-                        TextButton(
-                            onClick = {
-                                viewModel.saveAndStop()
-                                onNavigateBack()
-                            },
-                        ) {
-                            Text(stringResource(R.string.game_save_and_exit))
-                        }
-                    }
-                },
             )
         },
     ) { padding ->
@@ -119,7 +131,11 @@ fun GameScreen(
         ) {
             when (state.phase) {
                 GameUiState.Phase.LOADING, GameUiState.Phase.MISSING -> LoadingBody()
-                else -> PlayingBody(state = state, viewModel = viewModel)
+                else -> PlayingBody(
+                    state = state,
+                    viewModel = viewModel,
+                    onLeave = onNavigateBack,
+                )
             }
         }
     }
@@ -163,7 +179,8 @@ private fun LoadingBody() {
 }
 
 @Composable
-private fun PlayingBody(state: GameUiState, viewModel: GameViewModel) {
+private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: () -> Unit) {
+    GameFunctionRow(state = state, viewModel = viewModel, onLeave = onLeave)
     GameStatusRow(state = state, onTogglePause = { viewModel.setPaused(!state.isPaused) })
 
     Box {
@@ -209,6 +226,78 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel) {
     )
 }
 
+/**
+ * A row of actions above the board.
+ *
+ * Icons rather than words because there is no room for words beside a 1:1 board, and separate from
+ * the app bar because the app bar has one line and this needs to grow — the next action added has
+ * somewhere to go.
+ *
+ * A Daily gets the ranking badge here instead. Sharing and saving are absent for it on purpose;
+ * see [GameUiState.canShareAndSave].
+ */
+@Composable
+private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeave: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(FUNCTION_ROW_HEIGHT_DP.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (state.gameType == GameType.DAILY) {
+            RankedBadge(ranked = state.rankedEligible)
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        if (state.canShareAndSave) {
+            ShareBoardAction(state.difficulty, viewModel::shareCode)
+            IconButton(
+                onClick = {
+                    viewModel.saveAndStop()
+                    onLeave()
+                },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_saved_games),
+                    contentDescription = stringResource(R.string.game_save_and_exit),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Says whether this game still counts (project.md section 28).
+ *
+ * Stated rather than left to be inferred from a missing pause button. The rule is real and one-way,
+ * and a player who lost their place in the ranking by answering a message deserves to be told, not
+ * to work it out from an interface that quietly grew a control.
+ */
+@Composable
+private fun RankedBadge(ranked: Boolean) {
+    val colours = MaterialTheme.colorScheme
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(BADGE_CORNER_DP.dp))
+            .background(if (ranked) colours.secondaryContainer else colours.surfaceContainerHigh)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_ranked),
+            contentDescription = null,
+            modifier = Modifier.size(BADGE_ICON_DP.dp),
+            tint = if (ranked) colours.onSecondaryContainer else colours.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(if (ranked) R.string.game_ranked else R.string.game_unranked),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (ranked) colours.onSecondaryContainer else colours.onSurfaceVariant,
+            modifier = Modifier.padding(start = 6.dp),
+        )
+    }
+}
+
 /** Time, mistakes and the pause button — the only numbers project.md section 34 lets compete
  *  with the board for attention. */
 @Composable
@@ -233,7 +322,11 @@ private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
             )
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            // Absent, not disabled: a greyed-out pause invites the player to wonder what they did
+        // wrong, when the answer is simply that this game counts (project.md section 28).
+        if (state.canPause) {
             PauseButton(paused = state.isPaused, onClick = onTogglePause)
+        }
         }
     }
 }
@@ -420,6 +513,9 @@ private const val SCREEN_PADDING_DP = 12
 private const val SECTION_GAP_DP = 12
 private const val ACTION_HEIGHT_DP = 52
 private const val ACTION_GAP_DP = 8
+private const val FUNCTION_ROW_HEIGHT_DP = 44
+private const val BADGE_CORNER_DP = 8
+private const val BADGE_ICON_DP = 16
 private const val ACTION_HORIZONTAL_PADDING_DP = 4
 private const val CANDIDATE_ACTION_WEIGHT = 1.7f
 private const val CANDIDATE_MARKER_GAP_DP = 4

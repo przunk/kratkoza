@@ -1,6 +1,8 @@
 package com.przunk.kratkoza.data
 
 import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyPuzzleDao
+import com.przunk.kratkoza.data.local.DailyPuzzleEntity
 import com.przunk.kratkoza.data.local.GameHistoryDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.local.PuzzleDao
@@ -34,6 +36,18 @@ class FakePuzzleDao : PuzzleDao {
     }
 
     override suspend fun byId(puzzleId: String): PuzzleEntity? = puzzles[puzzleId]
+}
+
+/** In-memory stand-in for the Daily calendar. */
+class FakeDailyPuzzleDao : DailyPuzzleDao {
+    private val rows = mutableMapOf<Pair<String, String>, DailyPuzzleEntity>()
+
+    override suspend fun insert(entries: List<DailyPuzzleEntity>) {
+        for (entry in entries) rows.putIfAbsent(entry.date to entry.difficulty, entry)
+    }
+
+    override suspend fun forDate(date: String, rulesetVersion: Int): List<DailyPuzzleEntity> =
+        rows.values.filter { it.date == date && it.rulesetVersion == rulesetVersion }
 }
 
 class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
@@ -127,6 +141,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
         mistakeCount: Int,
         completed: Boolean,
         xpEarned: Int,
+        rankedEligible: Boolean,
     ) {
         entries.value = entries.value.map { entry ->
             if (entry.id != id) {
@@ -138,10 +153,14 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
                     mistakeCount = mistakeCount,
                     completed = completed,
                     xpEarned = xpEarned,
+                    rankedEligible = rankedEligible,
                 )
             }
         }
     }
+
+    override suspend fun attemptsOn(puzzleIds: List<String>): List<GameHistoryEntity> =
+        entries.value.filter { it.puzzleId in puzzleIds }
 
     override fun observeStartedCount(): Flow<Int> = entries.map { it.size }
 

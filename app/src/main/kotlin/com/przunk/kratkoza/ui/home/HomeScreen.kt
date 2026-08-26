@@ -39,6 +39,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onContinue: (String) -> Unit,
     onNewGame: () -> Unit,
+    onDaily: () -> Unit,
     onSavedGames: () -> Unit,
     onStatistics: () -> Unit,
     onSettings: () -> Unit,
@@ -98,6 +99,11 @@ fun HomeScreen(
                 label = stringResource(R.string.home_new_game),
                 painter = painterResource(R.drawable.ic_add),
                 onClick = onNewGame,
+            )
+            MenuButton(
+                label = stringResource(R.string.home_daily),
+                painter = painterResource(R.drawable.ic_daily),
+                onClick = onDaily,
             )
             MenuButton(
                 label = stringResource(R.string.home_saved_games),

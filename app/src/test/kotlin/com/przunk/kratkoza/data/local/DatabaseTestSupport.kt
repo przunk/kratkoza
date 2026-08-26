@@ -67,6 +67,7 @@ internal fun historyEntity(
     score = null,
     xpEarned = xpEarned,
     publiclyRanked = false,
+    rankedEligible = false,
     autoRemoveCandidates = true,
     rulesetVersion = 1,
 )

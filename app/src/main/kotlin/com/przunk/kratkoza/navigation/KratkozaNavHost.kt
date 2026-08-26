@@ -13,6 +13,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.przunk.kratkoza.di.AppContainer
+import com.przunk.kratkoza.ui.daily.DailyScreen
+import com.przunk.kratkoza.ui.daily.DailyViewModel
 import com.przunk.kratkoza.ui.game.GameScreen
 import com.przunk.kratkoza.ui.game.GameViewModel
 import com.przunk.kratkoza.ui.home.HomeScreen
@@ -49,6 +51,7 @@ fun KratkozaNavHost(
                 viewModel = viewModel(factory = factory { HomeViewModel(container.gameRepository) }),
                 onContinue = { navController.navigate(Destinations.game(it)) },
                 onNewGame = { navController.navigate(Destinations.NEW_GAME) },
+                onDaily = { navController.navigate(Destinations.DAILY) },
                 onSavedGames = { navController.navigate(Destinations.SAVED_GAMES) },
                 onStatistics = { navController.navigate(Destinations.STATISTICS) },
                 onSettings = { navController.navigate(Destinations.SETTINGS) },
@@ -93,6 +96,14 @@ fun KratkozaNavHost(
                         popUpTo(Destinations.HOME)
                     }
                 },
+            )
+        }
+
+        composable(Destinations.DAILY) {
+            DailyScreen(
+                viewModel = viewModel(factory = factory { DailyViewModel(container.gameRepository) }),
+                onOpenGame = { navController.navigate(Destinations.game(it)) },
+                onNavigateBack = navController::popBackStack,
             )
         }
 

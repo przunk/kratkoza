@@ -138,9 +138,26 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(candidateMode = !_uiState.value.candidateMode)
     }
 
+    /**
+     * Takes a game out of the ranking for good, banking the time it had run up.
+     *
+     * Nothing calls this yet. It exists because the agreed reason to lose eligibility — using a
+     * hint — is coming, and the switch from wall-clock timing to the banked kind has to happen at
+     * that moment or the elapsed time would jump backwards.
+     */
+    private fun loseRanking() {
+        val current = game?.takeIf { it.rankedEligible } ?: return
+        bankedMillis = elapsedMillis()
+        runningSince = clock()
+        game = current.copy(rankedEligible = false)
+    }
+
     /** The pause button (project.md section 20). */
     fun setPaused(paused: Boolean) {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
+        // project.md section 28: a game that still counts for the ranking has no pause. Refused
+        // here rather than only hidden in the UI, so no other caller can reach around it.
+        if (paused && game?.rankedEligible == true) return
         if (paused == _uiState.value.isPaused) return
         if (paused) pauseClock() else resumeClock()
         game?.let { render(it.state) }
@@ -172,7 +189,15 @@ class GameViewModel(
      */
     fun onLeftForeground() {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
-        pauseClock()
+
+        // A ranked game keeps running. project.md section 28 has minimising cost the Daily its
+        // place in the ranking; the rule was relaxed on 2026-08-26 because the clock already does
+        // that job — see docs/OPEN_QUESTIONS.md. What the section is really protecting against is
+        // free thinking time, and time that keeps running is not free. Losing the ranking outright
+        // punished answering a notification with total exclusion, which section 31's
+        // "competitive-casual" does not ask for.
+        if (game?.rankedEligible != true) pauseClock()
+
         game?.let { render(it.state) }
         persist()
     }
@@ -251,8 +276,23 @@ class GameViewModel(
         lastPlayedAt = clock(),
     )
 
-    private fun elapsedMillis(): Long =
-        bankedMillis + (runningSince?.let { clock() - it } ?: 0)
+    /**
+     * How long this game has been going.
+     *
+     * A ranked game is measured from when it was opened, against the wall clock, because it cannot
+     * be paused and therefore has nothing to subtract. That also makes it survive the process being
+     * killed: an in-app ticker stops when the app does, so a player who closed the app for an hour
+     * would come back to an hour of free thinking. Wall-clock arithmetic cannot be cheated that way.
+     *
+     * Everything else accumulates the usual way, banking time whenever the clock stops.
+     */
+    private fun elapsedMillis(): Long {
+        val current = game
+        if (current != null && current.rankedEligible) {
+            return (clock() - current.startedAt).coerceAtLeast(0)
+        }
+        return bankedMillis + (runningSince?.let { clock() - it } ?: 0)
+    }
 
     private fun resumeClock() {
         if (runningSince != null) return
@@ -295,6 +335,7 @@ class GameViewModel(
                 }
             },
             difficulty = state.puzzle.difficulty,
+            gameType = state.puzzle.gameType,
             mistakeCount = state.mistakeCount,
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,
@@ -304,7 +345,12 @@ class GameViewModel(
                 if (digit == 0) 0 else state.remainingCountOf(digit)
             },
             showRemainingCounts = settings.showRemainingCounts,
-            eightOfNineHints = if (settings.showEightOfNineHint) {
+            rankedEligible = game?.rankedEligible == true,
+            // project.md section 17: the hint is unavailable in a publicly ranked Daily. Checked
+            // against eligibility rather than against the game type, so a Daily that has dropped
+            // out of the ranking gets its help back — at that point it is an ordinary game, and
+            // there is nothing left to protect.
+            eightOfNineHints = if (settings.showEightOfNineHint && game?.rankedEligible != true) {
                 BoardInsights.eightOfNineHints(state.board, state.puzzle.solution)
             } else {
                 emptyMap()

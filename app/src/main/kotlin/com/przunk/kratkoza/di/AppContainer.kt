@@ -27,6 +27,7 @@ class AppContainer(context: Context) {
     val gameRepository: GameRepository by lazy {
         GameRepository(
             puzzleDao = database.puzzleDao(),
+            dailyPuzzleDao = database.dailyPuzzleDao(),
             savedGameDao = database.savedGameDao(),
             historyDao = database.gameHistoryDao(),
             generator = SudokuGenerator(),

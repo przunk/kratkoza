@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 242 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 281 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -95,6 +95,18 @@ Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
 Po stronie właściciela projektu, poza kodem: klucz upload (nie ma żadnego), konto Play,
 polityka prywatności, formularz Data safety, opis i grafiki w konsoli.
 
+### Tabela wyników w Daily
+
+**Zgłoszone:** 2026-08-26. Na dole ekranu Daily — własne wyniki obok regionalnych, z zaznaczeniem
+najlepszego czasu z uwzględnieniem błędów.
+
+Część da się zrobić już teraz, bez sieci: **własna historia Daily** jest w bazie i wystarczy ją
+pokazać. Porównanie z innymi graczami należy do etapu 2 i czeka na tablice Play Games.
+
+Do ustalenia: jak wyliczyć „najlepszy" przy różnej liczbie błędów. `project.md` §29 podaje karę
+mnożnikową `wynik × 0.7^błędy`, ale wzoru na wynik bazowy zależny od czasu jeszcze nie ma — bez
+niego „najlepszy czas uwzględniający błędy" nie ma definicji.
+
 ### Podpowiedź 8/9 niedostępna w grach rankingowych
 
 **Zgłoszone:** 2026-08-25. `project.md` §17 kończy się zdaniem: „Funkcja 8/9 jest niedostępna
@@ -128,6 +140,24 @@ Do rozważenia przy strojeniu:
 Czego nie wolno przy tym zepsuć: `PalettesTest` pilnuje, że stopnie rozdziela jasność w rosnącej
 kolejności, że wysoki kontrast nigdy nie *zmniejsza* rozdzielenia i że podpowiedź 8/9 zostaje
 cichsza od cyfry gracza (§17). Progi są w L*, nie w luminancji — patrz komentarz w teście.
+
+### Daily Sudoku — etap 2: ranking
+
+**Etap 1 zrobiony 2026-08-26** (plansze, ekran, brak pauzy w grze rankingowej). Zostaje ranking.
+
+Uzgodnione: **Google Play Games Services**, tablice wyników z wbudowanym okresem dziennym. Darmowe,
+niesie tożsamość gracza i nie wymaga serwera — czyli w projekcie nie powstaje usługa do utrzymania.
+Koszt: zależność `play-services-games-v2`, wbrew zasadzie minimalizmu z `technical_requirements.md`
+§9, ale alternatywą jest własny backend.
+
+Do sprawdzenia przed decyzją: **ile tablic wyników wolno mieć w jednej grze**. Regiony wymagałyby
+osobnej tablicy na region i poziom (16 województw × 3 = 48, plus globalne), a limitu nie znam.
+
+Do zrobienia poza tym:
+
+- podpięcie logowania Play Games, opcjonalne — udział w rankingu musi być świadomym wyborem
+  (`project.md` §27),
+- wybór regionu z listy; decyzje funkcjonalne są już podjęte, patrz „Wybór regionu do rankingu".
 
 ### Wynik rankingowy Daily
 
@@ -169,21 +199,24 @@ Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudno
 w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
 poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
 
-### Pasek funkcyjny na ekranie gry
+### Podpowiedź dla gracza
 
-**Zgłoszone:** 2026-08-26. Do zrobienia, gdy `GameScreen.kt` zwolni Codex.
+**Zgłoszone:** 2026-08-26. `project.md` §18 zostawia tę funkcję do ustalenia.
 
-Zamiast akcji upchniętych w pasku górnym — osobny wiersz funkcyjny z ikonami: **udostępnij**
-(`ic_share`) i **zapisz** (`ic_saved_games`, dyskietka). Cała zawartość ekranu przesuwa się przy tym
-w dół o wysokość tego wiersza.
+Podpowiedź wstawia **następną poprawną cyfrę w wolne pole**. Limit 1–3 użyć na partię — dokładna
+liczba do ustalenia.
 
-Do rozważenia przy okazji:
+Ustalone przy okazji decyzji o kwalifikacji rankingowej (patrz [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)
+§8): **użycie podpowiedzi odbiera Daily kwalifikację do rankingu** albo zabiera punkty — to jedyne
+zdarzenie, które ma to robić, skoro minimalizacja już tego nie robi. `GameViewModel.loseRanking()`
+czeka gotowa na wywołanie i przełącza liczenie czasu z zegara ściennego na zwykły, żeby licznik nie
+skoczył wstecz.
 
-- pasek górny zostaje wtedy z samą strzałką wstecz i poziomem trudności, co uwalnia miejsce, którego
-  brakowało już przy „Zapisz" obok tytułu,
-- ikony bez podpisu wymagają `contentDescription` — dziś oba działania mają je jako tekst,
-- plansza jest najważniejszym elementem ekranu (`project.md` §37), więc nowy wiersz nie może zjeść
-  jej wysokości; jeśli zabraknie miejsca, ustąpić ma pasek funkcyjny, nie plansza.
+Do ustalenia poza liczbą użyć:
+
+- czy podpowiedź odbiera kwalifikację, czy tylko obniża wynik (§29 ma już karę mnożnikową za błędy),
+- czy w grze solo działa bez ograniczeń (§18 dopuszcza),
+- czy pole wstawione podpowiedzią jest oznaczone i czy liczy się do XP.
 
 ## Wymaga decyzji
 
@@ -197,6 +230,8 @@ Ustalone — kod jest zgodny, wracamy tylko jeśli coś się zmieni:
 - „portrait only" zostaje jak jest, mimo że Android 16 ignoruje je na ekranach ≥ 600dp
 - **poprawnie wpisana cyfra jest zablokowana** — cofa ją wyłącznie Undo, a `project.md` §5 należy
   odtąd czytać z tym zastrzeżeniem
+- **minimalizacja nie odbiera Daily kwalifikacji rankingowej** — zegar biegnie dalej, co realizuje
+  cel `project.md` §28 bez karania odebrania telefonu
 
 Czeka na granie na urządzeniu:
 

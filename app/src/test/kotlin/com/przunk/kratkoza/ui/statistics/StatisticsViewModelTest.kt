@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.ui.statistics
 
 import com.przunk.kratkoza.data.FakeGameHistoryDao
+import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
@@ -28,6 +29,7 @@ class StatisticsViewModelTest {
 
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
+        dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),

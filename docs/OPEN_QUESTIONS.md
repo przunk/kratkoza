@@ -13,6 +13,7 @@ dlaczego, oraz jakie są alternatywy.
 | 5 | Domyślne wartości dwóch opcji z §35 | 🟢 **ustalone** — zostaje ON |
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
 | 7 | Edycja poprawnie wpisanej cyfry | 🟢 **ustalone** — zablokowana, cofa tylko Undo |
+| 8 | Co odbiera Daily kwalifikację rankingową | 🟢 **ustalone** — minimalizacja nie, podpowiedź tak |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
 🟡 = przyjęte tymczasowo, czeka na decyzję.
@@ -197,3 +198,33 @@ cyfrą. Chroniłoby to gracza przed przypadkowym zamienieniem poprawnego ruchu n
 - obecne zasady pozwalają edytować każde pole, które było puste w planszy początkowej
   (`project.md` §5), więc pełna nieedytowalność może wymagać świadomej zmiany wymagania,
 - alternatywą jest tylko ostrzeżenie lub prośba o potwierdzenie przed zastąpieniem poprawnej cyfry.
+
+---
+
+## 8. Co odbiera Daily kwalifikację do rankingu
+
+**Stan: 🟢 ustalone 2026-08-26.** Minimalizacja aplikacji **nie** odbiera kwalifikacji. Zegar biegnie
+dalej, także gdy aplikacja jest w tle albo została ubita.
+
+**To jest odstępstwo od `project.md` §28**, który wymienia minimalizację, przejście w tło,
+zablokowanie ekranu i przerwanie gry jako zdarzenia odbierające kwalifikację.
+
+**Dlaczego zmiana.** §28 chroni przed darmowym czasem do namysłu — pauzą, która zatrzymuje zegar,
+a pozwala studiować planszę. Ten cel realizuje **biegnący zegar**, nie flaga: skoro czas leci także
+w tle, zminimalizowanie aplikacji nic nie kupuje, tylko kosztuje. Odbieranie za to całej
+kwalifikacji karało odebranie telefonu wykluczeniem z dnia, a §31 mówi wprost, że ranking ma być
+„competitive-casual", nie e-sportowy.
+
+**Jak to jest liczone.** Czas gry rankingowej to różnica zegara ściennego od momentu otwarcia
+planszy. Licznik wewnątrz aplikacji zatrzymuje się razem z aplikacją, więc gracz, który zamknął ją
+na godzinę, wróciłby z godziną darmowego namysłu. Arytmetyki na zegarze ściennym nie da się w ten
+sposób obejść, a przy braku pauzy nie ma czego odejmować.
+
+**Co nadal odbiera kwalifikację:** nic — na razie. Uzgodnione, że odbierze ją **użycie podpowiedzi**,
+gdy powstanie (patrz „Podpowiedź dla gracza" w [STATUS.md](STATUS.md)). Metoda `loseRanking`
+w `GameViewModel` już istnieje i przełącza liczenie czasu na zwykłe, żeby w tym momencie licznik
+nie skoczył wstecz.
+
+**Czego to nie broni.** Gracz nadal może zrobić zrzut planszy i rozwiązać ją gdzie indziej — ale
+zegar przez ten czas biegnie, więc nic na tym nie zyskuje. `project.md` §31 uznaje wprost, że
+całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.

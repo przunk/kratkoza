@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.ui.newgame
 
 import com.przunk.kratkoza.data.FakeGameHistoryDao
+import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
@@ -40,6 +41,7 @@ class NewGameViewModelTest {
 
     private fun repositoryWith(generator: SudokuGenerator) = GameRepository(
         puzzleDao = puzzleDao,
+        dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = generator,
@@ -75,10 +77,13 @@ class NewGameViewModelTest {
 
     @Test
     fun `a shared board is opened from its code`() = runTest(dispatcher) {
+        val sourcePuzzles = FakePuzzleDao()
+        val sourceSaves = FakeSavedGameDao(sourcePuzzles)
         val source = GameRepository(
-            puzzleDao = FakePuzzleDao(),
-            savedGameDao = FakeSavedGameDao(FakePuzzleDao()),
-            historyDao = FakeGameHistoryDao(),
+            puzzleDao = sourcePuzzles,
+            dailyPuzzleDao = FakeDailyPuzzleDao(),
+            savedGameDao = sourceSaves,
+            historyDao = FakeGameHistoryDao(sourceSaves),
             generator = SudokuGenerator(),
             computationDispatcher = dispatcher,
         )
