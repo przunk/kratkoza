@@ -174,7 +174,6 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel) {
         onDigitClick = viewModel::enterDigit,
         enabled = state.isPlayable,
         candidateMode = state.candidateMode,
-        availableCandidateDigits = state.availableCandidateDigits,
         showRemainingCounts = state.showRemainingCounts,
     )
 

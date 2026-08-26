@@ -32,8 +32,6 @@ data class GameUiState(
     val isPaused: Boolean = false,
     /** Whether the number pad writes pencil marks instead of digits (project.md section 14). */
     val candidateMode: Boolean = false,
-    /** Digits the selected cell may accept as a new candidate; existing marks stay removable. */
-    val availableCandidateDigits: Set<Int> = emptySet(),
     val canUndo: Boolean = false,
     /** How many of each digit 1..9 are still missing; index 0 is unused. */
     val remainingByDigit: List<Int> = List(10) { 0 },
