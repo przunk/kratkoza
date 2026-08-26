@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 281 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 294 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -68,8 +68,9 @@ lint, testy jednostkowe całej logiki, warstwy danych i ViewModeli oraz zbudowan
 Zachowanie samego UI na ekranie — układ, czytelność planszy, dotyk — wymaga wgrania APK
 i sprawdzenia ręcznie.
 
-Testy instrumentacyjne Compose (`technical_requirements.md` §15) czekają na urządzenie. To jedyna
-pozostała dziura w pokryciu: **żadna zmiana wizualna nie jest wyłapywana maszynowo.**
+Testy Compose UI **już są** i chodzą na JVM przez Robolectrica: Ustawienia, Statystyki, Zapisane gry
+i Nowa gra. Bez pokrycia zostają ekrany, które zmieniały się najpóźniej — gra, Daily i ekran
+główny.
 
 Warstwa Roomu **nie jest już** taką dziurą. Zapytania agregujące, transakcja resetu, JOIN listy
 zapisanych gier i kaskada kluczy obcych chodzą w testach po prawdziwym SQLite na Robolectriku.
