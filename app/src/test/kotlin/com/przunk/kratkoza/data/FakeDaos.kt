@@ -83,6 +83,7 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
                     gameType = puzzle.gameType,
                     givens = puzzle.givens,
                     solution = puzzle.solution,
+                    generatorVersion = puzzle.generatorVersion,
                 )
             }
     }

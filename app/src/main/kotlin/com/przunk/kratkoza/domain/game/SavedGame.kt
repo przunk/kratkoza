@@ -47,6 +47,8 @@ data class SavedGameSummary(
     val board: SudokuBoard,
     val givens: SudokuBoard,
     val solution: SudokuBoard,
+    /** Travels with a shared code, so the board keeps its identity on the other side. */
+    val generatorVersion: Int,
 ) {
     /**
      * How far through the board the player is, `0f`..`1f`.

@@ -1,5 +1,8 @@
 package com.przunk.kratkoza.ui.saves
 
+import android.content.Context
+import android.content.Intent
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +66,7 @@ fun SavedGamesScreen(
     // Which row, if any, is showing its confirmation. Held for the list rather than per row, so
     // arming a second one disarms the first: two rows both offering to delete would be a trap.
     var armedPuzzleId by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     // Deleting a half-solved game cannot be undone, and the risk here is a mis-tap rather than a
     // misunderstanding — so the guard is a second, deliberate tap rather than a dialog. It steps
@@ -103,6 +107,7 @@ fun SavedGamesScreen(
                     save = save,
                     armed = armedPuzzleId == save.puzzleId,
                     onOpen = { onOpenGame(save.puzzleId) },
+                    onShare = { shareBoard(context, save, viewModel.shareCodeFor(save)) },
                     onArmDelete = { armedPuzzleId = save.puzzleId },
                     onConfirmDelete = {
                         armedPuzzleId = null
@@ -119,6 +124,7 @@ private fun SavedGameRow(
     save: SavedGameSummary,
     armed: Boolean,
     onOpen: () -> Unit,
+    onShare: () -> Unit,
     onArmDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
 ) {
@@ -161,6 +167,12 @@ private fun SavedGameRow(
                 )
             }
 
+            IconButton(onClick = onShare) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_share),
+                    contentDescription = stringResource(R.string.saved_games_share),
+                )
+            }
             DeleteControl(armed = armed, onArm = onArmDelete, onConfirm = onConfirmDelete)
         }
     }
@@ -255,6 +267,25 @@ private fun DeleteControl(armed: Boolean, onArm: () -> Unit, onConfirm: () -> Un
             )
         }
     }
+}
+
+/**
+ * Hands the board's code to whatever the player wants to send it with.
+ *
+ * A plain text share rather than a link or a file: the code has to survive being pasted into a chat
+ * window, quoted back, and read on a phone that may not have the app installed yet. Text is the only
+ * format that does all three.
+ */
+private fun shareBoard(context: Context, save: SavedGameSummary, code: String) {
+    val difficulty = context.getString(save.difficulty.labelRes())
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.share_board_subject))
+        putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_board_body, difficulty, code))
+    }
+    context.startActivity(
+        Intent.createChooser(intent, context.getString(R.string.share_board_chooser)),
+    )
 }
 
 /** How long the confirmation waits before stepping back to the bin. */
