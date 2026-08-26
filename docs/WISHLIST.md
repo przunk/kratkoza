@@ -85,6 +85,17 @@ dodać, zamiast przyjmować notatkę sprzeczną z aktualnym stanem planszy.
 Do decyzji pozostaje zachowanie istniejących kandydatów po późniejszym wpisaniu błędnej cyfry;
 auto-usuwanie po cyfrze poprawnej jest opisane osobno poniżej i w `project.md` §15.
 
+**Pułapka, którą trzeba tu rozstrzygnąć.** „Dozwolona" liczy się względem **aktualnej** planszy,
+a ta może zawierać błędną cyfrę gracza. Wtedy aplikacja zabroniłaby zanotować kandydata, który
+w rzeczywistości jest poprawny — i to dokładnie wtedy, gdy gracz próbuje rozplątać własną pomyłkę.
+To ten sam wzorzec, na który wpadliśmy przy blokadzie klawiszy panelu: licznik liczył wszystkie
+wystąpienia cyfry zamiast poprawnych, więc jedna pomyłka odcinała gracza od cyfry, której plansza
+wciąż potrzebowała.
+
+Bezpieczny wariant: liczyć dostępność wyłącznie względem cyfr startowych i cyfr poprawnych, albo
+w ogóle nie blokować, tylko wyszarzać — kandydaci są narzędziem rozumowania gracza (§14), a nie
+odpowiedzią, więc aplikacja nie musi mieć w tej sprawie ostatniego słowa.
+
 ---
 
 ## 4. Usuwanie kandydatów, które przestały być możliwe

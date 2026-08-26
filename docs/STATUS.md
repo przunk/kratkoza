@@ -122,10 +122,11 @@ Infrastruktura jest już gotowa i to nie przypadek: `BoardColors` siedzi celowo 
 `ColorScheme` Material 3, więc przemalowanie planszy i przemalowanie reszty UI to niezależne
 decyzje. Do zrobienia: przełącznik palety w Ustawieniach, wartość w DataStore i same palety.
 
-Tryb wysokiego kontrastu to ta sama warstwa i naturalne miejsce na jedną konkretną decyzję:
-podświetlanie takich samych cyfr działa dziś przez **kolor cyfry**, a barwy niebieskiej i morskiej
-część osób nie odróżni. W trybie wysokiego kontrastu powinno wracać na **tło**, które czyta się
-jasnością.
+Tryb wysokiego kontrastu to ta sama warstwa. Uwaga: notatka mówiła tu wcześniej, że podświetlanie
+takich samych cyfr trzeba będzie w tym trybie przenieść z koloru cyfry na tło — to już nieaktualne,
+bo podświetlanie wróciło na tło przy okazji poprawek czytelności. Zostaje z tego reguła ogólna:
+stopnie podświetlenia mają rozdzielać się **jasnością**, nie odcieniem, bo jasność czyta się także
+tam, gdzie odcień zawodzi.
 
 
 ### Wynik rankingowy Daily
