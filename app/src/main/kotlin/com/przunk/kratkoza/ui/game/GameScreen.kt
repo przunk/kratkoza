@@ -44,7 +44,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
+import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.ui.common.labelRes
+import com.przunk.kratkoza.ui.common.shareBoard
 import com.przunk.kratkoza.util.formatDuration
 
 /**
@@ -94,6 +96,7 @@ fun GameScreen(
                 },
                 actions = {
                     if (state.phase == GameUiState.Phase.PLAYING) {
+                        ShareBoardAction(state.difficulty, viewModel::shareCode)
                         TextButton(
                             onClick = {
                                 viewModel.saveAndStop()
@@ -123,6 +126,25 @@ fun GameScreen(
 
     if (state.phase == GameUiState.Phase.SOLVED) {
         SolvedDialog(state = state, onBackToMenu = onNavigateBack, onNewGame = onNewGame)
+    }
+}
+
+/**
+ * Hands this board's code to another player (wishlist item 6).
+ *
+ * Sits in the game's own top bar because that is where somebody reaches for it — mid-puzzle, saying
+ * "try this one". The saved-games list offers the same thing for boards not currently open.
+ */
+@Composable
+private fun ShareBoardAction(difficulty: Difficulty, code: () -> String?) {
+    val context = LocalContext.current
+    val label = difficulty.labelRes()
+
+    IconButton(onClick = { code()?.let { shareBoard(context, label, it) } }) {
+        Icon(
+            painter = painterResource(R.drawable.ic_share),
+            contentDescription = stringResource(R.string.saved_games_share),
+        )
     }
 }
 

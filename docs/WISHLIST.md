@@ -126,8 +126,8 @@ notatek gracza.
 stronie odbiorcy. Uzasadnienie obu decyzji w `BoardCode`. Udostępnianie z listy zapisanych gier,
 wczytywanie z ekranu nowej gry.
 
-Zostało do zrobienia, gdy `GameScreen.kt` będzie wolny: udostępnianie **z ekranu gry**, bo tam
-gracz najpierw sięgnie. Dziś trzeba wyjść do listy zapisanych.
+Udostępnianie jest w dwóch miejscach: w pasku ekranu gry, gdzie gracz najpierw sięgnie, i na
+liście zapisanych gier — dla plansz, których akurat nie ma otwartych.
 
 **Zgłoszone:** 2026-08-26.
 
