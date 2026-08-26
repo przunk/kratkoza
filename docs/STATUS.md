@@ -113,6 +113,28 @@ więc warunek ma jedno miejsce.
 
 To samo dotyczy każdej przyszłej pomocy z §18 („Pokaż następną cyfrę").
 
+### Dopracowanie trybu wysokiego kontrastu
+
+**Zgłoszone:** 2026-08-26, do weryfikacji w grze.
+
+Pierwsza wersja kontrastuje bardzo mocno i przez to spłaszcza różnice między paletami — w tym
+trybie wybór palety niewiele zmienia. To wynik świadomej decyzji: stopnie podświetlenia są
+przebudowywane jako ustalone ułamki drogi od tła do atramentu, więc trzymają równe odstępy, ale
+gubią po drodze charakter palety.
+
+Do rozważenia przy strojeniu:
+
+- zejść z `SURFACE_PUSH` i `DIGIT_PUSH` w `Palettes.kt`, żeby tło i tekst nie szły tak blisko
+  bieli i czerni,
+- zachować odcień palety przy przeliczaniu stopni zamiast mieszać wprost do atramentu — np.
+  domieszać trochę koloru akcentu,
+- albo uznać spłaszczenie za cechę, nie wadę: kto włącza wysoki kontrast, prawdopodobnie chce
+  czytelności, a nie charakteru.
+
+Czego nie wolno przy tym zepsuć: `PalettesTest` pilnuje, że stopnie rozdziela jasność w rosnącej
+kolejności, że wysoki kontrast nigdy nie *zmniejsza* rozdzielenia i że podpowiedź 8/9 zostaje
+cichsza od cyfry gracza (§17). Progi są w L*, nie w luminancji — patrz komentarz w teście.
+
 ### Wynik rankingowy Daily
 
 **Do zrobienia razem z Daily.** `project.md` §29 opisuje karę za błędy wprost:
@@ -128,6 +150,22 @@ To druga połowa decyzji podjętej przy XP. Warto trzymać obie obok siebie, bo 
 | po co | postęp gracza, odznaka | uczciwe porównanie na tej samej planszy |
 
 Kolumna `score` w `game_history` czeka pusta.
+
+### Wybór regionu do rankingu
+
+**Ustalone 2026-08-26.** `project.md` §27 wymaga, żeby region wybierał użytkownik i żeby nie
+sięgać po GPS ani po permission lokalizacji. Do tego dochodzą trzy decyzje:
+
+- **Region wolno zmieniać w dowolnym momencie.** Bez weryfikacji i bez okresu karencji.
+- **Każdy region ma osobny ranking**, a nie jeden ranking z przypisaną etykietą. Gracz, który grał
+  w dwóch regionach, ma dwa niezależne dorobki.
+- **Na start lista regionów**, nie mapa. Wystarczy funkcjonalnie, działa poza Polską, jest dostępna
+  dla czytnika ekranu i nie wymaga rysowania szesnastu nieregularnych kształtów. Mapa może dojść
+  później jako nakładka na ten sam wybór — patrz [WISHLIST.md](WISHLIST.md).
+
+Konsekwencja osobnych rankingów jest taka, że zmiana regionu przestaje być czymś, na czym da się
+ugrać: nie przenosi dorobku i nie miesza wyników, więc nie ma potrzeby jej blokować. To rozwiązuje
+problem „zmieniam region po zobaczeniu wyników" bez żadnej dodatkowej reguły.
 
 ### Mocniejsze wyszarzenie niedostępnych cyfr
 

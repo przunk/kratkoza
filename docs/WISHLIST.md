@@ -131,3 +131,23 @@ bazy lub deterministycznego mapowania nie wystarczy do wygenerowania tej samej p
 
 Do ustalenia: format kodu, udostępnianie offline lub przez backend oraz zachowanie po zmianie wersji
 generatora.
+
+---
+
+## 7. Wybór regionu z mapki zamiast z listy
+
+**Zgłoszone:** 2026-08-26.
+
+Zamiast wybierać województwo z listy — tapnąć je na mapce Polski.
+
+**Dlaczego to dodatek, a nie zamiennik.** `project.md` §27 przewiduje zakresy globalny, krajowy
+i regionalny, a aplikacja jest po polsku i angielsku, więc trafi też poza Polskę — mapa województw
+nie ma wtedy czego pokazać. Do tego mapa dotykowa jest trudna dla TalkBacka: szesnaście obszarów
+o nieregularnych kształtach, bez tekstu. Lista musi więc istnieć tak czy inaczej, jako ścieżka
+dostępności i jako rozwiązanie dla innych krajów.
+
+Mapa ma sens jako **efektowna skrótka do tego samego wyboru**, wywoływana z listy i wracająca do
+niej — a nie jako drugi, niezależny mechanizm, który trzeba utrzymywać w dwóch wersjach.
+
+Decyzje funkcjonalne wokół regionu są już podjęte i opisane w [STATUS.md](STATUS.md); ta pozycja
+dotyczy wyłącznie formy wyboru.
