@@ -45,14 +45,42 @@ Od tego momentu pracujesz **wyłącznie** w `/mnt/workspace/Kratkoza-codex`.
 Historia jest wspólna, więc commity drugiego agenta widzisz bez pobierania czegokolwiek. Jeśli
 potrzebujesz jego zmian, `git merge develop` **do siebie** — nigdy odwrotnie.
 
+### Nie przepisuj historii, która jest już w `develop`
+
+Wciągnięcie `develop` do siebie jest w porządku i czasem konieczne. Ale gałąź, która to zrobiła,
+przestaje być bezpieczna do rebase'owania: jej commity mogą już żyć w `develop`, a rebase zrobi
+z nich duplikaty pod nowymi identyfikatorami — i scalenie takiej gałęzi wraca zdublowaną historią
+i konfliktami tam, gdzie nic się nie zmieniło.
+
+Zanim ktokolwiek zrobi rebase, sprawdza:
+
+```bash
+git branch --contains <najstarszy commit gałęzi>
+```
+
+Jeśli w wyniku jest `develop`, **rebase odpada** — gałąź jest już scalona i należy ją po prostu
+usunąć.
+
+Nas to już raz kosztowało: gałąź trafiła do `develop` przez merge w drugą stronę, została mimo to
+zrebasowana i przez chwilę istniała jako komplet duplikatów gotowych do ponownego scalenia.
+
 ## 3. Gałęzie
 
 - `master` — baza,
 - `develop` — gałąź integracyjna, **nikt nie commituje na nią wprost**,
 - `<typ>/<opis>` — gałąź zadania, np. `fix/game-screen-readability`.
 
-Scalenie do `develop` następuje, gdy zadanie jest skończone i zweryfikowane, i robi je ten, kogo
-właściciel o to poprosi. Sam nie scalasz cudzej pracy.
+Scalenie do `develop` następuje, gdy zadanie jest skończone i zweryfikowane. **Własną, skończoną
+gałąź możesz scalić sam**, gdy właściciel to potwierdzi; cudzej nie scalasz nigdy.
+
+Scalając, w jednym ruchu:
+
+1. uruchom testy i lint **na gałęzi**, zanim ją ruszysz,
+2. `git merge --no-ff` do `develop` — nie rebase i nie fast-forward, żeby zakres zadania został
+   widoczny w historii,
+3. **podbij `versionCode` i `versionName`** — to jedyny moment, w którym się je podbija,
+4. usuń gałąź i swój worktree,
+5. powiedz o tym, żeby nikt nie próbował już przepisywać tej historii.
 
 ## 4. Granice plików
 

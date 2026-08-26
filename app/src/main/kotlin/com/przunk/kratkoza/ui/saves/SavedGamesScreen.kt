@@ -1,8 +1,5 @@
 package com.przunk.kratkoza.ui.saves
 
-import android.content.Context
-import android.content.Intent
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.painterResource
@@ -48,6 +46,7 @@ import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.game.SavedGameSummary
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
+import com.przunk.kratkoza.ui.common.shareBoard
 import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.ui.theme.LocalBoardColors
 import com.przunk.kratkoza.util.formatDateTime
@@ -107,7 +106,7 @@ fun SavedGamesScreen(
                     save = save,
                     armed = armedPuzzleId == save.puzzleId,
                     onOpen = { onOpenGame(save.puzzleId) },
-                    onShare = { shareBoard(context, save, viewModel.shareCodeFor(save)) },
+                    onShare = { shareBoard(context, save.difficulty.labelRes(), viewModel.shareCodeFor(save)) },
                     onArmDelete = { armedPuzzleId = save.puzzleId },
                     onConfirmDelete = {
                         armedPuzzleId = null
@@ -134,9 +133,9 @@ private fun SavedGameRow(
 
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(ROW_PADDING_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(ROW_GAP_DP.dp),
         ) {
             BoardPreview(save)
 
@@ -167,13 +166,19 @@ private fun SavedGameRow(
                 )
             }
 
-            IconButton(onClick = onShare) {
-                Icon(
+            // One action area, not two competing ones. Armed, DELETE is the only thing that
+            // matters — and hiding the share button then is also what keeps the row from
+            // overflowing, because the confirmation is far wider than the icon it replaces.
+            if (armed) {
+                DeleteControl(armed = true, onArm = onArmDelete, onConfirm = onConfirmDelete)
+            } else {
+                CompactIconButton(
                     painter = painterResource(R.drawable.ic_share),
                     contentDescription = stringResource(R.string.saved_games_share),
+                    onClick = onShare,
                 )
+                DeleteControl(armed = false, onArm = onArmDelete, onConfirm = onConfirmDelete)
             }
-            DeleteControl(armed = armed, onArm = onArmDelete, onConfirm = onConfirmDelete)
         }
     }
 }
@@ -260,37 +265,39 @@ private fun DeleteControl(armed: Boolean, onArm: () -> Unit, onConfirm: () -> Un
             )
         }
     } else {
-        IconButton(onClick = onArm) {
-            Icon(
-                painter = painterResource(R.drawable.ic_delete),
-                contentDescription = stringResource(R.string.saved_games_delete),
-            )
-        }
+        CompactIconButton(
+            painter = painterResource(R.drawable.ic_delete),
+            contentDescription = stringResource(R.string.saved_games_delete),
+            onClick = onArm,
+        )
     }
 }
 
 /**
- * Hands the board's code to whatever the player wants to send it with.
+ * An icon button narrower than Material's 48dp default.
  *
- * A plain text share rather than a link or a file: the code has to survive being pasted into a chat
- * window, quoted back, and read on a phone that may not have the app installed yet. Text is the only
- * format that does all three.
+ * The row carries a preview, three lines of text and an action, and at the default size the last of
+ * them was pushed off a narrow screen. The touch target stays 40dp square — under the guideline, but
+ * the whole card is tappable and opens the game, so the small targets are the two extras rather than
+ * the only way through.
  */
-private fun shareBoard(context: Context, save: SavedGameSummary, code: String) {
-    val difficulty = context.getString(save.difficulty.labelRes())
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.share_board_subject))
-        putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_board_body, difficulty, code))
+@Composable
+private fun CompactIconButton(
+    painter: Painter,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick, modifier = Modifier.size(ACTION_SIZE_DP.dp)) {
+        Icon(painter = painter, contentDescription = contentDescription)
     }
-    context.startActivity(
-        Intent.createChooser(intent, context.getString(R.string.share_board_chooser)),
-    )
 }
 
 /** How long the confirmation waits before stepping back to the bin. */
 private const val DELETE_ARMED_MILLIS = 3_000L
 
-private const val PREVIEW_SIZE_DP = 64
+private const val ROW_PADDING_DP = 10
+private const val ROW_GAP_DP = 8
+private const val ACTION_SIZE_DP = 40
+private const val PREVIEW_SIZE_DP = 60
 private const val DOT_RADIUS_FRACTION = 0.22f
 private const val BLOCK_LINE_PX = 1f
