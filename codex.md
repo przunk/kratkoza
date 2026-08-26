@@ -48,6 +48,8 @@ Przewidywany zakres plików:
 - `app/src/test/kotlin/com/przunk/kratkoza/domain/game/GameEngineTest.kt`
 - `app/src/test/kotlin/com/przunk/kratkoza/domain/game/UndoTest.kt` — tylko jeśli istniejące testy
   Undo nie pokrywają nowego przypadku
+- `app/src/test/kotlin/com/przunk/kratkoza/ui/game/GameViewModelTest.kt` — aktualizacja scenariuszy,
+  które przed przyjęciem blokady używały wymazania poprawnej cyfry jako przykładowego ruchu
 - `docs/STATUS.md` — usunięcie rozstrzygniętego punktu „blokowanie poprawnie wpisanej cyfry”
 
 Jeśli podczas implementacji okaże się, że potrzebna jest zmiana UI lub pliku spoza tej listy,
