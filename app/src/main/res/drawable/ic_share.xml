@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Three nodes joined by two lines — the usual share glyph.
+
+    Drawn here rather than taken from a Material icon package, like the rest of the set: see
+    ic_saved_games.xml for why.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M8.6,10.8 L15.1,7.1 L16.1,8.8 L9.6,12.5 Z M9.6,11.5 L16.1,15.2 L15.1,16.9 L8.6,13.2 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M18,2 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:translateY="4" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,12 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M18,20 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:translateY="-2" />
+</vector>

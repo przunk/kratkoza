@@ -6,13 +6,19 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.progress.PlayerProgress
+import com.przunk.kratkoza.domain.share.BoardCode
+import com.przunk.kratkoza.domain.share.BoardImportResult
 import com.przunk.kratkoza.domain.progress.Progress
 import com.przunk.kratkoza.domain.sudoku.Sudoku
+import com.przunk.kratkoza.domain.sudoku.SudokuBoard
+import com.przunk.kratkoza.domain.sudoku.SudokuFixtures
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
+import kotlin.random.Random
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -296,5 +302,123 @@ class GameRepositoryTest {
 
         repository.resetStatistics()
         assertEquals(Progress.NONE, repository.statistics.first().progress)
+    }
+
+    @Test
+    fun `a shared board can be opened and played`() = runTest {
+        val original = repository.startNewGame(Difficulty.HARD)
+        val code = BoardCode.encode(original.state.puzzle.givens, original.state.puzzle.generatorVersion)
+
+        // A second device, with nothing in its database.
+        val receiver = freshRepository()
+        val result = receiver.importSharedBoard(code)
+
+        assertTrue("import said: $result", result is BoardImportResult.Ready)
+        val ready = result as BoardImportResult.Ready
+        assertFalse(ready.alreadyStarted)
+
+        val imported = requireNotNull(receiver.loadGame(ready.puzzleId))
+        assertEquals(original.state.puzzle.givens, imported.state.puzzle.givens)
+        assertEquals(original.state.puzzle.solution, imported.state.puzzle.solution)
+        assertEquals(original.state.puzzle.id, imported.state.puzzle.id)
+    }
+
+    @Test
+    fun `the difficulty is graded from the board rather than taken on trust`() = runTest {
+        val generator = SudokuGenerator()
+        for (difficulty in listOf(Difficulty.NORMAL, Difficulty.EXPERT, Difficulty.MASTER)) {
+            val puzzle = generator.generate(difficulty, random = Random(difficulty.ordinal + 20L))
+            val receiver = freshRepository()
+
+            val result = receiver.importSharedBoard(
+                BoardCode.encode(puzzle.givens, puzzle.generatorVersion),
+            )
+
+            assertEquals(difficulty, (result as BoardImportResult.Ready).difficulty)
+        }
+    }
+
+    @Test
+    fun `importing a board already in progress resumes it instead of wiping it`() = runTest {
+        val game = repository.startNewGame(Difficulty.NORMAL)
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+        val played = GameEngine.enterDigit(
+            game.state,
+            cell,
+            game.state.puzzle.solution[cell],
+            autoRemoveCandidates = true,
+        )
+        repository.save(game.copy(state = played, elapsedMillis = 90_000))
+
+        val result = repository.importSharedBoard(
+            BoardCode.encode(game.state.puzzle.givens, game.state.puzzle.generatorVersion),
+        )
+
+        assertTrue((result as BoardImportResult.Ready).alreadyStarted)
+        val resumed = requireNotNull(repository.loadGame(result.puzzleId))
+        assertEquals("progress must survive the paste", played.board, resumed.state.board)
+        assertEquals(90_000L, resumed.elapsedMillis)
+        assertEquals("and no second game may be opened", 1, historyDao.all.size)
+    }
+
+    @Test
+    fun `a board with more than one solution is refused`() = runTest {
+        // project.md section 5. A board from outside has not been through the generator that
+        // guarantees a single solution.
+        val ambiguous = SudokuBoard.parse(SudokuFixtures.EASY_WITH_TWO_SOLUTIONS)
+
+        assertEquals(
+            BoardImportResult.NotAValidPuzzle,
+            repository.importSharedBoard(BoardCode.encode(ambiguous, 1)),
+        )
+    }
+
+    @Test
+    fun `an empty board is refused rather than opened as a blank game`() = runTest {
+        assertEquals(
+            BoardImportResult.NotAValidPuzzle,
+            repository.importSharedBoard(BoardCode.encode(SudokuBoard.EMPTY, 1)),
+        )
+    }
+
+    @Test
+    fun `a contradictory board is refused`() = runTest {
+        val broken = SudokuBoard.parse(SudokuFixtures.CONTRADICTORY)
+
+        assertEquals(
+            BoardImportResult.NotAValidPuzzle,
+            repository.importSharedBoard(BoardCode.encode(broken, 1)),
+        )
+    }
+
+    @Test
+    fun `rubbish text and damaged codes are told apart`() = runTest {
+        assertEquals(BoardImportResult.NotABoardCode, repository.importSharedBoard("hello"))
+        assertEquals(BoardImportResult.NotABoardCode, repository.importSharedBoard(""))
+
+        val code = BoardCode.encode(SudokuBoard.parse(SudokuFixtures.EASY_GIVENS), 1)
+        assertEquals(BoardImportResult.Damaged, repository.importSharedBoard(code.dropLast(4)))
+    }
+
+    @Test
+    fun `a refused board leaves nothing behind`() = runTest {
+        repository.importSharedBoard(BoardCode.encode(SudokuBoard.EMPTY, 1))
+
+        assertTrue(repository.savedGames.first().isEmpty())
+        assertEquals(0, repository.statistics.first().startedCount)
+    }
+
+    /** A second repository over its own empty tables, standing in for another device. */
+    private fun freshRepository(): GameRepository {
+        val puzzles = FakePuzzleDao()
+        val saves = FakeSavedGameDao(puzzles)
+        return GameRepository(
+            puzzleDao = puzzles,
+            savedGameDao = saves,
+            historyDao = FakeGameHistoryDao(saves),
+            generator = SudokuGenerator(),
+            computationDispatcher = UnconfinedTestDispatcher(),
+            clock = { now },
+        )
     }
 }

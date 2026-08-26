@@ -19,9 +19,14 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.model.Puzzle
 import com.przunk.kratkoza.domain.progress.PlayerProgress
+import com.przunk.kratkoza.domain.share.BoardCode
+import com.przunk.kratkoza.domain.share.BoardImportResult
 import com.przunk.kratkoza.domain.stats.DifficultyStatistics
 import com.przunk.kratkoza.domain.stats.Statistics
+import com.przunk.kratkoza.domain.sudoku.DifficultyEvaluator
+import com.przunk.kratkoza.domain.sudoku.PuzzleId
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
+import com.przunk.kratkoza.domain.sudoku.SudokuSolver
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import kotlin.math.roundToLong
 import kotlinx.coroutines.CoroutineDispatcher
@@ -56,7 +61,11 @@ class GameRepository(
             generator.generate(difficulty, GameType.SOLO)
         }
         puzzleDao.insert(puzzle.toEntity())
+        return openGame(puzzle)
+    }
 
+    /** Opens the history row project.md section 33 counts as a started game, and the save for it. */
+    private suspend fun openGame(puzzle: Puzzle): SavedGame {
         val now = clock()
         val historyId = historyDao.insert(historyEntry(puzzle, startedAt = now))
 
@@ -71,6 +80,63 @@ class GameRepository(
         )
         save(save)
         return save
+    }
+
+    /**
+     * Opens a board somebody shared as a code.
+     *
+     * The board is validated rather than trusted: it has to have exactly one solution, and one a
+     * player could actually reach by reasoning (project.md section 5). A board from outside has not
+     * been through the generator that guarantees this, and handing someone an unsolvable grid would
+     * waste an evening before they suspected the puzzle rather than themselves.
+     *
+     * Difficulty is graded here for the same reason — the code does not carry it, so the label
+     * cannot disagree with the board.
+     */
+    suspend fun importSharedBoard(code: String): BoardImportResult {
+        val decoded = when (val result = BoardCode.decode(code)) {
+            is BoardCode.Result.Decoded -> result
+            BoardCode.Result.NotABoardCode -> return BoardImportResult.NotABoardCode
+            BoardCode.Result.Damaged -> return BoardImportResult.Damaged
+        }
+
+        // Solving and grading are pure CPU and must not run on the main thread.
+        val puzzle = withContext(computationDispatcher) {
+            val givens = decoded.givens
+            if (!SudokuSolver.hasUniqueSolution(givens)) return@withContext null
+            val rating = DifficultyEvaluator.evaluate(givens) ?: return@withContext null
+            val solution = SudokuSolver.solve(givens) ?: return@withContext null
+
+            Puzzle(
+                id = PuzzleId.of(decoded.generatorVersion, givens, solution),
+                generatorVersion = decoded.generatorVersion,
+                difficulty = rating.difficulty,
+                gameType = GameType.SOLO,
+                givens = givens,
+                solution = solution,
+                // Not ours to know: the sender's seed does not travel, and inventing one would
+                // claim this board is reproducible from a generator run that never happened here.
+                seed = null,
+            )
+        } ?: return BoardImportResult.NotAValidPuzzle
+
+        // Already playing this exact board — the same puzzle shared twice, or shared back.
+        loadGame(puzzle.id)?.let {
+            return BoardImportResult.Ready(
+                puzzleId = puzzle.id,
+                difficulty = it.state.puzzle.difficulty,
+                alreadyStarted = true,
+            )
+        }
+
+        puzzleDao.insert(puzzle.toEntity())
+        openGame(puzzle)
+
+        return BoardImportResult.Ready(
+            puzzleId = puzzle.id,
+            difficulty = puzzle.difficulty,
+            alreadyStarted = false,
+        )
     }
 
     /**
@@ -283,6 +349,7 @@ private fun SavedGameSummaryRow.toSummary(): SavedGameSummary? = try {
         board = SudokuBoard.parse(board),
         givens = SudokuBoard.parse(givens),
         solution = SudokuBoard.parse(solution),
+        generatorVersion = generatorVersion,
     )
 } catch (_: IllegalArgumentException) {
     null

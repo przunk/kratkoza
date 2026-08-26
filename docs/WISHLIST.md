@@ -122,6 +122,13 @@ notatek gracza.
 
 ## 6. Udostępnianie planszy innemu graczowi
 
+**Zrobione 2026-08-26.** Kod niesie układ planszy, nie ziarno; poziom trudności jest przeliczany po
+stronie odbiorcy. Uzasadnienie obu decyzji w `BoardCode`. Udostępnianie z listy zapisanych gier,
+wczytywanie z ekranu nowej gry.
+
+Zostało do zrobienia, gdy `GameScreen.kt` będzie wolny: udostępnianie **z ekranu gry**, bo tam
+gracz najpierw sięgnie. Dziś trzeba wyjść do listy zapisanych.
+
 **Zgłoszone:** 2026-08-26.
 
 Umożliwić przekazanie kodu planszy, aby inny gracz mógł rozegrać dokładnie ten sam układ. Kod może
