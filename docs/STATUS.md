@@ -48,12 +48,13 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] XP i poziomy gracza — rosnący koszt kolejnych poziomów, bez kary za błędy (§32)
 - [x] Ustawienia w DataStore (§35)
 - [x] Motyw jasny / ciemny / systemowy (§9)
+- [x] Cztery palety kolorystyczne z podglądem i tryb wysokiego kontrastu (§9, §35)
 - [x] Wybór języka w aplikacji: systemowy / EN / PL (§4)
 - [x] Reset statystyk — wszystkie liczniki do zera, gry w toku zostają grywalne
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 185 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 190 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -75,7 +76,6 @@ funkcje wyłączone z zakresu etapu:
 - Daily Sudoku (§26), publiczny ranking (§27–§29), Challenge (§30), backend
 - Osobisty score (§25) — kolumna w bazie jest, algorytm czeka na ustalenie (§39)
 - Pełne podpowiedzi (§18)
-- Palety kolorystyczne i tryb wysokiego kontrastu (§9, §35)
 - Radial / 3×3 menu cyfr przy długim przytrzymaniu (§13, nice to have)
 - Tablety i landscape (§2)
 
@@ -112,22 +112,6 @@ gdy gra nie kwalifikuje się do rankingu. Pole `rankedEligible` istnieje już w 
 więc warunek ma jedno miejsce.
 
 To samo dotyczy każdej przyszłej pomocy z §18 („Pokaż następną cyfrę").
-
-### Palety kolorystyczne i tryb wysokiego kontrastu
-
-**Zgłoszone:** 2026-08-25. `project.md` §9 i §35 wymagają wyboru palety oraz opcjonalnego trybu
-wysokiego kontrastu; §39 zostawia *zestaw* palet do ustalenia.
-
-Infrastruktura jest już gotowa i to nie przypadek: `BoardColors` siedzi celowo **poza**
-`ColorScheme` Material 3, więc przemalowanie planszy i przemalowanie reszty UI to niezależne
-decyzje. Do zrobienia: przełącznik palety w Ustawieniach, wartość w DataStore i same palety.
-
-Tryb wysokiego kontrastu to ta sama warstwa. Uwaga: notatka mówiła tu wcześniej, że podświetlanie
-takich samych cyfr trzeba będzie w tym trybie przenieść z koloru cyfry na tło — to już nieaktualne,
-bo podświetlanie wróciło na tło przy okazji poprawek czytelności. Zostaje z tego reguła ogólna:
-stopnie podświetlenia mają rozdzielać się **jasnością**, nie odcieniem, bo jasność czyta się także
-tam, gdzie odcień zawodzi.
-
 
 ### Wynik rankingowy Daily
 

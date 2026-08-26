@@ -50,7 +50,11 @@ class MainActivity : ComponentActivity() {
             val settings by container.settingsRepository.settings
                 .collectAsStateWithLifecycle(initialValue = GameSettings.DEFAULT)
 
-            KratkozaTheme(themeMode = settings.themeMode) {
+            KratkozaTheme(
+                themeMode = settings.themeMode,
+                palette = settings.palette,
+                highContrast = settings.highContrast,
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
