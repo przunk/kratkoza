@@ -40,10 +40,10 @@ class UndoTest {
 
     @Test
     fun `undo takes back erasing a digit`() {
-        val entered = GameEngine.enterDigit(GameFixtures.newGame(), cell, correct, autoRemoveCandidates = false)
+        val entered = GameEngine.enterDigit(GameFixtures.newGame(), cell, wrong, autoRemoveCandidates = false)
         val erased = GameEngine.clearCell(entered, cell)
 
-        assertEquals(correct, GameEngine.undo(erased).board[cell])
+        assertEquals(wrong, GameEngine.undo(erased).board[cell])
     }
 
     @Test

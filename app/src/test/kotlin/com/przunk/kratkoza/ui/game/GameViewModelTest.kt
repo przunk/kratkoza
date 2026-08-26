@@ -246,9 +246,10 @@ class GameViewModelTest {
         val game = startGame()
         val viewModel = viewModelFor(game)
         val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+        val wrong = (1..9).first { it != game.state.puzzle.solution[cell] }
 
         viewModel.selectCell(cell)
-        viewModel.enterDigit(game.state.puzzle.solution[cell])
+        viewModel.enterDigit(wrong)
         viewModel.erase()
 
         assertTrue(viewModel.uiState.value.board.isEmpty(cell))
@@ -396,8 +397,9 @@ class GameViewModelTest {
         assertNull(viewModel.uiState.value.lastMove)
 
         val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+        val wrong = (1..9).first { it != game.state.puzzle.solution[cell] }
         viewModel.selectCell(cell)
-        viewModel.enterDigit(game.state.puzzle.solution[cell])
+        viewModel.enterDigit(wrong)
         val first = requireNotNull(viewModel.uiState.value.lastMove)
         assertEquals(cell, first.cell)
 

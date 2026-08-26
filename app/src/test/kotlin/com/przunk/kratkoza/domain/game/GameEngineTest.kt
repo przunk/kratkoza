@@ -34,6 +34,59 @@ class GameEngineTest {
     }
 
     @Test
+    fun `a correct player digit cannot be replaced`() {
+        val entered = GameEngine.enterDigit(
+            GameFixtures.newGame(),
+            cell,
+            correct,
+            autoRemoveCandidates = true,
+        )
+
+        val replacement = GameEngine.enterDigit(entered, cell, wrong, autoRemoveCandidates = true)
+
+        assertSame(entered, replacement)
+    }
+
+    @Test
+    fun `a correct player digit cannot be erased`() {
+        val entered = GameEngine.enterDigit(
+            GameFixtures.newGame(),
+            cell,
+            correct,
+            autoRemoveCandidates = true,
+        )
+
+        assertSame(entered, GameEngine.clearCell(entered, cell))
+    }
+
+    @Test
+    fun `correcting a wrong digit locks it without changing the recorded mistake`() {
+        var state = GameEngine.enterDigit(
+            GameFixtures.newGame(),
+            cell,
+            wrong,
+            autoRemoveCandidates = false,
+        )
+        state = GameEngine.enterDigit(state, cell, correct, autoRemoveCandidates = false)
+
+        val replacement = GameEngine.enterDigit(state, cell, wrong, autoRemoveCandidates = false)
+
+        assertSame(state, replacement)
+        assertEquals(1, replacement.mistakeCount)
+    }
+
+    @Test
+    fun `a restored correct player digit is locked without persisted lock state`() {
+        val fresh = GameFixtures.newGame()
+        val restored = fresh.copy(
+            board = fresh.board.withValue(cell, correct),
+        )
+
+        assertSame(restored, GameEngine.enterDigit(restored, cell, wrong, autoRemoveCandidates = false))
+        assertSame(restored, GameEngine.clearCell(restored, cell))
+    }
+
+    @Test
     fun `entering a wrong digit counts one mistake and marks the cell`() {
         val state = GameEngine.enterDigit(GameFixtures.newGame(), cell, wrong, autoRemoveCandidates = false)
 

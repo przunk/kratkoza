@@ -22,6 +22,8 @@ object GameEngine {
      * it where it is.
      *
      * project.md section 11: the cell's own pencil marks go when a digit lands in it.
+     * A player-entered correct digit is locked by the accepted decision in codex.md. Keeping that
+     * rule here prevents another input path from replacing it and creating a new mistake.
      *
      * [autoRemoveCandidates] then applies project.md section 15 — striking the digit from the marks
      * of every cell in the same row, column and block. It is done only for a *correct* digit, which
@@ -37,6 +39,7 @@ object GameEngine {
     ): GameState {
         require(Sudoku.isDigit(digit)) { "Not a sudoku digit: $digit" }
         if (state.isGiven(index)) return state
+        if (state.hasCorrectDigit(index)) return state
         if (state.board[index] == digit) return state
 
         val isCorrect = digit == state.puzzle.solution[index]
@@ -86,10 +89,12 @@ object GameEngine {
      * Empties [index] — the Erase button of project.md section 11.
      *
      * Clears the digit and the pencil marks together. A cell never shows both at once, so "empty
-     * this cell" has one unambiguous meaning.
+     * this cell" has one unambiguous meaning. Correct digits are excluded because erasing one would
+     * make the replacement lock trivial to bypass.
      */
     fun clearCell(state: GameState, index: Int): GameState {
         if (state.isGiven(index)) return state
+        if (state.hasCorrectDigit(index)) return state
         if (state.board.isEmpty(index) && state.candidates.isEmpty(index)) return state
 
         val candidates = state.candidates.cleared(index)
@@ -138,4 +143,8 @@ object GameEngine {
         if (changed.isEmpty()) return emptyMap()
         return changed.associateWith { before[it] }
     }
+
+    /** Derived rather than persisted so the lock also applies immediately after restoring a save. */
+    private fun GameState.hasCorrectDigit(index: Int): Boolean =
+        board[index] == puzzle.solution[index]
 }
