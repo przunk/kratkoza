@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -23,7 +24,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.przunk.kratkoza.R
@@ -37,9 +37,8 @@ import com.przunk.kratkoza.domain.sudoku.Sudoku
  * a 48x48 square and there is no dead space between them to miss into. A 3x3 pad would clear the
  * guideline literally, at the cost of a third of the board's height in portrait.
  *
- * A key whose digit is finished — all nine correctly placed — uses unavailable colours, crosses
- * the digit out and refuses the press. Pressing it could only ever be a mistake, so offering it is
- * offering a trap.
+ * A key whose digit is finished — all nine correctly placed — is strongly dimmed and refuses the
+ * press. Pressing it could only ever be a mistake, so offering it is offering a trap.
  *
  * [showRemainingCounts] governs the small count under each key, which project.md section 19 makes
  * an option. It does not govern the refusal: whether a move is possible is not a matter of taste,
@@ -90,14 +89,9 @@ private fun DigitKey(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(KEY_CORNER_DP.dp))
-            .background(
-                when {
-                    exhausted -> colors.surfaceVariant
-                    candidateMode -> colors.secondaryContainer
-                    else -> colors.surfaceContainerHigh
-                },
-            )
+            .background(if (candidateMode) colors.secondaryContainer else colors.surfaceContainerHigh)
             .clickable(enabled = enabled && !exhausted) { onClick(digit) }
+            .alpha(if (exhausted) EXHAUSTED_ALPHA else 1f)
             .clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button
@@ -110,13 +104,7 @@ private fun DigitKey(
                 text = digit.toString(),
                 fontSize = KEY_DIGIT_SP.sp,
                 fontWeight = FontWeight.Medium,
-                color = when {
-                    exhausted -> colors.onSurfaceVariant
-                    candidateMode -> colors.onSecondaryContainer
-                    else -> colors.onSurface
-                },
-                // Colour alone must not carry state: the stroke stays visible in every palette.
-                textDecoration = if (exhausted) TextDecoration.LineThrough else TextDecoration.None,
+                color = if (candidateMode) colors.onSecondaryContainer else colors.onSurface,
             )
             if (showRemaining) {
                 Text(
@@ -135,3 +123,4 @@ private const val KEY_GAP_DP = 4
 private const val KEY_CORNER_DP = 10
 private const val KEY_DIGIT_SP = 24
 private const val KEY_REMAINING_SP = 10
+private const val EXHAUSTED_ALPHA = 0.20f
