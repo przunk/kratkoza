@@ -138,6 +138,15 @@ data class GameHistoryEntity(
     /** project.md section 27; nothing is publicly ranked yet. */
     val publiclyRanked: Boolean,
     /**
+     * Whether the game still counted for a ranking when it ended (project.md section 28).
+     *
+     * A different question from [publiclyRanked], and conflating the two was a bug: eligibility is
+     * about how the game was played, submission about whether a leaderboard ever saw it. Nothing
+     * submits yet, so [publiclyRanked] is always false — reading it as "did this count" reported
+     * every finished Daily as out of the ranking.
+     */
+    val rankedEligible: Boolean,
+    /**
      * Assist settings that change how a result should be read (project.md section 23). Only the
      * settings that exist today are recorded.
      */

@@ -45,11 +45,18 @@ class DailyViewModel(
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
     }
 
+    /**
+     * Opens one of the day's boards.
+     *
+     * A board already solved cannot be opened again — the day's result is recorded and replaying it
+     * would only be an attempt to improve a time that has already been taken. The list refreshes
+     * instead, so the card catches up if it was showing something stale.
+     */
     fun open(difficulty: Difficulty) {
         val date = _uiState.value.date ?: return
         viewModelScope.launch {
             val game = gameRepository.startDaily(date, difficulty)
-            _openGame.send(game.state.puzzle.id)
+            if (game == null) load(date) else _openGame.send(game.state.puzzle.id)
         }
     }
 

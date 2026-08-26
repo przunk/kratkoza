@@ -457,7 +457,7 @@ class GameRepositoryTest {
     @Test
     fun `starting a daily marks it in progress and eligible for the ranking`() = runTest {
         repository.dailySet(DAY)
-        val game = repository.startDaily(DAY, Difficulty.HARD)
+        val game = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
 
         assertTrue("project.md section 28: a Daily starts eligible", game.rankedEligible)
         assertEquals(GameType.DAILY, game.state.puzzle.gameType)
@@ -469,7 +469,7 @@ class GameRepositoryTest {
     @Test
     fun `opening a daily already under way returns that game rather than restarting it`() = runTest {
         repository.dailySet(DAY)
-        val started = repository.startDaily(DAY, Difficulty.EASY)
+        val started = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
         val cell = (0 until Sudoku.CELL_COUNT).first { started.state.board.isEmpty(it) }
         val played = GameEngine.enterDigit(
             started.state,
@@ -479,7 +479,7 @@ class GameRepositoryTest {
         )
         repository.save(started.copy(state = played, elapsedMillis = 30_000))
 
-        val again = repository.startDaily(DAY, Difficulty.EASY)
+        val again = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
 
         assertEquals(played.board, again.state.board)
         assertEquals(30_000L, again.elapsedMillis)
@@ -489,7 +489,7 @@ class GameRepositoryTest {
     @Test
     fun `a finished daily is reported as completed with its time and mistakes`() = runTest {
         repository.dailySet(DAY)
-        val game = repository.startDaily(DAY, Difficulty.MASTER)
+        val game = requireNotNull(repository.startDaily(DAY, Difficulty.MASTER))
         repository.finishGame(game.copy(elapsedMillis = 240_000), completed = true)
 
         val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
@@ -509,11 +509,64 @@ class GameRepositoryTest {
     fun `a daily counts towards statistics and XP like any other game`() = runTest {
         // project.md section 28: a Daily that lost its ranking still feeds the personal record.
         repository.dailySet(DAY)
-        val game = repository.startDaily(DAY, Difficulty.EASY)
+        val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
         repository.finishGame(game.copy(elapsedMillis = 60_000), completed = true)
 
         val statistics = repository.statistics.first()
         assertEquals(1, statistics.completedCount)
         assertTrue(statistics.progress.totalXp > 0)
+    }
+
+    @Test
+    fun `a solved daily cannot be played again`() = runTest {
+        // Otherwise anybody could grind the same board until the time looked good, and the day's
+        // result would mean nothing.
+        repository.dailySet(DAY)
+        val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        repository.finishGame(game.copy(elapsedMillis = 90_000), completed = true)
+
+        assertNull("a finished Daily is finished", repository.startDaily(DAY, Difficulty.EASY))
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        assertEquals(90_000L, entry.elapsedMillis)
+    }
+
+    @Test
+    fun `deleting the save does not hand back a fresh ranked attempt`() = runTest {
+        // The hole this closes: abandon, restart, and the board is new again. project.md section 28
+        // counts an interrupted game as having lost its place, and deleting the save is as thorough
+        // an interruption as there is.
+        repository.dailySet(DAY)
+        val first = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        assertTrue(first.rankedEligible)
+
+        repository.deleteSave(first.state.puzzle.id)
+        val second = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+
+        assertFalse("a second attempt is practice, not a ranked run", second.rankedEligible)
+        assertEquals("the same board, not a new one", first.state.puzzle.id, second.state.puzzle.id)
+    }
+
+    @Test
+    fun `a daily finished without interruption is recorded as having counted`() = runTest {
+        // The bug this replaces reported every finished Daily as out of the ranking, because it
+        // read publiclyRanked — which asks whether a leaderboard saw the result, not whether the
+        // game counted.
+        repository.dailySet(DAY)
+        val game = requireNotNull(repository.startDaily(DAY, Difficulty.MASTER))
+        repository.finishGame(game.copy(elapsedMillis = 120_000), completed = true)
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        assertEquals(DailyStatus.COMPLETED, entry.status)
+        assertTrue("it was played straight through, so it counted", entry.rankedEligible)
+    }
+
+    @Test
+    fun `a daily finished after losing eligibility is recorded as not having counted`() = runTest {
+        repository.dailySet(DAY)
+        val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        repository.finishGame(game.copy(rankedEligible = false, elapsedMillis = 60_000), completed = true)
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        assertFalse(entry.rankedEligible)
     }
 }

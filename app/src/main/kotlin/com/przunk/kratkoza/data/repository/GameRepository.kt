@@ -119,25 +119,42 @@ class GameRepository(
                 },
                 elapsedMillis = finished?.elapsedMillis ?: save?.elapsedMillis,
                 mistakeCount = finished?.mistakeCount ?: save?.mistakeCount,
-                // An untouched board is still eligible; the rule only takes eligibility away.
-                rankedEligible = save?.rankedEligible ?: (finished?.publiclyRanked ?: true),
+                // A finished game reports what it was when it ended; a game in progress reports
+                // what it is now; an untouched board is still eligible, because the rule only ever
+                // takes eligibility away.
+                rankedEligible = when {
+                    finished != null -> finished.rankedEligible
+                    save != null -> save.rankedEligible
+                    else -> true
+                },
             )
         }
     }
 
-    /** Opens one of the day's boards, or returns the game already under way on it. */
-    suspend fun startDaily(date: LocalDate, difficulty: Difficulty): SavedGame {
+    /**
+     * Opens one of the day's boards, or `null` when that board is already done.
+     *
+     * A Daily is solved once. Letting a finished board be played again would let anybody grind the
+     * same puzzle until the time looked good, which empties the ranking of meaning — and there is
+     * no half-measure available, because the result is already recorded.
+     *
+     * A board abandoned part-way *can* be picked up again, but not as a ranked attempt: project.md
+     * section 28 counts an interrupted game as having lost its place, and deleting the save is as
+     * thorough an interruption as there is. Anything after the first attempt is practice.
+     */
+    suspend fun startDaily(date: LocalDate, difficulty: Difficulty): SavedGame? {
         val row = ensureDailyPuzzles(date).firstOrNull { it.difficulty == difficulty.name }
             ?: error("No daily board for $date at $difficulty")
+
+        val attempts = historyDao.attemptsOn(listOf(row.puzzleId))
+        if (attempts.any { it.completed }) return null
 
         loadGame(row.puzzleId)?.let { return it }
 
         val puzzle = puzzleDao.byId(row.puzzleId)?.toPuzzle()
             ?: error("The daily board for $date at $difficulty is missing from storage")
 
-        // project.md section 28: a Daily starts eligible for the public ranking and can only lose
-        // that, never regain it.
-        return openGame(puzzle, rankedEligible = true)
+        return openGame(puzzle, rankedEligible = attempts.isEmpty())
     }
 
     /**
@@ -306,6 +323,7 @@ class GameRepository(
                     mistakeCount = game.state.mistakeCount,
                     completed = completed,
                     xpEarned = xp,
+                    rankedEligible = game.rankedEligible,
                 ),
             )
         } else {
@@ -316,6 +334,7 @@ class GameRepository(
                 mistakeCount = game.state.mistakeCount,
                 completed = completed,
                 xpEarned = xp,
+                rankedEligible = game.rankedEligible,
             )
         }
         savedGameDao.delete(game.state.puzzle.id)
@@ -394,6 +413,7 @@ private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
     score = null,
     xpEarned = 0,
     publiclyRanked = false,
+    rankedEligible = false,
     autoRemoveCandidates = true,
     rulesetVersion = SudokuGenerator.GENERATOR_VERSION,
 )

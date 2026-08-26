@@ -155,15 +155,13 @@ private fun DailyCard(entry: DailyEntry, onOpen: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                // A solved board can be opened again to look at it, but it says "solved" rather
-                // than inviting a replay that would count for nothing.
-                if (solved) {
-                    OutlinedButton(onClick = onOpen) { Text(stringResource(R.string.daily_replay)) }
-                } else {
+            // A solved board offers no button at all. One attempt is the point of a Daily, and
+            // a control that refuses when pressed is worse than one that is not there.
+            if (!solved) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End,
+                ) {
                     Button(onClick = onOpen) {
                         Text(
                             stringResource(

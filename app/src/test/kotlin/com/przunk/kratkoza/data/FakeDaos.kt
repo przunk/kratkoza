@@ -141,6 +141,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
         mistakeCount: Int,
         completed: Boolean,
         xpEarned: Int,
+        rankedEligible: Boolean,
     ) {
         entries.value = entries.value.map { entry ->
             if (entry.id != id) {
@@ -152,6 +153,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
                     mistakeCount = mistakeCount,
                     completed = completed,
                     xpEarned = xpEarned,
+                    rankedEligible = rankedEligible,
                 )
             }
         }

@@ -24,8 +24,9 @@ import org.junit.runner.RunWith
  * Compiling proves nothing — Room only compares the migrated schema against what it expects when it
  * opens the database, and only then does a wrong `CREATE TABLE` surface.
  *
- * So this builds a genuine version 1 database from the exported schema, puts a game in it, migrates,
- * and checks both that Room accepts the result and that the game is still there.
+ * So this builds a genuine version 1 database from the exported schema, puts a game and a finished
+ * result in it, runs every migration in turn, and checks both that Room accepts the outcome and that
+ * what was there is still there.
  */
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
@@ -73,7 +74,7 @@ class MigrationTest {
     }
 
     @Test
-    fun `a version one database migrates and keeps the game that was in it`() = runTest {
+    fun `a version one database migrates through every step and keeps what was in it`() = runTest {
         createVersionOneDatabase().use { db ->
             db.execSQL(
                 "INSERT INTO puzzles VALUES ('p1', 1, ?, 'SOLO', ?, ?, NULL)",
@@ -82,6 +83,14 @@ class MigrationTest {
             db.execSQL(
                 "INSERT INTO saved_games VALUES ('p1', 7, 0, 0, 1234, ?, ?, '', 2, 0)",
                 arrayOf(".".repeat(81), "000".repeat(81)),
+            )
+            db.execSQL(
+                "INSERT INTO game_history " +
+                    "(puzzleId, gameType, difficulty, startedAt, finishedAt, elapsedMillis, " +
+                    "mistakeCount, completed, score, xpEarned, publiclyRanked, " +
+                    "autoRemoveCandidates, rulesetVersion) " +
+                    "VALUES ('p1', 'SOLO', ?, 0, 500, 500, 1, 1, NULL, 20, 0, 1, 1)",
+                arrayOf(Difficulty.HARD.name),
             )
             db.version = 1
         }
@@ -99,7 +108,14 @@ class MigrationTest {
             assertEquals(2, save.mistakeCount)
             assertNotNull(database.puzzleDao().byId("p1"))
 
-            // And the new table has to be usable, not merely present.
+            // The history row has to survive both steps, with the column added in version 3
+            // defaulting to "did not count" — true of every solo game.
+            val attempts = database.gameHistoryDao().attemptsOn(listOf("p1"))
+            assertEquals(1, attempts.size)
+            assertEquals(500L, attempts.single().elapsedMillis)
+            assertEquals(false, attempts.single().rankedEligible)
+
+            // And the table added in version 2 has to be usable, not merely present.
             database.dailyPuzzleDao().insert(
                 listOf(DailyPuzzleEntity("2026-08-26", Difficulty.EASY.name, "p1", 1)),
             )

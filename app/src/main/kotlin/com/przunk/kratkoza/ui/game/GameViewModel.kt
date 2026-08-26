@@ -346,7 +346,11 @@ class GameViewModel(
             },
             showRemainingCounts = settings.showRemainingCounts,
             rankedEligible = game?.rankedEligible == true,
-            eightOfNineHints = if (settings.showEightOfNineHint) {
+            // project.md section 17: the hint is unavailable in a publicly ranked Daily. Checked
+            // against eligibility rather than against the game type, so a Daily that has dropped
+            // out of the ranking gets its help back — at that point it is an ordinary game, and
+            // there is nothing left to protect.
+            eightOfNineHints = if (settings.showEightOfNineHint && game?.rankedEligible != true) {
                 BoardInsights.eightOfNineHints(state.board, state.puzzle.solution)
             } else {
                 emptyMap()

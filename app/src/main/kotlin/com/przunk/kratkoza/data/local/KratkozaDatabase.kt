@@ -23,7 +23,7 @@ import androidx.sqlite.execSQL
         GameHistoryEntity::class,
         DailyPuzzleEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class KratkozaDatabase : RoomDatabase() {
@@ -66,7 +66,24 @@ abstract class KratkozaDatabase : RoomDatabase() {
         }
 
         /** Exposed so the migration test can run exactly what ships. */
-        fun migrations(): Array<Migration> = arrayOf(MIGRATION_1_2)
+        /**
+         * Records whether a finished game still counted for a ranking.
+         *
+         * `publiclyRanked` was doing double duty and doing it wrongly: it says whether a leaderboard
+         * ever saw the result, which is always false while no leaderboard exists, so every finished
+         * Daily reported itself as out of the ranking. Existing rows default to 0, which is true of
+         * every solo game and honest about the Dailies played before the column existed.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "ALTER TABLE `game_history` ADD COLUMN `rankedEligible` " +
+                        "INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        fun migrations(): Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         fun create(context: Context): KratkozaDatabase =
             Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, NAME)

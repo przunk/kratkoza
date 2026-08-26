@@ -492,7 +492,7 @@ class GameViewModelTest {
         // project.md section 28.
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
-        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
         val viewModel = viewModelFor(daily)
 
         assertTrue(viewModel.uiState.value.rankedEligible)
@@ -510,7 +510,7 @@ class GameViewModelTest {
         // time the section is protecting against. See docs/OPEN_QUESTIONS.md.
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
-        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.HARD)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.HARD))
         val viewModel = viewModelFor(daily)
 
         now = daily.startedAt + 10_000
@@ -530,7 +530,7 @@ class GameViewModelTest {
         // down while backgrounded cannot hand back free minutes on reopening.
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
-        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
 
         now = daily.startedAt + 3_600_000
         val reopened = viewModelFor(requireNotNull(repository.loadGame(daily.state.puzzle.id)))
@@ -555,7 +555,7 @@ class GameViewModelTest {
         // game racing the clock is what section 28 penalises, not a button to offer.
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
-        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
 
         assertFalse(viewModelFor(daily).uiState.value.canShareAndSave)
         assertTrue(viewModelFor(startGame()).uiState.value.canShareAndSave)
@@ -565,10 +565,56 @@ class GameViewModelTest {
     fun `the screen can tell a daily from a solo game`() = gameTest {
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
-        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER))
 
         assertEquals(GameType.DAILY, viewModelFor(daily).uiState.value.gameType)
         assertEquals(GameType.SOLO, viewModelFor(startGame()).uiState.value.gameType)
+    }
+
+    @Test
+    fun `the eight-of-nine hint is withheld from a ranked daily`() = gameTest {
+        // project.md section 17. The hint fills in the last gap of a unit, which in a race is
+        // simply being told the answer.
+        settings.value = GameSettings.DEFAULT.copy(showEightOfNineHint = true)
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        val viewModel = viewModelFor(daily)
+
+        // Fill a row bar one cell — enough for the hint to have something to say.
+        val row = Sudoku.rows[0]
+        val gap = row.last { daily.state.board.isEmpty(it) }
+        for (cell in row) {
+            if (cell == gap || !daily.state.board.isEmpty(cell)) continue
+            viewModel.selectCell(cell)
+            viewModel.enterDigit(daily.state.puzzle.solution[cell])
+        }
+
+        assertTrue("no hints while it counts", viewModel.uiState.value.eightOfNineHints.isEmpty())
+    }
+
+    @Test
+    fun `the hint comes back once the daily is out of the ranking`() = gameTest {
+        // At that point it is an ordinary game and there is nothing left to protect.
+        settings.value = GameSettings.DEFAULT.copy(showEightOfNineHint = true)
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        repository.save(daily.copy(rankedEligible = false))
+
+        val viewModel = viewModelFor(daily)
+        val row = Sudoku.rows[0]
+        val gap = row.last { daily.state.board.isEmpty(it) }
+        for (cell in row) {
+            if (cell == gap || !daily.state.board.isEmpty(cell)) continue
+            viewModel.selectCell(cell)
+            viewModel.enterDigit(daily.state.puzzle.solution[cell])
+        }
+
+        assertEquals(
+            daily.state.puzzle.solution[gap],
+            viewModel.uiState.value.eightOfNineHints[gap],
+        )
     }
 }
 

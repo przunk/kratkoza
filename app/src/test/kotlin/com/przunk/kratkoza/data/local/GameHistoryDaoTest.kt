@@ -119,6 +119,7 @@ class GameHistoryDaoTest {
             mistakeCount = 3,
             completed = true,
             xpEarned = 20,
+            rankedEligible = false,
         )
 
         assertEquals(1, history.observeCompletedCount().first())

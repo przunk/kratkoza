@@ -101,7 +101,8 @@ abstract class GameHistoryDao {
             elapsedMillis = :elapsedMillis,
             mistakeCount = :mistakeCount,
             completed = :completed,
-            xpEarned = :xpEarned
+            xpEarned = :xpEarned,
+            rankedEligible = :rankedEligible
         WHERE id = :id
         """,
     )
@@ -112,6 +113,7 @@ abstract class GameHistoryDao {
         mistakeCount: Int,
         completed: Boolean,
         xpEarned: Int,
+        rankedEligible: Boolean,
     )
 
     @Query("DELETE FROM game_history")

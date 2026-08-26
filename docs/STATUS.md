@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 271 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 278 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -94,6 +94,18 @@ Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
 
 Po stronie właściciela projektu, poza kodem: klucz upload (nie ma żadnego), konto Play,
 polityka prywatności, formularz Data safety, opis i grafiki w konsoli.
+
+### Tabela wyników w Daily
+
+**Zgłoszone:** 2026-08-26. Na dole ekranu Daily — własne wyniki obok regionalnych, z zaznaczeniem
+najlepszego czasu z uwzględnieniem błędów.
+
+Część da się zrobić już teraz, bez sieci: **własna historia Daily** jest w bazie i wystarczy ją
+pokazać. Porównanie z innymi graczami należy do etapu 2 i czeka na tablice Play Games.
+
+Do ustalenia: jak wyliczyć „najlepszy" przy różnej liczbie błędów. `project.md` §29 podaje karę
+mnożnikową `wynik × 0.7^błędy`, ale wzoru na wynik bazowy zależny od czasu jeszcze nie ma — bez
+niego „najlepszy czas uwzględniający błędy" nie ma definicji.
 
 ### Podpowiedź 8/9 niedostępna w grach rankingowych
 
@@ -145,7 +157,6 @@ Do zrobienia poza tym:
 
 - podpięcie logowania Play Games, opcjonalne — udział w rankingu musi być świadomym wyborem
   (`project.md` §27),
-- **blokada podpowiedzi 8/9 w grach rankingowych** (§17) — patrz osobna pozycja niżej,
 - wybór regionu z listy; decyzje funkcjonalne są już podjęte, patrz „Wybór regionu do rankingu".
 
 ### Wynik rankingowy Daily
