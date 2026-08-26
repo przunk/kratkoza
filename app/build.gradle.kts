@@ -73,8 +73,8 @@ android {
         // Bumped once per merge into `develop`, by whoever performs the merge — never on a task
         // branch, or two branches would claim the same number for different code. Branch builds are
         // told apart by `versionSuffix` above instead.
-        versionCode = 15
-        versionName = "0.9.0$versionSuffix"
+        versionCode = 16
+        versionName = "0.9.1$versionSuffix"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -304,6 +304,7 @@ class GameViewModel(
                 }
             },
             difficulty = state.puzzle.difficulty,
+            gameType = state.puzzle.gameType,
             mistakeCount = state.mistakeCount,
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,

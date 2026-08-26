@@ -3,6 +3,7 @@ package com.przunk.kratkoza.ui.game
 import androidx.compose.runtime.Immutable
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
 
 /**
@@ -27,6 +28,7 @@ data class GameUiState(
     /** Cells holding the same digit as the selected one (project.md section 10). */
     val sameDigitCells: Set<Int> = emptySet(),
     val difficulty: Difficulty = Difficulty.EASY,
+    val gameType: GameType = GameType.SOLO,
     val mistakeCount: Int = 0,
     val elapsedMillis: Long = 0,
     val isPaused: Boolean = false,
@@ -105,4 +107,13 @@ data class GameUiState(
 
     /** project.md section 28: no pause button while the game still counts. */
     val canPause: Boolean get() = !rankedEligible
+
+    /**
+     * Whether the board may be handed around or put aside.
+     *
+     * Neither applies to a Daily: everybody already has the same board, so sharing its code says
+     * nothing, and stepping out of a game that is racing the clock is what section 28 penalises
+     * rather than something to offer as a button.
+     */
+    val canShareAndSave: Boolean get() = gameType != GameType.DAILY
 }

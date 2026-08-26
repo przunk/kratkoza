@@ -7,6 +7,7 @@ import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
@@ -530,6 +531,28 @@ class GameViewModelTest {
         assertTrue(viewModel.uiState.value.canPause)
         viewModel.setPaused(true)
         assertTrue(viewModel.uiState.value.isPaused)
+    }
+
+    @Test
+    fun `a daily offers neither sharing nor saving`() = gameTest {
+        // Everybody already has the same board, so its code says nothing; and stepping out of a
+        // game racing the clock is what section 28 penalises, not a button to offer.
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY)
+
+        assertFalse(viewModelFor(daily).uiState.value.canShareAndSave)
+        assertTrue(viewModelFor(startGame()).uiState.value.canShareAndSave)
+    }
+
+    @Test
+    fun `the screen can tell a daily from a solo game`() = gameTest {
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        val daily = repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER)
+
+        assertEquals(GameType.DAILY, viewModelFor(daily).uiState.value.gameType)
+        assertEquals(GameType.SOLO, viewModelFor(startGame()).uiState.value.gameType)
     }
 }
 

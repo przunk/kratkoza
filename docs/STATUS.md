@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 268 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 270 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -187,22 +187,6 @@ problem „zmieniam region po zobaczeniu wyników" bez żadnej dodatkowej reguł
 Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudności oraz informację,
 w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
 poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
-
-### Pasek funkcyjny na ekranie gry
-
-**Zgłoszone:** 2026-08-26. Do zrobienia, gdy `GameScreen.kt` zwolni Codex.
-
-Zamiast akcji upchniętych w pasku górnym — osobny wiersz funkcyjny z ikonami: **udostępnij**
-(`ic_share`) i **zapisz** (`ic_saved_games`, dyskietka). Cała zawartość ekranu przesuwa się przy tym
-w dół o wysokość tego wiersza.
-
-Do rozważenia przy okazji:
-
-- pasek górny zostaje wtedy z samą strzałką wstecz i poziomem trudności, co uwalnia miejsce, którego
-  brakowało już przy „Zapisz" obok tytułu,
-- ikony bez podpisu wymagają `contentDescription` — dziś oba działania mają je jako tekst,
-- plansza jest najważniejszym elementem ekranu (`project.md` §37), więc nowy wiersz nie może zjeść
-  jej wysokości; jeśli zabraknie miejsca, ustąpić ma pasek funkcyjny, nie plansza.
 
 ## Wymaga decyzji
 
