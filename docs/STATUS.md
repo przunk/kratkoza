@@ -122,10 +122,11 @@ Infrastruktura jest już gotowa i to nie przypadek: `BoardColors` siedzi celowo 
 `ColorScheme` Material 3, więc przemalowanie planszy i przemalowanie reszty UI to niezależne
 decyzje. Do zrobienia: przełącznik palety w Ustawieniach, wartość w DataStore i same palety.
 
-Tryb wysokiego kontrastu to ta sama warstwa i naturalne miejsce na jedną konkretną decyzję:
-podświetlanie takich samych cyfr działa dziś przez **kolor cyfry**, a barwy niebieskiej i morskiej
-część osób nie odróżni. W trybie wysokiego kontrastu powinno wracać na **tło**, które czyta się
-jasnością.
+Tryb wysokiego kontrastu to ta sama warstwa. Uwaga: notatka mówiła tu wcześniej, że podświetlanie
+takich samych cyfr trzeba będzie w tym trybie przenieść z koloru cyfry na tło — to już nieaktualne,
+bo podświetlanie wróciło na tło przy okazji poprawek czytelności. Zostaje z tego reguła ogólna:
+stopnie podświetlenia mają rozdzielać się **jasnością**, nie odcieniem, bo jasność czyta się także
+tam, gdzie odcień zawodzi.
 
 
 ### Wynik rankingowy Daily
@@ -144,9 +145,33 @@ To druga połowa decyzji podjętej przy XP. Warto trzymać obie obok siebie, bo 
 
 Kolumna `score` w `game_history` czeka pusta.
 
+### Mocniejsze wyszarzenie niedostępnych cyfr
+
+**Zgłoszone:** 2026-08-26.
+
+Cyfry niedostępne w panelu 1–9 powinny być wyraźniej wyszarzone, żeby ich stan był czytelny bez
+próby dotknięcia. Zmiana musi zachować wymagany kontrast oraz dodatkowy, niekolorystyczny sygnał
+niedostępności.
+
+### Układ napisu trybu kandydatów
+
+**Zgłoszone:** 2026-08-26.
+
+Napis „Kandydaci włączeni/wyłączeni” rozjeżdża się w polskiej wersji, szczególnie na telefonach
+z większą systemową czcionką. Przycisk wymaga układu odpornego na dłuższe tłumaczenia i skalowanie
+fontu, bez zmniejszania touch targetu ani wypychania sąsiednich akcji.
+
+### Statystyki nieukończonych gier
+
+**Zgłoszone:** 2026-08-26.
+
+Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudności oraz informację,
+w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
+poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
+
 ## Wymaga decyzji
 
-Sześć rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
+Siedem rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
 [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md); poniżej sam stan.
 
 Ustalone 2026-08-25 — kod jest zgodny, wracamy tylko jeśli coś się zmieni:
@@ -160,3 +185,4 @@ Czeka na granie na urządzeniu:
 - **podział 5 poziomów trudności** — czy MASTER jest realnie wystarczająco trudny (§7)
 - **zakres przycisku „Wymaż"** — na razie kasuje cyfrę i kandydatów naraz
 - **domyślne ON** dla podświetlania takich samych cyfr (§10) i licznika pozostałych cyfr (§19)
+- **blokowanie poprawnie wpisanej cyfry** — czy pole ma stać się nieedytowalne po poprawnym ruchu

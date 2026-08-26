@@ -12,6 +12,7 @@ dlaczego, oraz jakie są alternatywy.
 | 4 | Ponowne wpisanie tej samej cyfry | 🟢 **ustalone** — brak akcji |
 | 5 | Domyślne wartości dwóch opcji z §35 | 🟢 **ustalone** — zostaje ON |
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
+| 7 | Edycja poprawnie wpisanej cyfry | 🟡 **otwarte** — do przemyślenia |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
 🟡 = przyjęte tymczasowo, czeka na decyzję.
@@ -167,3 +168,22 @@ i panel cyfr zjedzie poza ekran. Nie testowano tego, bo tablety są poza zakrese
   ale używalny. Mały koszt, usuwa najgorszy przypadek.
 - **C** — pełny layout landscape (plansza obok panelu cyfr). To już praca z §2 „tablety
   i landscape później".
+
+---
+
+## 7. Czy poprawnie wpisana cyfra powinna stać się nieedytowalna
+
+**Stan: 🟡 otwarte.** Do przemyślenia przed zmianą reguł inputu i Undo.
+
+**Zgłoszone:** 2026-08-26.
+
+**Pomysł:** po wpisaniu cyfry zgodnej z rozwiązaniem zablokować możliwość zastąpienia jej inną
+cyfrą. Chroniłoby to gracza przed przypadkowym zamienieniem poprawnego ruchu na błąd.
+
+**Konsekwencje do rozważenia:**
+
+- trzeba zdecydować, czy poprawną cyfrę nadal można wymazać oraz co dokładnie robi wtedy Undo,
+- blokada upraszcza grę i ujawnia trwałym zachowaniem, że wpis był poprawny,
+- obecne zasady pozwalają edytować każde pole, które było puste w planszy początkowej
+  (`project.md` §5), więc pełna nieedytowalność może wymagać świadomej zmiany wymagania,
+- alternatywą jest tylko ostrzeżenie lub prośba o potwierdzenie przed zastąpieniem poprawnej cyfry.
