@@ -128,9 +128,25 @@ Po dodaniu napisu sprawdź parzystość kluczy między `values/` i `values-pl/`.
 - Opis po polsku, w trybie oznajmującym: „Cyfra rozdana na całej planszy nie daje się już wybrać".
 - Tłumacz **dlaczego**, nie tylko co. Jeśli poprawiasz błąd, napisz, co było jego przyczyną — a jeśli
   przyczyną była wcześniejsza decyzja, napisz to wprost.
-- Podbij `versionCode` i `versionName` w `app/build.gradle.kts`. Wersja jest widoczna w Ustawieniach,
-  po to, żeby zrzut ekranu sam mówił, z którego builda pochodzi. Raz już straciliśmy na tym cykl.
+- **Nie podbijaj `versionCode` ani `versionName` na gałęzi zadaniowej.** Robi to jedna osoba,
+  scalając do `develop`. Gdyby podbijał każdy u siebie, dwie gałęzie zgłosiłyby ten sam numer dla
+  różnego kodu.
 - Dodaj własną atrybucję współautorstwa. Nie podpisuj się cudzą.
+
+### Jak rozpoznać, z czego pochodzi APK
+
+Wersja jest widoczna w Ustawieniach, żeby zrzut ekranu sam mówił, z którego builda pochodzi — raz
+już straciliśmy na tym cykl. Skoro numeru na gałęzi nie podbijamy, rozpoznanie niesie **przyrostek
+nazwy gałęzi**, doklejany automatycznie przez `app/build.gradle.kts`:
+
+- build z `develop` albo `master`: `0.6.0 (12)`
+- build z gałęzi zadaniowej: `0.6.0+fix/game-screen-readability (12)`
+
+Nie musisz nic z tym robić — dzieje się samo. Nie usuwaj tego mechanizmu i nie obchodź go, wpisując
+numer ręcznie.
+
+Instalacja na urządzeniu działa mimo niezmienionego `versionCode`: Android blokuje wyłącznie
+instalację wersji **niższej** niż zainstalowana, a ta sama liczba to zwykła reinstalacja.
 
 ## 9. Uczciwość raportowania
 
