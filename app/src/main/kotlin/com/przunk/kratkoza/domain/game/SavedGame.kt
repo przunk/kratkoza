@@ -2,6 +2,7 @@ package com.przunk.kratkoza.domain.game
 
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
 
 /**
@@ -45,4 +46,25 @@ data class SavedGameSummary(
     val mistakeCount: Int,
     val board: SudokuBoard,
     val givens: SudokuBoard,
-)
+    val solution: SudokuBoard,
+) {
+    /**
+     * How far through the board the player is, `0f`..`1f`.
+     *
+     * Counts cells that are *correctly* filled, out of the cells that started empty. Counting every
+     * filled cell instead would let a board full of wrong digits report itself as finished, which
+     * is the opposite of what a progress figure is for; and counting the givens would start every
+     * puzzle at seventy percent.
+     */
+    val completionFraction: Float
+        get() {
+            var toFill = 0
+            var correct = 0
+            for (cell in 0 until Sudoku.CELL_COUNT) {
+                if (!givens.isEmpty(cell)) continue
+                toFill++
+                if (board[cell] == solution[cell]) correct++
+            }
+            return if (toFill == 0) 1f else correct.toFloat() / toFill
+        }
+}

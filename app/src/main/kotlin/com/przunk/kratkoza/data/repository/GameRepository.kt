@@ -1,7 +1,9 @@
 package com.przunk.kratkoza.data.repository
 
 import com.przunk.kratkoza.data.local.GameHistoryDao
+import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
 import com.przunk.kratkoza.data.local.GameHistoryEntity
+import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.MoveHistoryCodec
 import com.przunk.kratkoza.data.local.PuzzleDao
 import com.przunk.kratkoza.data.local.PuzzleEntity
@@ -192,18 +194,26 @@ class GameRepository(
         historyDao.observeTotalMistakes(),
         historyDao.observeTotalXp(),
         historyDao.observeByDifficulty(),
-    ) { started, completed, mistakes, totalXp, perDifficulty ->
+        savedGameDao.observeInProgressByDifficulty(),
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val perDifficulty = values[4] as List<DifficultyStatisticsRow>
+
+        @Suppress("UNCHECKED_CAST")
+        val inProgress = (values[5] as List<InProgressCountRow>).associateBy { it.difficulty }
+
         Statistics(
-            startedCount = started,
-            completedCount = completed,
-            totalMistakes = mistakes,
-            progress = PlayerProgress.of(totalXp),
+            startedCount = values[0] as Int,
+            completedCount = values[1] as Int,
+            totalMistakes = values[2] as Int,
+            progress = PlayerProgress.of(values[3] as Long),
             perDifficulty = Difficulty.entries.map { difficulty ->
                 val row = perDifficulty.firstOrNull { it.difficulty == difficulty.name }
                 DifficultyStatistics(
                     difficulty = difficulty,
                     startedCount = row?.startedCount ?: 0,
                     completedCount = row?.completedCount ?: 0,
+                    inProgressCount = inProgress[difficulty.name]?.inProgressCount ?: 0,
                     bestTimeMillis = row?.bestTimeMillis,
                     averageTimeMillis = row?.averageTimeMillis?.roundToLong(),
                     averageMistakes = row?.averageMistakes,
@@ -272,6 +282,7 @@ private fun SavedGameSummaryRow.toSummary(): SavedGameSummary? = try {
         mistakeCount = mistakeCount,
         board = SudokuBoard.parse(board),
         givens = SudokuBoard.parse(givens),
+        solution = SudokuBoard.parse(solution),
     )
 } catch (_: IllegalArgumentException) {
     null

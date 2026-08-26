@@ -19,8 +19,8 @@ android {
         // Bumped on every approved change, so the version shown in Settings identifies exactly
         // which build is on a phone. A screenshot from the wrong APK has already cost us a round
         // trip once; the number is what makes that impossible to repeat.
-        versionCode = 11
-        versionName = "0.5.0"
+        versionCode = 12
+        versionName = "0.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -137,6 +137,13 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    // Room's SQL is the one part of the data layer a hand-written fake cannot stand in for: a fake
+    // reimplements the query instead of running it, which is how a broken reset once passed its
+    // tests. These four let the real database run on the JVM.
+    testImplementation("androidx.room:room-testing:2.8.4")
+    testImplementation("androidx.test:core-ktx:1.7.0")
+    testImplementation("androidx.test.ext:junit-ktx:1.3.0")
+    testImplementation("org.robolectric:robolectric:4.16.1")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

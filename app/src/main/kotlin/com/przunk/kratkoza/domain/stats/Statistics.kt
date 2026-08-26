@@ -48,6 +48,8 @@ data class DifficultyStatistics(
     val difficulty: Difficulty,
     val startedCount: Int,
     val completedCount: Int,
+    /** Games still on the board at this level, waiting to be picked up again. */
+    val inProgressCount: Int,
     val bestTimeMillis: Long?,
     val averageTimeMillis: Long?,
     val averageMistakes: Double?,

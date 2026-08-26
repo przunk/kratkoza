@@ -206,6 +206,14 @@ private fun DifficultyCard(
                 stringResource(R.string.statistics_completed),
                 formatCount(statistics.completedCount),
             )
+            // Only shown where there is something to show: a row of zeros on four levels the player
+            // has no game waiting at is noise between the numbers they came here to read.
+            if (statistics.inProgressCount > 0) {
+                StatRow(
+                    stringResource(R.string.statistics_in_progress),
+                    formatCount(statistics.inProgressCount),
+                )
+            }
             StatRow(
                 stringResource(R.string.statistics_best_time),
                 statistics.bestTimeMillis?.let(formatTime) ?: noneLabel,
