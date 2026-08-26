@@ -71,3 +71,52 @@ wprost na pole.
 
 Rekomendacja: **A albo C.** Potrząśnięcie całą planszą wygląda efektownie na filmiku i męczy przy
 setnej pomyłce.
+
+---
+
+## 3. Kandydaci ograniczeni do cyfr dozwolonych w polu
+
+**Zgłoszone:** 2026-08-26.
+
+W trybie kandydatów pozwalać dodać tylko cyfrę, która nie występuje już w wierszu, kolumnie ani
+bloku 3×3 wybranego pola. Panel cyfr powinien od razu pokazywać, których kandydatów nie można
+dodać, zamiast przyjmować notatkę sprzeczną z aktualnym stanem planszy.
+
+Do decyzji pozostaje zachowanie istniejących kandydatów po późniejszym wpisaniu błędnej cyfry;
+auto-usuwanie po cyfrze poprawnej jest opisane osobno poniżej i w `project.md` §15.
+
+---
+
+## 4. Usuwanie kandydatów, które przestały być możliwe
+
+**Zgłoszone:** 2026-08-26.
+
+Po wpisaniu przez gracza poprawnej cyfry automatycznie usuwać tę cyfrę z kandydatów wszystkich pól
+w tym samym wierszu, kolumnie i bloku 3×3.
+
+To zachowanie jest już wymagane przez `project.md` §15 i deklarowane jako zaimplementowane. Wpis
+pozostaje jako punkt do świadomej weryfikacji na urządzeniu oraz ochrony testem regresyjnym.
+
+---
+
+## 5. Czyszczenie wszystkich kandydatów
+
+**Zgłoszone:** 2026-08-26.
+
+Dodać dostępną z ekranu gry akcję usuwającą wszystkich kandydatów z całej planszy. Operacja powinna
+wymagać potwierdzenia i dać się cofnąć jako jedna akcja Undo, żeby przypadkowe dotknięcie nie niszczyło
+notatek gracza.
+
+---
+
+## 6. Udostępnianie planszy innemu graczowi
+
+**Zgłoszone:** 2026-08-26.
+
+Umożliwić przekazanie kodu planszy, aby inny gracz mógł rozegrać dokładnie ten sam układ. Kod może
+opierać się na `puzzleId`/GUID, ale musi jednoznacznie wskazywać także dane potrzebne do odtworzenia
+planszy — np. wersję generatora i seed — albo zawierać zakodowany układ. Sam losowy GUID bez wspólnej
+bazy lub deterministycznego mapowania nie wystarczy do wygenerowania tej samej planszy.
+
+Do ustalenia: format kodu, udostępnianie offline lub przez backend oraz zachowanie po zmianie wersji
+generatora.
