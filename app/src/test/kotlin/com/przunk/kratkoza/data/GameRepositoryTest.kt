@@ -569,4 +569,42 @@ class GameRepositoryTest {
         val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
         assertFalse(entry.rankedEligible)
     }
+
+    @Test
+    fun `an abandoned daily stops advertising itself as ranked`() = runTest {
+        // The card and the start button used to answer this differently: with the save gone and
+        // nothing completed, the board looked untouched, so the card promised a ranked run that
+        // starting it would not have given.
+        repository.dailySet(DAY)
+        val first = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        repository.deleteSave(first.state.puzzle.id)
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
+        assertEquals(DailyStatus.NOT_STARTED, entry.status)
+        assertFalse("the card must not promise what starting would refuse", entry.rankedEligible)
+
+        val second = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        assertEquals("and the two must agree", entry.rankedEligible, second.rankedEligible)
+    }
+
+    @Test
+    fun `abandoning repeatedly never restores eligibility`() = runTest {
+        repository.dailySet(DAY)
+        repeat(3) {
+            val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+            repository.deleteSave(game.state.puzzle.id)
+        }
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        assertFalse(entry.rankedEligible)
+        assertFalse(requireNotNull(repository.startDaily(DAY, Difficulty.EASY)).rankedEligible)
+    }
+
+    @Test
+    fun `an untouched board still reports itself as ranked`() = runTest {
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+
+        assertEquals(DailyStatus.NOT_STARTED, entry.status)
+        assertTrue(entry.rankedEligible)
+    }
 }

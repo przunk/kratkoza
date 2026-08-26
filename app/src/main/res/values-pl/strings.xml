@@ -16,7 +16,8 @@
     <string name="daily_status_completed">Rozwiązana w %1$s · %2$s</string>
     <string name="daily_ranked">Liczy się do rankingu — bez pauzy</string>
     <string name="daily_unranked">Poza rankingiem</string>
-    <string name="daily_open">Otwórz</string>
+    <string name="daily_open">Rozpocznij</string>
+    <string name="daily_solved_mark">Rozwiązana</string>
     <string name="daily_continue">Kontynuuj</string>
     <string name="home_saved_games">Zapisane gry</string>
     <string name="home_statistics">Statystyki</string>

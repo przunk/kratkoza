@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -23,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -135,10 +139,23 @@ private fun DailyCard(entry: DailyEntry, onOpen: () -> Unit) {
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(
-                text = stringResource(entry.difficulty.labelRes()),
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(entry.difficulty.labelRes()),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                // A solved board has no button, so without this the card would be the only one on
+                // the screen with nothing on its right — read as missing rather than as finished.
+                if (solved) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_check),
+                        contentDescription = stringResource(R.string.daily_solved_mark),
+                        tint = SolvedTick,
+                        modifier = Modifier.size(TICK_SIZE_DP.dp),
+                    )
+                }
+            }
             Text(
                 text = statusText(entry, context),
                 style = MaterialTheme.typography.bodySmall,
@@ -178,6 +195,18 @@ private fun DailyCard(entry: DailyEntry, onOpen: () -> Unit) {
         }
     }
 }
+
+/**
+ * Green for a finished board.
+ *
+ * Fixed rather than taken from the palette: green means done here, and a palette that recoloured it
+ * would leave the tick agreeing with the board and disagreeing with everybody's idea of a tick. The
+ * label beside it carries the same meaning in words, so nothing rests on the colour
+ * (project.md section 8).
+ */
+private val SolvedTick = Color(0xFF2E7D46)
+
+private const val TICK_SIZE_DP = 22
 
 @Composable
 private fun statusText(entry: DailyEntry, context: android.content.Context): String = when (entry.status) {

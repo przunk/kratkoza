@@ -119,14 +119,10 @@ class GameRepository(
                 },
                 elapsedMillis = finished?.elapsedMillis ?: save?.elapsedMillis,
                 mistakeCount = finished?.mistakeCount ?: save?.mistakeCount,
-                // A finished game reports what it was when it ended; a game in progress reports
-                // what it is now; an untouched board is still eligible, because the rule only ever
-                // takes eligibility away.
-                rankedEligible = when {
-                    finished != null -> finished.rankedEligible
-                    save != null -> save.rankedEligible
-                    else -> true
-                },
+                rankedEligible = eligibilityOf(
+                    attempts = attempts.filter { it.puzzleId == row.puzzleId },
+                    save = save,
+                ),
             )
         }
     }
@@ -154,7 +150,25 @@ class GameRepository(
         val puzzle = puzzleDao.byId(row.puzzleId)?.toPuzzle()
             ?: error("The daily board for $date at $difficulty is missing from storage")
 
-        return openGame(puzzle, rankedEligible = attempts.isEmpty())
+        return openGame(puzzle, rankedEligible = eligibilityOf(attempts, save = null))
+    }
+
+    /**
+     * Whether a Daily board still counts for a ranking.
+     *
+     * One function because there are two callers and they disagreed: the card said an abandoned
+     * board was still eligible — no save, nothing completed, so it looked untouched — while
+     * starting it correctly refused to rank a second attempt. A rule written twice is a rule with
+     * two answers, and here the wrong one was the one the player could see.
+     *
+     * The order matters. A finished game reports what it was when it ended; a game in progress
+     * reports what it is now; and a board with attempts behind it but nothing on the go has already
+     * been interrupted, whatever the absence of a save might suggest.
+     */
+    private fun eligibilityOf(attempts: List<GameHistoryEntity>, save: SavedGameEntity?): Boolean {
+        attempts.firstOrNull { it.completed }?.let { return it.rankedEligible }
+        save?.let { return it.rankedEligible }
+        return attempts.isEmpty()
     }
 
     /**
