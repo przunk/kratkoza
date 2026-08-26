@@ -8,6 +8,7 @@ import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.settings.GameSettings
+import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -143,6 +144,16 @@ class GameViewModel(
         if (paused == _uiState.value.isPaused) return
         if (paused) pauseClock() else resumeClock()
         game?.let { render(it.state) }
+    }
+
+    /**
+     * The code that hands this board to somebody else.
+     *
+     * `null` until the board is loaded — there is nothing to share before then, and the button is
+     * hidden rather than handed an empty string to send.
+     */
+    fun shareCode(): String? = game?.state?.puzzle?.let {
+        BoardCode.encode(it.givens, it.generatorVersion)
     }
 
     /**
