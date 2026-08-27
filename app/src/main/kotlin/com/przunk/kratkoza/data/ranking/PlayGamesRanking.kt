@@ -2,6 +2,8 @@ package com.przunk.kratkoza.data.ranking
 
 import android.app.Activity
 import android.content.Intent
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.games.GamesClientStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.tasks.Task
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -77,8 +79,14 @@ class PlayGamesRanking(
      * "which board did it actually ask for" is the first question worth answering.
      */
     private fun describe(cause: Exception?, leaderboard: String): String {
-        val reason = cause?.let { "${it::class.java.simpleName}: ${it.message}" }
-            ?: "no exception — timed out after ${TASK_TIMEOUT_MILLIS}ms"
+        // Play Games codes are five digits and mean nothing on their own; the SDK can name them,
+        // and a name is what makes the difference between a bug report and a number.
+        val reason = when (val code = statusCodeOf(cause)) {
+            null -> cause?.let { "${it::class.java.simpleName}: ${it.message}" }
+                ?: "no exception — timed out after ${TASK_TIMEOUT_MILLIS}ms"
+
+            else -> "$code ${GamesClientStatusCodes.getStatusCodeString(code)}"
+        }
         return "$leaderboard — $reason"
     }
 
@@ -89,17 +97,41 @@ class PlayGamesRanking(
             ?: return SubmissionOutcome.Failed("no activity attached")
         if (!signedIn(activity)) return SubmissionOutcome.Failed("not signed in to Play Games")
 
-        // submitScoreImmediate rather than submitScore: the fire-and-forget variant reports nothing,
-        // and a caller that records "this reached the ranking" would be recording a guess.
-        val request = PlayGames.getLeaderboardsClient(activity)
-            .submitScoreImmediate(leaderboard, score.toLong())
+        var request = submitOnce(activity, leaderboard, score)
 
-        return if (request.awaitOrNull() != null) {
+        // CLIENT_RECONNECT_REQUIRED means the games client's session went stale between
+        // authenticating and submitting — isAuthenticated says yes while the connection behind it
+        // no longer holds. Re-authenticating and trying once more is the remedy, and it is
+        // invisible to the player, who has already finished the board.
+        if (statusCodeOf(request.exception) == CLIENT_RECONNECT_REQUIRED) {
+            PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull()
+            request = submitOnce(activity, leaderboard, score)
+        }
+
+        return if (request.isSuccessful) {
             SubmissionOutcome.Submitted
         } else {
             SubmissionOutcome.Failed(describe(request.exception, leaderboard))
         }
     }
+
+    /**
+     * One attempt, returning the task itself rather than its value.
+     *
+     * The caller needs the failure as well as the result: whether to retry depends on which status
+     * came back, and a plain null cannot say.
+     *
+     * submitScoreImmediate rather than submitScore, because the fire-and-forget variant reports
+     * nothing at all and a caller recording "this reached the ranking" would be recording a guess.
+     */
+    private suspend fun submitOnce(activity: Activity, leaderboard: String, score: Int): Task<*> {
+        val request = PlayGames.getLeaderboardsClient(activity)
+            .submitScoreImmediate(leaderboard, score.toLong())
+        request.awaitOrNull()
+        return request
+    }
+
+    private fun statusCodeOf(cause: Exception?): Int? = (cause as? ApiException)?.statusCode
 
     private suspend fun signedIn(activity: Activity): Boolean =
         PlayGames.getGamesSignInClient(activity).isAuthenticated().awaitOrNull()?.isAuthenticated == true
@@ -121,6 +153,13 @@ class PlayGamesRanking(
     private companion object {
         /** Unused — the overlay reports nothing back — but the launch has to carry one. */
         const val REQUEST_LEADERBOARD = 9001
+
+        /**
+         * GamesClientStatusCodes does not expose this one as a constant in 20.1.2, though its own
+         * getStatusCodeString still names it. Read out of the SDK's mapping table rather than
+         * guessed.
+         */
+        const val CLIENT_RECONNECT_REQUIRED = 26502
 
         /**
          * A Play Services task that never calls back would otherwise suspend for ever, and a button
