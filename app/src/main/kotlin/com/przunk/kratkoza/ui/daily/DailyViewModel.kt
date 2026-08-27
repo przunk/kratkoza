@@ -8,6 +8,7 @@ import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
@@ -77,15 +78,22 @@ class DailyViewModel(
         }
     }
 
-    /** Opens the Play Games leaderboard for one level, reporting why if it will not open. */
+    /** Opens the Play Games board for one Daily level. */
     fun showLeaderboard(difficulty: Difficulty) {
-        viewModelScope.launch {
-            // Reported before the SDK is touched, so that a press which produces no message at all
-            // means the press never arrived — rather than leaving that indistinguishable from an
-            // SDK call that answered nothing.
-            rankingLog.add("leaderboard: opening $difficulty")
+        val board = Leaderboard.forDaily(difficulty) ?: return
+        show(board)
+    }
 
-            when (val outcome = ranking.showLeaderboard(difficulty)) {
+    /** Opens one of the two totals boards. */
+    fun showBoard(board: Leaderboard) = show(board)
+
+    private fun show(board: Leaderboard) {
+        viewModelScope.launch {
+            // Recorded before the SDK is touched, so the log distinguishes a press that produced
+            // nothing from one that never arrived.
+            rankingLog.add("leaderboard: opening $board")
+
+            when (val outcome = ranking.show(board)) {
                 // Success needs no announcement: the overlay appearing is the announcement. Only
                 // the log keeps it, and only debug builds show the log.
                 is LeaderboardOutcome.Shown -> rankingLog.add("leaderboard: opened ${outcome.target}")

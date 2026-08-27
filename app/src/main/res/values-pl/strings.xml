@@ -26,6 +26,8 @@
     <string name="daily_continue">Kontynuuj</string>
     <string name="daily_leaderboard">Tablica wyników</string>
     <string name="daily_leaderboard_unavailable">Nie udało się otworzyć tablicy wyników. Spróbuj za chwilę.</string>
+    <string name="daily_board_today">Dziś</string>
+    <string name="daily_board_all_time">Wszech czasów</string>
     <string name="daily_sign_in">Zaloguj się do Play Games</string>
     <string name="daily_sign_in_explained">Zaloguj się, żeby porównywać swoje dzienne wyniki z innymi graczami.</string>
     <string name="home_saved_games">Zapisane gry</string>

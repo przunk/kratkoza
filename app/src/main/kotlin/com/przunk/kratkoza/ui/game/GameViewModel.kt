@@ -10,6 +10,7 @@ import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.ranking.RankingLog
@@ -351,19 +352,35 @@ class GameViewModel(
             report("ranking: skipped — Play Games is not configured")
             return
         }
-
-        when (val outcome = ranking.submitDailyScore(finished.difficulty, score)) {
-            is SubmissionOutcome.Submitted -> {
-                gameRepository.markPubliclyRanked(finished.historyId)
-                report("ranking: sent $score")
-            }
-
-            // Not marked as ranked: Play Services owns delivery from here and cannot say whether
-            // it happened, and a flag that means "confirmed" must not start meaning "probably".
-            is SubmissionOutcome.Queued -> report("ranking: queued $score (${outcome.detail})")
-
-            is SubmissionOutcome.Failed -> report("ranking: ${outcome.detail}")
+        val board = Leaderboard.forDaily(finished.difficulty) ?: run {
+            report("ranking: skipped — no board for ${finished.difficulty}")
+            return
         }
+
+        // The level board first: it is the one whose acceptance decides publiclyRanked, because it
+        // is the only one carrying this game's own result rather than a running sum.
+        if (send(board, score.toLong()) is SubmissionOutcome.Submitted) {
+            gameRepository.markPubliclyRanked(finished.historyId)
+        }
+
+        // Then the totals, which are recomputed from the record rather than added up here — the
+        // stored rows are what the statistics screen reads, and two additions of the same numbers
+        // would eventually disagree.
+        val totals = gameRepository.dailyTotals(puzzleId) ?: return
+        send(Leaderboard.DAILY_TOTAL, totals.today)
+        send(Leaderboard.ALL_TIME_TOTAL, totals.allTime)
+    }
+
+    private suspend fun send(board: Leaderboard, value: Long): SubmissionOutcome {
+        val outcome = ranking.submit(board, value)
+        report(
+            when (outcome) {
+                is SubmissionOutcome.Submitted -> "ranking: sent $value to $board"
+                is SubmissionOutcome.Queued -> "ranking: queued $value to $board (${outcome.detail})"
+                is SubmissionOutcome.Failed -> "ranking: $board — ${outcome.detail}"
+            },
+        )
+        return outcome
     }
 
     /** Writes the current game out. Fire and forget: the next move will write again anyway. */

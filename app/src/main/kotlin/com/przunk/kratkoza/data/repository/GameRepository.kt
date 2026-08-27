@@ -15,6 +15,7 @@ import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
 import com.przunk.kratkoza.domain.daily.DailyEntry
+import com.przunk.kratkoza.domain.daily.DailyTotals
 import com.przunk.kratkoza.domain.daily.DailyPuzzles
 import com.przunk.kratkoza.domain.daily.DailyScore
 import com.przunk.kratkoza.domain.daily.DailyStatus
@@ -381,6 +382,25 @@ class GameRepository(
             difficulty = game.state.puzzle.difficulty,
             score = score,
             rankedEligible = game.rankedEligible,
+        )
+    }
+
+    /**
+     * The totals to send to the public boards after finishing one Daily.
+     *
+     * The day is taken from the board itself rather than from the clock: a game begun before the
+     * changeover and finished after it still belongs to the day it was set for, and reading "today"
+     * off the clock would file it under the wrong one.
+     *
+     * Null when the board is not a Daily at all.
+     */
+    suspend fun dailyTotals(puzzleId: String): DailyTotals? {
+        val date = dailyPuzzleDao.dateOf(puzzleId, DailyPuzzles.RULESET_VERSION) ?: return null
+        val boards = dailyPuzzleDao.forDate(date, DailyPuzzles.RULESET_VERSION).map { it.puzzleId }
+
+        return DailyTotals(
+            today = historyDao.dailyScoreSum(boards) ?: 0L,
+            allTime = historyDao.allTimeDailyScoreSum() ?: 0L,
         )
     }
 

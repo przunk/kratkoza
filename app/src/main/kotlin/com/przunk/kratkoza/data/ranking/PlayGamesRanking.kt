@@ -6,7 +6,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.games.GamesClientStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.tasks.Task
-import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
@@ -40,9 +40,9 @@ class PlayGamesRanking(
         return PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull()?.isAuthenticated == true
     }
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome {
-        val leaderboard = config.leaderboardFor(difficulty)
-            ?: return LeaderboardOutcome.Failed("no leaderboard id for $difficulty")
+    override suspend fun show(board: Leaderboard): LeaderboardOutcome {
+        val leaderboard = config.idFor(board)
+            ?: return LeaderboardOutcome.Failed("no leaderboard id for $board")
         val activity = activities.current()
             ?: return LeaderboardOutcome.Failed("no activity attached")
 
@@ -90,21 +90,21 @@ class PlayGamesRanking(
         return "$leaderboard — $reason"
     }
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome {
-        val leaderboard = config.leaderboardFor(difficulty)
-            ?: return SubmissionOutcome.Failed("no leaderboard id for $difficulty")
+    override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome {
+        val leaderboard = config.idFor(board)
+            ?: return SubmissionOutcome.Failed("no leaderboard id for $board")
         val activity = activities.current()
             ?: return SubmissionOutcome.Failed("no activity attached")
         if (!signedIn(activity)) return SubmissionOutcome.Failed("not signed in to Play Games")
 
-        var request = submitOnce(activity, leaderboard, score)
+        var request = submitOnce(activity, leaderboard, value)
 
         // CLIENT_RECONNECT_REQUIRED means the games client's session went stale between
         // authenticating and submitting — isAuthenticated answers yes while the connection behind
         // it no longer holds. Re-authenticating and trying once more is the first remedy.
         if (statusCodeOf(request.exception) == CLIENT_RECONNECT_REQUIRED) {
             PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull()
-            request = submitOnce(activity, leaderboard, score)
+            request = submitOnce(activity, leaderboard, value)
         }
 
         if (request.isSuccessful) return SubmissionOutcome.Submitted
@@ -116,7 +116,7 @@ class PlayGamesRanking(
         // of a receipt.
         val reason = describe(request.exception, leaderboard)
         return runCatching {
-            PlayGames.getLeaderboardsClient(activity).submitScore(leaderboard, score.toLong())
+            PlayGames.getLeaderboardsClient(activity).submitScore(leaderboard, value)
         }.fold(
             onSuccess = { SubmissionOutcome.Queued(reason) },
             onFailure = { SubmissionOutcome.Failed("$reason; queueing also failed: ${it.message}") },
@@ -132,9 +132,9 @@ class PlayGamesRanking(
      * submitScoreImmediate rather than submitScore, because the fire-and-forget variant reports
      * nothing at all and a caller recording "this reached the ranking" would be recording a guess.
      */
-    private suspend fun submitOnce(activity: Activity, leaderboard: String, score: Int): Task<*> {
+    private suspend fun submitOnce(activity: Activity, leaderboard: String, value: Long): Task<*> {
         val request = PlayGames.getLeaderboardsClient(activity)
-            .submitScoreImmediate(leaderboard, score.toLong())
+            .submitScoreImmediate(leaderboard, value)
         request.awaitOrNull()
         return request
     }

@@ -1,6 +1,5 @@
 package com.przunk.kratkoza.domain.ranking
 
-import com.przunk.kratkoza.domain.model.Difficulty
 
 /**
  * The public ranking a Daily result travels to (project.md section 27).
@@ -37,10 +36,10 @@ interface Ranking {
      * pressed a button, and a button that does nothing when pressed tells them their phone is
      * broken.
      */
-    suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome
+    suspend fun show(board: Leaderboard): LeaderboardOutcome
 
-    /** Sends one Daily score, answering whether it landed and why not when it did not. */
-    suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome
+    /** Sends one value to one board, answering whether it landed and why not when it did not. */
+    suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome
 }
 
 /**
@@ -83,8 +82,8 @@ object NoRanking : Ranking {
     override val isAvailable: Boolean = false
     override suspend fun isSignedIn(): Boolean = false
     override suspend fun signIn(): Boolean = false
-    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
+    override suspend fun show(board: Leaderboard): LeaderboardOutcome =
         LeaderboardOutcome.Failed("Play Games is not configured in this build")
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome =
+    override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome =
         SubmissionOutcome.Failed("Play Games is not configured in this build")
 }
