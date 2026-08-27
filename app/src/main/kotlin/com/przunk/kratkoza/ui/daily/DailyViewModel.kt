@@ -70,8 +70,15 @@ class DailyViewModel(
     /** Opens the Play Games leaderboard for one level, reporting why if it will not open. */
     fun showLeaderboard(difficulty: Difficulty) {
         viewModelScope.launch {
-            val outcome = ranking.showLeaderboard(difficulty)
-            if (outcome is LeaderboardOutcome.Failed) _messages.send(outcome.detail)
+            // Reported before the SDK is touched, so that a press which produces no message at all
+            // means the press never arrived — rather than leaving that indistinguishable from an
+            // SDK call that answered nothing.
+            _messages.send("→ $difficulty")
+
+            when (val outcome = ranking.showLeaderboard(difficulty)) {
+                is LeaderboardOutcome.Shown -> _messages.send("opened")
+                is LeaderboardOutcome.Failed -> _messages.send(outcome.detail)
+            }
         }
     }
 

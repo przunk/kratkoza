@@ -1,5 +1,6 @@
 package com.przunk.kratkoza.ui.daily
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,15 +63,16 @@ fun DailyScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
     LaunchedEffect(viewModel) {
         viewModel.openGame.collect(onOpenGame)
     }
 
     LaunchedEffect(viewModel) {
-        // Long, because these carry a reason to read rather than a fact to notice.
-        viewModel.messages.collect { snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long) }
+        // A Toast rather than a Snackbar: these report that something the player pressed did not
+        // work, and they have to survive whatever the screen is doing — including the Play Games
+        // overlay taking the foreground. A Toast has no host to be missing and no layout to be
+        // clipped by, which is exactly what is wanted from a message about a failure.
+        viewModel.messages.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
     }
 
     // Coming back from a board changes what the cards should say — a game may now be in progress,
@@ -87,7 +87,6 @@ fun DailyScreen(
         title = stringResource(R.string.daily_title),
         modifier = modifier,
         onNavigateBack = onNavigateBack,
-        snackbarHostState = snackbarHostState,
     ) { padding ->
         if (state.isLoading && state.entries.isEmpty()) {
             Box(

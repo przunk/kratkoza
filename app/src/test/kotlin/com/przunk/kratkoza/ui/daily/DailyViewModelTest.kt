@@ -15,6 +15,8 @@ import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.TestScope
@@ -129,7 +131,12 @@ class DailyViewModelTest {
 
         viewModel.showLeaderboard(Difficulty.EASY)
 
-        assertEquals("no such board", viewModel.messages.first())
+        // Two messages: the press is acknowledged before the SDK is touched, so a press that
+        // produces nothing at all can only mean the press never arrived.
+        assertEquals(
+            listOf("\u2192 EASY", "no such board"),
+            viewModel.messages.take(2).toList(),
+        )
     }
 }
 

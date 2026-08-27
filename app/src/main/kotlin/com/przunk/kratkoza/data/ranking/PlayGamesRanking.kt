@@ -9,6 +9,7 @@ import com.przunk.kratkoza.domain.ranking.Ranking
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The Play Games implementation of [Ranking].
@@ -60,7 +61,8 @@ class PlayGamesRanking(
      * "which board did it actually ask for" is the first question worth answering.
      */
     private fun describe(cause: Exception?, leaderboard: String): String {
-        val reason = cause?.let { "${it::class.java.simpleName}: ${it.message}" } ?: "no reason given"
+        val reason = cause?.let { "${it::class.java.simpleName}: ${it.message}" }
+            ?: "no exception — timed out after ${TASK_TIMEOUT_MILLIS}ms"
         return "$leaderboard — $reason"
     }
 
@@ -85,10 +87,21 @@ class PlayGamesRanking(
      * Written out rather than pulled in with kotlinx-coroutines-play-services: that dependency
      * exists to provide this, and technical_requirements.md section 8 asks for restraint.
      */
-    private suspend fun <T> Task<T>.awaitOrNull(): T? = suspendCancellableCoroutine { continuation ->
-        addOnCompleteListener { task ->
-            continuation.resume(if (task.isSuccessful) task.result else null)
+    private suspend fun <T> Task<T>.awaitOrNull(): T? = withTimeoutOrNull(TASK_TIMEOUT_MILLIS) {
+        suspendCancellableCoroutine { continuation ->
+            addOnCompleteListener { task ->
+                continuation.resume(if (task.isSuccessful) task.result else null)
+            }
         }
+    }
+
+    private companion object {
+        /**
+         * A Play Services task that never calls back would otherwise suspend for ever, and a button
+         * whose coroutine is still waiting looks exactly like a button that does nothing. Ten
+         * seconds is long enough for a slow network and short enough to still be an answer.
+         */
+        const val TASK_TIMEOUT_MILLIS = 10_000L
     }
 }
 
