@@ -77,7 +77,14 @@ class RankingSubmitter(
         val outcome = ranking.submit(board, value)
         log.add(
             when (outcome) {
-                is SubmissionOutcome.Submitted -> "ranking: sent $value to $board"
+                is SubmissionOutcome.Submitted -> if (outcome.newBest) {
+                    "ranking: sent $value to $board — new best"
+                } else {
+                    // Not a failure. A leaderboard keeps the best score, so a worse one is accepted
+                    // and changes nothing; without saying so, "sent" next to an unchanged board
+                    // reads as the app lying.
+                    "ranking: sent $value to $board — previous score was better"
+                }
                 is SubmissionOutcome.Queued -> "ranking: queued $value to $board (${outcome.detail})"
                 is SubmissionOutcome.Failed -> "ranking: $board — ${outcome.detail}"
             },

@@ -122,8 +122,24 @@ class RankingSubmitterTest {
         assertFalse("but nothing confirmed it reached the board", row.publiclyRanked)
     }
 
+    @Test
+    fun `a score the board already beats is accepted and said to have changed nothing`() = runTest {
+        // The question this answers: "I submitted 995, the board still shows 996, is it broken".
+        // It is not — a leaderboard keeps the best score — but "sent" alone next to an unchanged
+        // board reads as the app lying about what it did.
+        val (submitter, _) = submitterWith(SubmissionOutcome.Submitted(newBest = false))
+        val finished = finishDaily(Difficulty.EASY)
+
+        submitter.submit(finished.game, finished.puzzleId)
+
+        assertTrue(
+            "the log must distinguish accepted-and-ignored from accepted-and-applied",
+            log.entries.value.any { it.contains("previous score was better") },
+        )
+    }
+
     private fun submitterWith(
-        outcome: SubmissionOutcome = SubmissionOutcome.Submitted,
+        outcome: SubmissionOutcome = SubmissionOutcome.Submitted(newBest = true),
     ): Pair<RankingSubmitter, RecordingRanking> {
         val ranking = RecordingRanking(outcome = outcome)
         // Unconfined, so the submission runs inline and the test does not have to chase it. In the
@@ -150,7 +166,7 @@ private data class FinishedDaily(val game: FinishedGame, val puzzleId: String)
 /** A ranking that remembers what it was handed, and answers however the test set it up to. */
 private class RecordingRanking(
     override val isAvailable: Boolean = true,
-    private val outcome: SubmissionOutcome = SubmissionOutcome.Submitted,
+    private val outcome: SubmissionOutcome = SubmissionOutcome.Submitted(newBest = true),
 ) : Ranking {
 
     val submissions = mutableListOf<Pair<Leaderboard, Long>>()

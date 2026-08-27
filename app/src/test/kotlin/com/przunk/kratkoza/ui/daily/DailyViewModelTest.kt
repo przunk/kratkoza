@@ -161,5 +161,5 @@ private class FakeRanking(
     }
 
     override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome =
-        SubmissionOutcome.Submitted
+        SubmissionOutcome.Submitted(newBest = true)
 }

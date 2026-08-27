@@ -62,8 +62,14 @@ sealed interface LeaderboardOutcome {
  * otherwise unanswerable from outside.
  */
 sealed interface SubmissionOutcome {
-    /** Confirmed by the service: the score is on the board. */
-    data object Submitted : SubmissionOutcome
+    /**
+     * Confirmed by the service: the score is on the board.
+     *
+     * [newBest] says whether it actually changed anything. A leaderboard keeps a player's best
+     * score, so submitting a worse one succeeds and leaves the board exactly as it was — which
+     * looks identical to a failure from outside, and is the opposite of one.
+     */
+    data class Submitted(val newBest: Boolean) : SubmissionOutcome
 
     /**
      * Handed over, not confirmed.
