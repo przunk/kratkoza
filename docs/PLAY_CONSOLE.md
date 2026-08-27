@@ -55,16 +55,32 @@ Play nie wpuści aplikacji bez nich, a wypełnić może je tylko właściciel.
 - [ ] Grafika promocyjna 1024×500.
 - [ ] Zrzuty ekranu telefonu — minimum dwa, przydadzą się: plansza, Daily, statystyki.
 
-## 6. Play Games Services — dopiero po punktach 1–3
+## 6. Play Games Services — to blokuje ranking
 
-- [ ] Utwórz grę w Play Games Services i powiąż ją z aplikacją.
-- [ ] Dodaj **SHA-1** z punktu 3 do poświadczeń OAuth.
-- [ ] Utwórz tablice wyników. **Zacznij od trzech globalnych** — po jednej na poziom Daily:
-      `daily_easy`, `daily_hard`, `daily_master`.
-- [ ] Przekaż mi **identyfikatory tablic**. Bez nich integracji nie da się napisać inaczej niż
-      w ciemno.
+- [ ] **Play Games Services → utwórz grę** i powiąż ją z aplikacją `com.przunk.kratkoza`.
+- [ ] **Dodaj odciski SHA-1 do poświadczeń OAuth.** Uwaga, to najczęstsze miejsce potknięcia —
+      trzeba dodać **dwa lub trzy**, nie jeden:
 
-Trzy fakty sprawdzone w dokumentacji, żebyś nie musiał ich odkrywać w konsoli:
+  | klucz | skąd | po co |
+  |---|---|---|
+  | **klucz podpisujący aplikację** | Play Console → Integralność aplikacji | buildy z Play — bez tego logowanie działa lokalnie i pada u graczy |
+  | klucz upload | `keytool -list -v -keystore ~/keys/kratkoza-upload.jks -alias kratkoza` | buildy wysyłane przez Ciebie |
+  | klucz debug | `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` | APK z `build-kratkoza-debug.sh` |
+
+  Jeśli masz włączone Play App Signing (domyślne), Google **przepisuje** podpis po wysłaniu. Wtedy
+  odcisk, który liczy się dla graczy, to ten z „Integralności aplikacji", a nie Twój klucz upload.
+  Zarejestrowanie tylko uploadowego to klasyczny błąd, który objawia się jako „logowanie działa
+  u mnie, nie działa u nikogo innego".
+
+- [ ] **Utwórz trzy tablice wyników**, po jednej na poziom Daily. Sortowanie: **wynik większy jest
+      lepszy**, format liczbowy całkowity.
+- [ ] **Opublikuj konfigurację Play Games** — dopóki jest w wersji roboczej, nie działa nawet dla
+      Ciebie.
+- [ ] Dodaj siebie jako testera w sekcji testów Play Games.
+- [ ] **Przekaż mi identyfikatory tablic.** Wyglądają jak `CgkI...`. Bez nich integracji nie da się
+      napisać inaczej niż w ciemno.
+
+Trzy fakty sprawdzone w dokumentacji, żebyś nie odkrywał ich w konsoli:
 
 - limit to **70 tablic na grę**,
 - **wersje dzienna i tygodniowa każdej tablicy powstają same** — nie zakładaj ich osobno,
