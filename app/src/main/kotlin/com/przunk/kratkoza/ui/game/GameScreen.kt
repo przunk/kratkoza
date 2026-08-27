@@ -81,6 +81,12 @@ fun GameScreen(
     // appeared. Fired on the transition, not on the state, so a game that was never ranked and one
     // that has already been told both stay silent.
     val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        // Debug builds only, and the ViewModel is what decides that — see GameViewModel.report.
+        viewModel.messages.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+    }
+
     val lostMessage = stringResource(R.string.game_ranking_lost)
     var wasRanked by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.rankedEligible) {
@@ -248,6 +254,14 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
         }
 
         Spacer(Modifier.weight(1f))
+
+        // Debug builds only. Reaching the end of a Daily is otherwise twenty minutes of typing,
+        // which is too much to pay every time the ranking needs testing.
+        if (state.debugTools && state.phase == GameUiState.Phase.PLAYING) {
+            TextButton(onClick = viewModel::autoSolve) {
+                Text(stringResource(R.string.game_debug_solve))
+            }
+        }
 
         if (state.canShareAndSave) {
             ShareBoardAction(state.difficulty, viewModel::shareCode)

@@ -88,6 +88,7 @@ fun KratkozaNavHost(
                             gameRepository = container.gameRepository,
                             settingsFlow = container.settingsRepository.settings,
                             ranking = container.ranking,
+                            rankingLog = container.rankingLog,
                         )
                     },
                 ),
@@ -102,7 +103,7 @@ fun KratkozaNavHost(
 
         composable(Destinations.DAILY) {
             DailyScreen(
-                viewModel = viewModel(factory = factory { DailyViewModel(container.gameRepository, container.ranking) }),
+                viewModel = viewModel(factory = factory { DailyViewModel(container.gameRepository, container.ranking, container.rankingLog) }),
                 onOpenGame = { navController.navigate(Destinations.game(it)) },
                 onNavigateBack = navController::popBackStack,
             )

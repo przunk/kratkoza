@@ -4,20 +4,26 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.BoardInsights
+import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
+import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.RankingLog
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -44,11 +50,22 @@ class GameViewModel(
      * build without Play Games configured, behaves like a player who is simply not signed in.
      */
     private val ranking: Ranking = NoRanking,
+    /**
+     * Whether to offer the debug-only shortcuts. Defaults to the build type, so the control cannot
+     * reach a release APK even if somebody forgets to hide it in the UI.
+     */
+    private val debugTools: Boolean = BuildConfig.DEBUG,
+    /** Where ranking events are kept so they can be read after the moment has passed. */
+    private val rankingLog: RankingLog = RankingLog(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+
+    /** What the ranking did with this game. Debug builds only — see [report]. */
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages = _messages.receiveAsFlow()
 
     private var game: SavedGame? = null
     private var settings: GameSettings = GameSettings.DEFAULT
@@ -133,6 +150,25 @@ class GameViewModel(
         val index = selection ?: return
         if (!_uiState.value.isPlayable) return
         apply(GameEngine.clearCell(state, index))
+    }
+
+    /**
+     * Debug builds only: finishes the board as though every remaining digit had been tapped in.
+     *
+     * It really does tap them in — same selection, same entry, same completion check — rather than
+     * writing a solved board straight to the database. A shortcut that bypassed the normal path
+     * would prove nothing about the path being tested, and the reason this exists is to reach the
+     * end of a Daily without spending twenty minutes on it.
+     */
+    fun autoSolve() {
+        if (!debugTools) return
+        val solution = game?.state?.puzzle?.solution ?: return
+
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (game?.state?.board?.isEmpty(cell) != true) continue
+            selectCell(cell)
+            enterDigit(solution[cell])
+        }
     }
 
     fun undo() {
@@ -268,8 +304,16 @@ class GameViewModel(
     }
 
     private suspend fun finish() {
-        val snapshot = snapshot() ?: return
+        val snapshot = snapshot() ?: run {
+            // Nothing to close out means the board was solved with no game loaded, which should be
+            // impossible — so it is worth hearing about rather than returning quietly.
+            report("game: finished with no snapshot")
+            return
+        }
         val finished = gameRepository.finishGame(snapshot, completed = true)
+        // Written before anything is decided, so the log distinguishes "the ranking said no" from
+        // "the game never reached this code".
+        report("game: finished ${finished.gameType} ${finished.difficulty} score=${finished.score}")
         submitToRanking(finished)
     }
 
@@ -281,11 +325,44 @@ class GameViewModel(
      * finished-game screen to say so would be noise. What it does buy is an honest
      * `publiclyRanked` flag, written only once the score has actually been accepted.
      */
+    /** Debug builds only; a player has nothing to do about any of this. */
+    private suspend fun report(message: String) {
+        if (!debugTools) return
+        rankingLog.add(message)
+        _messages.send(message)
+    }
+
     private suspend fun submitToRanking(finished: FinishedGame) {
-        if (!finished.belongsInRanking || !ranking.isAvailable) return
-        val score = finished.score ?: return
-        if (ranking.submitDailyScore(finished.difficulty, score)) {
-            gameRepository.markPubliclyRanked(finished.historyId)
+        // Each way out says so. Silence used to cover all of them at once, which made "no message"
+        // mean anything from "this was a solo game" to "the code never ran".
+        if (finished.gameType != GameType.DAILY) {
+            report("ranking: skipped — solo games are not ranked")
+            return
+        }
+        if (!finished.rankedEligible) {
+            report("ranking: skipped — this daily left the ranking")
+            return
+        }
+        val score = finished.score ?: run {
+            report("ranking: skipped — no score was recorded")
+            return
+        }
+        if (!ranking.isAvailable) {
+            report("ranking: skipped — Play Games is not configured")
+            return
+        }
+
+        when (val outcome = ranking.submitDailyScore(finished.difficulty, score)) {
+            is SubmissionOutcome.Submitted -> {
+                gameRepository.markPubliclyRanked(finished.historyId)
+                report("ranking: sent $score")
+            }
+
+            // Not marked as ranked: Play Services owns delivery from here and cannot say whether
+            // it happened, and a flag that means "confirmed" must not start meaning "probably".
+            is SubmissionOutcome.Queued -> report("ranking: queued $score (${outcome.detail})")
+
+            is SubmissionOutcome.Failed -> report("ranking: ${outcome.detail}")
         }
     }
 

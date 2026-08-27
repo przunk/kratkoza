@@ -17,8 +17,4 @@ data class FinishedGame(
     val score: Int?,
     /** Whether the game was played under conditions the ranking accepts (project.md section 29). */
     val rankedEligible: Boolean,
-) {
-    /** A finished game the public ranking would accept, if there is a ranking to accept it. */
-    val belongsInRanking: Boolean
-        get() = gameType == GameType.DAILY && rankedEligible && score != null
-}
+)

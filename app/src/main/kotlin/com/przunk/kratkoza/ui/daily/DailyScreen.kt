@@ -1,5 +1,6 @@
 package com.przunk.kratkoza.ui.daily
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
@@ -64,6 +66,22 @@ fun DailyScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.openGame.collect(onOpenGame)
+    }
+
+    // Resolved in the composition rather than inside the effect: a resource read through Context
+    // does not follow a configuration change, and the effect only needs the finished string.
+    val unavailable = stringResource(R.string.daily_leaderboard_unavailable)
+
+    LaunchedEffect(viewModel) {
+        // A Toast rather than a Snackbar: these report that something the player pressed did not
+        // work, and they have to survive whatever the screen is doing — including the Play Games
+        // overlay taking the foreground. A Toast has no host to be missing and no layout to be
+        // clipped by, which is exactly what is wanted from a message about a failure.
+        viewModel.messages.collect { message ->
+            // The ViewModel has no resources, so it names the string and the screen resolves it.
+            val text = if (message == DailyViewModel.FAILED_TO_OPEN_KEY) unavailable else message
+            Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+        }
     }
 
     // Coming back from a board changes what the cards should say — a game may now be in progress,
@@ -147,6 +165,37 @@ fun DailyScreen(
             // what the screen is for. Absent entirely when Play Games is not configured.
             if (state.rankingAvailable && !state.signedIn) {
                 item { SignInCard(onSignIn = viewModel::signIn) }
+            }
+
+            // Debug builds only. A Toast is gone before it can be read and its absence looks
+            // exactly like code that never ran; this stays put and can be photographed.
+            if (BuildConfig.DEBUG) {
+                item { RankingDiagnostics(entries = state.diagnostics) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RankingDiagnostics(entries: List<String>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(text = "Ranking (debug)", style = MaterialTheme.typography.titleSmall)
+            if (entries.isEmpty()) {
+                Text(
+                    text = "nothing yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            for (entry in entries) {
+                Text(
+                    text = entry,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
         }
     }

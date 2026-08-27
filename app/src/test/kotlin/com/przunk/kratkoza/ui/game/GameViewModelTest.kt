@@ -8,12 +8,17 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import androidx.lifecycle.ViewModelStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,12 +78,17 @@ class GameViewModelTest {
      */
     private val store = ViewModelStore()
 
-    private fun viewModelFor(game: SavedGame, ranking: Ranking = NoRanking): GameViewModel {
+    private fun viewModelFor(
+        game: SavedGame,
+        ranking: Ranking = NoRanking,
+        debugTools: Boolean = true,
+    ): GameViewModel {
         val viewModel = GameViewModel(
             puzzleId = game.state.puzzle.id,
             gameRepository = repository,
             settingsFlow = settings,
             ranking = ranking,
+            debugTools = debugTools,
             clock = { now },
         )
         store.put(game.state.puzzle.id, viewModel)
@@ -650,6 +660,12 @@ class GameViewModelTest {
 
         assertTrue("an ineligible daily must not reach the ranking", ranking.submissions.isEmpty())
         assertFalse(historyDao.all.single().publiclyRanked)
+        // And says so, after the line that proves the completion path ran at all. Those two being
+        // separate is the whole point: a skipped submission used to look like code that never ran.
+        assertEquals(
+            listOf("game: finished DAILY EASY score=1000", "ranking: skipped — this daily left the ranking"),
+            viewModel.messages.take(2).toList(),
+        )
     }
 
     @Test
@@ -670,7 +686,7 @@ class GameViewModelTest {
         // No signed-in player, no network, no Play Games at all: the board is solved either way,
         // and only the public half of the result is missing.
         val daily = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking(accepts = false)
+        val ranking = RecordingRanking(outcome = SubmissionOutcome.Failed("refused"))
         val viewModel = viewModelFor(daily, ranking)
 
         solve(viewModel, daily)
@@ -681,6 +697,55 @@ class GameViewModelTest {
         assertTrue("the game itself must still be finished", row.completed)
         assertNotNull("and still scored", row.score)
         assertFalse("but not claimed as ranked", row.publiclyRanked)
+    }
+
+    @Test
+    fun `the debug solve finishes a daily the way typing it in would`() = gameTest {
+        // It goes through selection and entry rather than writing a solved board, so scoring, XP
+        // and the ranking all happen exactly as they do for a player.
+        val daily = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking()
+        val viewModel = viewModelFor(daily, ranking)
+
+        viewModel.autoSolve()
+        idle()
+
+        assertEquals(GameUiState.Phase.SOLVED, viewModel.uiState.value.phase)
+        val row = historyDao.all.single()
+        assertTrue(row.completed)
+        assertNotNull("a solved daily must be scored", row.score)
+        assertEquals(1, ranking.submissions.size)
+    }
+
+    @Test
+    fun `the debug solve does nothing in a release build`() = gameTest {
+        // The flag follows BuildConfig.DEBUG in production. Pinning it false here proves the guard
+        // is in the ViewModel and not only in whether the button is drawn.
+        val game = startGame(Difficulty.EASY)
+        val viewModel = viewModelFor(game, debugTools = false)
+
+        viewModel.autoSolve()
+        idle()
+
+        assertEquals(GameUiState.Phase.PLAYING, viewModel.uiState.value.phase)
+        assertTrue(historyDao.all.none { it.completed })
+    }
+
+    @Test
+    fun `a queued score is not claimed as confirmed`() = gameTest {
+        // Play Services took the score but cannot say what became of it. The board is on its way to
+        // the ranking, and publiclyRanked still means "confirmed" rather than "probably".
+        val daily = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking(outcome = SubmissionOutcome.Queued("client reconnect required"))
+        val viewModel = viewModelFor(daily, ranking)
+
+        viewModel.autoSolve()
+        idle()
+
+        assertEquals(1, ranking.submissions.size)
+        val row = historyDao.all.single()
+        assertTrue("the game is still finished and scored", row.completed)
+        assertFalse("but nothing confirmed it reached the board", row.publiclyRanked)
     }
 
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {
@@ -702,7 +767,7 @@ class GameViewModelTest {
 /** A ranking that remembers what it was handed, and whether it agreed to take it. */
 private class RecordingRanking(
     override val isAvailable: Boolean = true,
-    private val accepts: Boolean = true,
+    private val outcome: SubmissionOutcome = SubmissionOutcome.Submitted,
 ) : Ranking {
 
     val submissions = mutableListOf<Pair<Difficulty, Int>>()
@@ -712,11 +777,12 @@ private class RecordingRanking(
 
     override suspend fun signIn(): Boolean = true
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean = false
+    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
+        LeaderboardOutcome.Failed("the game screen never opens one")
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome {
         submissions += difficulty to score
-        return accepts
+        return outcome
     }
 }
 

@@ -8,6 +8,7 @@ import com.przunk.kratkoza.data.ranking.PlayGamesRanking
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.data.repository.SettingsRepository
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.RankingLog
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import kotlinx.coroutines.Dispatchers
 
@@ -32,6 +33,9 @@ class AppContainer(context: Context) {
      * The Activity the Play Games SDK asks for. MainActivity puts itself here; nothing else should.
      */
     val activities = ActivityHolder()
+
+    /** What the ranking has been doing, for the debug panel on the Daily screen. */
+    val rankingLog = RankingLog()
 
     /** The public ranking (project.md section 27), inert until Play Console identifiers are filled in. */
     val ranking: Ranking by lazy {

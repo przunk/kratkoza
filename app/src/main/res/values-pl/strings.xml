@@ -25,6 +25,7 @@
     <string name="daily_results_pending">Jeszcze nieukończone</string>
     <string name="daily_continue">Kontynuuj</string>
     <string name="daily_leaderboard">Tablica wyników</string>
+    <string name="daily_leaderboard_unavailable">Nie udało się otworzyć tablicy wyników. Spróbuj za chwilę.</string>
     <string name="daily_sign_in">Zaloguj się do Play Games</string>
     <string name="daily_sign_in_explained">Zaloguj się, żeby porównywać swoje dzienne wyniki z innymi graczami.</string>
     <string name="home_saved_games">Zapisane gry</string>
@@ -66,6 +67,8 @@
     <string name="game_mistakes_value">%1$d</string>
     <string name="game_pause">Pauza</string>
     <string name="game_ranked">Rankingowa</string>
+    <!-- Debug builds only; never reaches a release APK. -->
+    <string name="game_debug_solve">Rozwiąż</string>
     <string name="game_unranked">Poza rankingiem</string>
     <string name="game_ranking_lost">Ta gra wypadła z rankingu — możesz ją dokończyć jako zwykłą.</string>
     <string name="daily_next_in_at">Nowe plansze za %1$s, o %2$s</string>

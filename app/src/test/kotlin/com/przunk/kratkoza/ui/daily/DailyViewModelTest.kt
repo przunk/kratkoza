@@ -6,14 +6,18 @@ import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import androidx.lifecycle.ViewModelStore
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.TestScope
@@ -117,12 +121,28 @@ class DailyViewModelTest {
 
         assertEquals(listOf(Difficulty.MASTER), ranking.shown)
     }
+
+    @Test
+    fun `a leaderboard that will not open says why instead of doing nothing`() = dailyTest {
+        // A button that swallows the press is indistinguishable from a broken phone. This is the
+        // one ranking failure the player asked for, so it is the one they hear about.
+        val ranking = FakeRanking(signedIn = true, outcome = LeaderboardOutcome.Failed("no such board"))
+        val viewModel = viewModelWith(ranking)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.showLeaderboard(Difficulty.EASY)
+
+        // Only the failure reaches the player. A successful open announces itself by the overlay
+        // appearing, and the step-by-step trail now lives in the log rather than in Toasts.
+        assertEquals("no such board", viewModel.messages.first())
+    }
 }
 
 /** A ranking that answers whatever the test set up, and remembers what it was asked to show. */
 private class FakeRanking(
     override val isAvailable: Boolean = true,
     private var signedIn: Boolean = false,
+    private val outcome: LeaderboardOutcome = LeaderboardOutcome.Shown("test"),
 ) : Ranking {
 
     val shown = mutableListOf<Difficulty>()
@@ -134,10 +154,11 @@ private class FakeRanking(
         return true
     }
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean {
+    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome {
         shown += difficulty
-        return true
+        return outcome
     }
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean = true
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome =
+        SubmissionOutcome.Submitted
 }

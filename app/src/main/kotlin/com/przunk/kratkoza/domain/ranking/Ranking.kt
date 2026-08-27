@@ -29,11 +29,53 @@ interface Ranking {
      */
     suspend fun signIn(): Boolean
 
-    /** Opens the leaderboard for one Daily level, answering whether it could be shown. */
-    suspend fun showLeaderboard(difficulty: Difficulty): Boolean
+    /**
+     * Opens the leaderboard for one Daily level.
+     *
+     * Unlike submitting, this answers with a reason when it fails. Submitting happens by itself and
+     * there is nothing for the player to do about it; opening a leaderboard happens because somebody
+     * pressed a button, and a button that does nothing when pressed tells them their phone is
+     * broken.
+     */
+    suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome
 
-    /** Sends one Daily score, answering whether it landed. */
-    suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean
+    /** Sends one Daily score, answering whether it landed and why not when it did not. */
+    suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome
+}
+
+/**
+ * What came of trying to open a leaderboard.
+ *
+ * [Failed] carries the reason as text rather than a code because the only consumer is a message on
+ * screen, and the reasons come from an SDK whose failures are not an enumerable set.
+ */
+sealed interface LeaderboardOutcome {
+    /** [target] names what actually handled the intent, which is not always what one expects. */
+    data class Shown(val target: String) : LeaderboardOutcome
+    data class Failed(val detail: String) : LeaderboardOutcome
+}
+
+/**
+ * What came of sending a score.
+ *
+ * A player never sees [Failed]: the board is solved and recorded either way, and there is nothing
+ * for them to do about it. Debug builds show it, because "did the score actually travel" is
+ * otherwise unanswerable from outside.
+ */
+sealed interface SubmissionOutcome {
+    /** Confirmed by the service: the score is on the board. */
+    data object Submitted : SubmissionOutcome
+
+    /**
+     * Handed over, not confirmed.
+     *
+     * Play Games can accept a score without being able to say what became of it, and delivering it
+     * afterwards is then its own business. That is a real success from the game's side and a
+     * genuinely unknown one from the record's, so it is neither of the other two.
+     */
+    data class Queued(val detail: String) : SubmissionOutcome
+
+    data class Failed(val detail: String) : SubmissionOutcome
 }
 
 /** The ranking when there is none: nobody is signed in and nothing can be shown or sent. */
@@ -41,6 +83,8 @@ object NoRanking : Ranking {
     override val isAvailable: Boolean = false
     override suspend fun isSignedIn(): Boolean = false
     override suspend fun signIn(): Boolean = false
-    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean = false
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean = false
+    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
+        LeaderboardOutcome.Failed("Play Games is not configured in this build")
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome =
+        SubmissionOutcome.Failed("Play Games is not configured in this build")
 }

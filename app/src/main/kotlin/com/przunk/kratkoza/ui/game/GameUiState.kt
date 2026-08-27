@@ -1,5 +1,6 @@
 package com.przunk.kratkoza.ui.game
 
+import com.przunk.kratkoza.BuildConfig
 import androidx.compose.runtime.Immutable
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -116,4 +117,10 @@ data class GameUiState(
      * rather than something to offer as a button.
      */
     val canShareAndSave: Boolean get() = gameType != GameType.DAILY
+
+    /**
+     * Whether to show the debug-only shortcuts. Follows the build type, so the control cannot
+     * appear in a release APK.
+     */
+    val debugTools: Boolean get() = BuildConfig.DEBUG
 }

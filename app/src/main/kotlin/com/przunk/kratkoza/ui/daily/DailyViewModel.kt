@@ -4,11 +4,14 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
+import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.RankingLog
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.channels.Channel
@@ -33,6 +36,9 @@ class DailyViewModel(
      * every test — simply shows no ranking controls rather than showing dead ones.
      */
     private val ranking: Ranking = NoRanking,
+    private val rankingLog: RankingLog = RankingLog(),
+    /** Whether to show developer detail. Release builds get a sentence a player can read. */
+    private val debugTools: Boolean = BuildConfig.DEBUG,
     private val clock: () -> Instant = Instant::now,
 ) : ViewModel() {
 
@@ -42,10 +48,19 @@ class DailyViewModel(
     private val _openGame = Channel<String>(Channel.BUFFERED)
     val openGame = _openGame.receiveAsFlow()
 
+    /** Things that went wrong in a way the player asked for and should therefore hear about. */
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages = _messages.receiveAsFlow()
+
     init {
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
         viewModelScope.launch { watchForChangeover() }
         viewModelScope.launch { refreshSignIn() }
+        viewModelScope.launch {
+            rankingLog.entries.collect { entries ->
+                _uiState.value = _uiState.value.copy(diagnostics = entries)
+            }
+        }
     }
 
     /**
@@ -62,16 +77,34 @@ class DailyViewModel(
         }
     }
 
-    /** Opens the Play Games leaderboard for one level. */
+    /** Opens the Play Games leaderboard for one level, reporting why if it will not open. */
     fun showLeaderboard(difficulty: Difficulty) {
-        viewModelScope.launch { ranking.showLeaderboard(difficulty) }
+        viewModelScope.launch {
+            // Reported before the SDK is touched, so that a press which produces no message at all
+            // means the press never arrived — rather than leaving that indistinguishable from an
+            // SDK call that answered nothing.
+            rankingLog.add("leaderboard: opening $difficulty")
+
+            when (val outcome = ranking.showLeaderboard(difficulty)) {
+                // Success needs no announcement: the overlay appearing is the announcement. Only
+                // the log keeps it, and only debug builds show the log.
+                is LeaderboardOutcome.Shown -> rankingLog.add("leaderboard: opened ${outcome.target}")
+
+                is LeaderboardOutcome.Failed -> {
+                    rankingLog.add("leaderboard: ${outcome.detail}")
+                    // A player gets a sentence; the identifier and status code are for whoever is
+                    // holding the log, and mean nothing to anybody else.
+                    _messages.send(if (debugTools) outcome.detail else FAILED_TO_OPEN_KEY)
+                }
+            }
+        }
     }
 
     private suspend fun refreshSignIn() {
-        _uiState.value = _uiState.value.copy(
-            rankingAvailable = ranking.isAvailable,
-            signedIn = ranking.isAvailable && ranking.isSignedIn(),
-        )
+        val available = ranking.isAvailable
+        val signedIn = available && ranking.isSignedIn()
+        rankingLog.add("sign-in: configured=$available signedIn=$signedIn")
+        _uiState.value = _uiState.value.copy(rankingAvailable = available, signedIn = signedIn)
     }
 
     /** Reloads the day's state — the statuses change as soon as a game is played and returned from. */
@@ -80,6 +113,11 @@ class DailyViewModel(
         // Coming back from Play Games is one of the ways sign-in changes without this screen being
         // rebuilt, so the state is re-read rather than assumed to be still true.
         viewModelScope.launch { refreshSignIn() }
+        viewModelScope.launch {
+            rankingLog.entries.collect { entries ->
+                _uiState.value = _uiState.value.copy(diagnostics = entries)
+            }
+        }
     }
 
     /**
@@ -127,9 +165,18 @@ class DailyViewModel(
         }
     }
 
-    private companion object {
+    companion object {
+        /**
+         * Stands in for a string resource.
+         *
+         * The ViewModel has no Context by design, so it names the message and the screen resolves
+         * it. Passing a resource id instead would put an `R` reference in a class that is meant to
+         * be testable without Android.
+         */
+        const val FAILED_TO_OPEN_KEY = "leaderboard-unavailable"
+
         /** Once a second: the screen shows a countdown, and a coarser tick makes it stutter. */
-        const val TICK_MILLIS = 1_000L
+        private const val TICK_MILLIS = 1_000L
     }
 }
 
@@ -143,4 +190,6 @@ data class DailyUiState(
     /** Whether Play Games is configured at all; false hides every ranking control. */
     val rankingAvailable: Boolean = false,
     val signedIn: Boolean = false,
+    /** Debug builds only: what the ranking has been doing, newest first. */
+    val diagnostics: List<String> = emptyList(),
 )
