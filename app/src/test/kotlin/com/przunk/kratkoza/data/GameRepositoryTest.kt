@@ -607,4 +607,53 @@ class GameRepositoryTest {
         assertEquals(DailyStatus.NOT_STARTED, entry.status)
         assertTrue(entry.rankedEligible)
     }
+
+    @Test
+    fun `a finished daily is scored and a solo game is not`() = runTest {
+        // project.md section 29 scores a Daily against a shared board. A solo game has nothing to be
+        // compared against, so it has no score — which is not the same as a score of zero.
+        repository.dailySet(DAY)
+        val daily = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        repository.finishGame(daily.copy(elapsedMillis = 18 * 60_000L), completed = true)
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
+        assertEquals("solving in the target time is worth half of the maximum", 500, entry.score)
+
+        val solo = repository.startNewGame(Difficulty.HARD)
+        repository.finishGame(solo.copy(elapsedMillis = 60_000), completed = true)
+        assertTrue(historyDao.all.single { it.puzzleId == solo.state.puzzle.id }.score == null)
+    }
+
+    @Test
+    fun `an unfinished daily has no score rather than a zero`() = runTest {
+        repository.dailySet(DAY)
+        val daily = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        repository.finishGame(daily.copy(elapsedMillis = 60_000), completed = false)
+
+        assertNull(repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }.score)
+    }
+
+    @Test
+    fun `mistakes on a daily cost score, exactly as section 29 says`() = runTest {
+        repository.dailySet(DAY)
+        val daily = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        var state = daily.state
+        val cells = (0 until Sudoku.CELL_COUNT).filter { state.board.isEmpty(it) }.take(2)
+        for (cell in cells) {
+            state = GameEngine.enterDigit(
+                state,
+                cell,
+                (1..9).first { it != state.puzzle.solution[cell] },
+                autoRemoveCandidates = false,
+            )
+        }
+        repository.finishGame(
+            daily.copy(state = state, elapsedMillis = 6 * 60_000L),
+            completed = true,
+        )
+
+        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        assertEquals(2, entry.mistakeCount)
+        assertEquals("500 × 0.7²", 245, entry.score)
+    }
 }

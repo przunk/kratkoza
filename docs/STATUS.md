@@ -56,7 +56,7 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 294 testy jednostkowe: walidacja, solver, unikalność, generator, klasyfikacja trudności,
+- [x] 309 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
       kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
@@ -142,23 +142,34 @@ Czego nie wolno przy tym zepsuć: `PalettesTest` pilnuje, że stopnie rozdziela 
 kolejności, że wysoki kontrast nigdy nie *zmniejsza* rozdzielenia i że podpowiedź 8/9 zostaje
 cichsza od cyfry gracza (§17). Progi są w L*, nie w luminancji — patrz komentarz w teście.
 
-### Daily Sudoku — etap 2: ranking
+### Daily Sudoku — etap 2: ranking publiczny
 
-**Etap 1 zrobiony 2026-08-26** (plansze, ekran, brak pauzy w grze rankingowej). Zostaje ranking.
+**Zrobiona lokalna połowa** (2026-08-27): wyliczanie wyniku według §29 i tabela własnych wyników
+dnia. Zostaje porównanie z innymi graczami.
 
-Uzgodnione: **Google Play Games Services**, tablice wyników z wbudowanym okresem dziennym. Darmowe,
-niesie tożsamość gracza i nie wymaga serwera — czyli w projekcie nie powstaje usługa do utrzymania.
-Koszt: zależność `play-services-games-v2`, wbrew zasadzie minimalizmu z `technical_requirements.md`
-§9, ale alternatywą jest własny backend.
+Uzgodnione: **Google Play Games Services**. Darmowe, niesie tożsamość gracza i nie wymaga serwera.
+Koszt: zależność `play-services-games-v2`, wbrew `technical_requirements.md` §9, ale alternatywą
+jest własny backend.
 
-Do sprawdzenia przed decyzją: **ile tablic wyników wolno mieć w jednej grze**. Regiony wymagałyby
-osobnej tablicy na region i poziom (16 województw × 3 = 48, plus globalne), a limitu nie znam.
+**Ustalone fakty o Play Games** (sprawdzone w dokumentacji, nie założone):
 
-Do zrobienia poza tym:
+- **maksimum 70 tablic wyników na grę** — regiony jako osobne tablice to 16 województw × 3 poziomy
+  = 48, plus 3 globalne; mieści się, ale wszystkie trzeba utworzyć ręcznie w konsoli,
+- **dzienne i tygodniowe wersje każdej tablicy powstają same**, nic nie trzeba dla nich zakładać,
+- **dzienne tablice resetują się o stałej godzinie UTC-7** — dlatego wymiana Daily została przypięta
+  do stałego 07:00 UTC (wariant A), bo godzina zegarowa rozjeżdżałaby się z resetem przez pół roku,
+- **nie ma filtrowania po regionie ani kraju** — Play Games zna tylko zakres publiczny i znajomych.
 
-- podpięcie logowania Play Games, opcjonalne — udział w rankingu musi być świadomym wyborem
-  (`project.md` §27),
-- wybór regionu z listy; decyzje funkcjonalne są już podjęte, patrz „Wybór regionu do rankingu".
+**Czego nie da się zrobić bez właściciela projektu:** identyfikatory tablic powstają w Play Console,
+a logowanie wymaga zarejestrowanego SHA-1 klucza podpisującego. Do tego czasu integracja byłaby
+kodem przeciw identyfikatorom, które nie istnieją — czyli spekulacją, przed którą ostrzega
+`project.md` §41.
+
+Do zrobienia, gdy aplikacja będzie w Play Console:
+
+- opcjonalne logowanie Play Games — udział w rankingu ma być świadomym wyborem (§27),
+- wysyłanie wyniku po ukończeniu Daily,
+- wybór regionu z listy; decyzje funkcjonalne są podjęte, patrz „Wybór regionu do rankingu".
 
 ### Wynik rankingowy Daily
 

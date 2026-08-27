@@ -14,6 +14,7 @@ dlaczego, oraz jakie są alternatywy.
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
 | 7 | Edycja poprawnie wpisanej cyfry | 🟢 **ustalone** — zablokowana, cofa tylko Undo |
 | 8 | Co odbiera Daily kwalifikację rankingową | 🟢 **ustalone** — minimalizacja nie, podpowiedź tak |
+| 9 | Wzór na wynik Daily i czasy odniesienia | 🟡 **wstępnie** — wzór przyjęty, czasy do dostrojenia |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
 🟡 = przyjęte tymczasowo, czeka na decyzję.
@@ -228,3 +229,29 @@ nie skoczył wstecz.
 **Czego to nie broni.** Gracz nadal może zrobić zrzut planszy i rozwiązać ją gdzie indziej — ale
 zegar przez ten czas biegnie, więc nic na tym nie zyskuje. `project.md` §31 uznaje wprost, że
 całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.
+
+---
+
+## 9. Wzór na wynik Daily i czasy odniesienia poziomów
+
+**Stan: 🟡 wstępnie przyjęte 2026-08-27.** `project.md` §39 zostawia wzór na wynik bazowy otwarty;
+§29 ustala jedynie karę za błędy.
+
+    wynik = 1000 × cel / (cel + czas)      następnie      × 0.7 ^ błędy
+
+Druga połowa to §29 dosłownie. Pierwsza opada gładko zamiast skokowo: natychmiastowe rozwiązanie
+dąży do 1000, czas równy celowi daje 500, dwukrotność 333. Nic nie spada z progu, więc żadna
+pojedyncza sekunda nie jest warta stu punktów, i nic nie osiąga zera — wolne rozwiązanie to słaby
+wynik, nie brak wyniku.
+
+**Czasy odniesienia:** 6 / 10 / 18 / 28 / 40 minut dla kolejnych poziomów.
+
+Są to liczby dobrane oceną, i warto zapisać, że **próba wyprowadzenia ich z solvera się nie udała**.
+Liczba kroków logicznego rozwiązania wynosi 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
+niespełna półtorakrotny, podczas gdy ludzki jest kilkukrotny. O trudności planszy decyduje
+**znalezienie** techniki, a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi.
+
+**Pomyłka tutaj kosztuje niewiele.** Wszyscy na jednej planszy dzielą jej cel, więc wewnątrz poziomu
+kolejność jest identyczna niezależnie od liczby. Cel ma znaczenie wyłącznie przy porównywaniu
+poziomów i przy sumowaniu dnia — i dokładnie tam da się go dostroić, gdy będą prawdziwe czasy do
+obejrzenia.
