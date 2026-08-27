@@ -7,6 +7,8 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.NoRanking
+import com.przunk.kratkoza.domain.ranking.Ranking
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.channels.Channel
@@ -26,6 +28,11 @@ import kotlinx.coroutines.launch
  */
 class DailyViewModel(
     private val gameRepository: GameRepository,
+    /**
+     * The public ranking. Defaults to nowhere, so a build without Play Games identifiers — and
+     * every test — simply shows no ranking controls rather than showing dead ones.
+     */
+    private val ranking: Ranking = NoRanking,
     private val clock: () -> Instant = Instant::now,
 ) : ViewModel() {
 
@@ -38,11 +45,41 @@ class DailyViewModel(
     init {
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
         viewModelScope.launch { watchForChangeover() }
+        viewModelScope.launch { refreshSignIn() }
+    }
+
+    /**
+     * Asks the player to sign in to Play Games.
+     *
+     * Only from a press. The silent attempt Play Games makes at startup is the only automatic one,
+     * and an account chooser appearing by itself over a puzzle would be an interruption, not a
+     * feature.
+     */
+    fun signIn() {
+        viewModelScope.launch {
+            ranking.signIn()
+            refreshSignIn()
+        }
+    }
+
+    /** Opens the Play Games leaderboard for one level. */
+    fun showLeaderboard(difficulty: Difficulty) {
+        viewModelScope.launch { ranking.showLeaderboard(difficulty) }
+    }
+
+    private suspend fun refreshSignIn() {
+        _uiState.value = _uiState.value.copy(
+            rankingAvailable = ranking.isAvailable,
+            signedIn = ranking.isAvailable && ranking.isSignedIn(),
+        )
     }
 
     /** Reloads the day's state — the statuses change as soon as a game is played and returned from. */
     fun refresh() {
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
+        // Coming back from Play Games is one of the ways sign-in changes without this screen being
+        // rebuilt, so the state is re-read rather than assumed to be still true.
+        viewModelScope.launch { refreshSignIn() }
     }
 
     /**
@@ -65,7 +102,7 @@ class DailyViewModel(
         // than looking broken.
         _uiState.value = _uiState.value.copy(isLoading = true)
         val entries = gameRepository.dailySet(date)
-        _uiState.value = DailyUiState(
+        _uiState.value = _uiState.value.copy(
             date = date,
             entries = entries,
             remainingMillis = DailySchedule.remainingMillis(date, clock()),
@@ -103,4 +140,7 @@ data class DailyUiState(
     /** Until the next set replaces this one. */
     val remainingMillis: Long = 0,
     val isLoading: Boolean = true,
+    /** Whether Play Games is configured at all; false hides every ranking control. */
+    val rankingAvailable: Boolean = false,
+    val signedIn: Boolean = false,
 )

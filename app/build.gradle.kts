@@ -73,8 +73,8 @@ android {
         // Bumped once per merge into `develop`, by whoever performs the merge — never on a task
         // branch, or two branches would claim the same number for different code. Branch builds are
         // told apart by `versionSuffix` above instead.
-        versionCode = 23
-        versionName = "0.13.0$versionSuffix"
+        versionCode = 24
+        versionName = "0.14.0$versionSuffix"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -184,6 +184,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
     implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation("androidx.room:room-runtime:2.8.4")
+
+    // The one unavoidable external dependency: Play Games Services has no protocol to speak to
+    // directly, so ranking means Google's SDK or no ranking. project.md section 27 asks for the
+    // ranking, and technical_requirements.md section 8 asks for restraint everywhere else.
+    implementation("com.google.android.gms:play-services-games-v2:20.1.2")
 
     ksp("androidx.room:room-compiler:2.8.4")
 

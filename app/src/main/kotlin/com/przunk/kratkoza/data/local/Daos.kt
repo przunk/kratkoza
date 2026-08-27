@@ -118,6 +118,10 @@ abstract class GameHistoryDao {
         score: Int?,
     )
 
+    /** Marks a finished result as one the public ranking accepted. */
+    @Query("UPDATE game_history SET publiclyRanked = 1 WHERE id = :id")
+    abstract suspend fun markPubliclyRanked(id: Long)
+
     @Query("DELETE FROM game_history")
     protected abstract suspend fun deleteAllHistory()
 

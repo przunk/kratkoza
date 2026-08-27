@@ -191,6 +191,10 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
         }
     }
 
+    override suspend fun markPubliclyRanked(id: Long) {
+        entries.value = entries.value.map { if (it.id == id) it.copy(publiclyRanked = true) else it }
+    }
+
     override fun observeDailySummary(): Flow<DailyStatisticsSummaryRow> = entries.map { list ->
         val completed = list.filter { it.gameType == GameType.DAILY.name && it.completed }
         val scores = completed.mapNotNull { it.score }
