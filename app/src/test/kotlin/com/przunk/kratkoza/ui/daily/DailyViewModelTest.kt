@@ -17,10 +17,12 @@ import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -136,6 +138,25 @@ class DailyViewModelTest {
         // Only the failure reaches the player. A successful open announces itself by the overlay
         // appearing, and the step-by-step trail now lives in the log rather than in Toasts.
         assertEquals("no such board", viewModel.messages.first())
+    }
+
+    @Test
+    fun `two presses before opening starts navigate to one Daily game`() = dailyTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val viewModel = viewModelWith(NoRanking)
+        runCurrent()
+        val opened = mutableListOf<String>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.openGame.toList(opened)
+        }
+
+        viewModel.open(Difficulty.EASY)
+        viewModel.open(Difficulty.EASY)
+        runCurrent()
+
+        assertEquals(1, opened.size)
+        assertEquals(1, historyDao.all.count { it.puzzleId == opened.single() })
+        assertEquals(1, savedGameDao.writeCount)
     }
 }
 

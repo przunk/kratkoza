@@ -49,6 +49,9 @@ class DailyViewModel(
     private val _openGame = Channel<String>(Channel.BUFFERED)
     val openGame = _openGame.receiveAsFlow()
 
+    /** UI courtesy only; [GameRepository.startDaily] owns the actual single-attempt invariant. */
+    private var openingGame = false
+
     /** Things that went wrong in a way the player asked for and should therefore hear about. */
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
@@ -137,9 +140,15 @@ class DailyViewModel(
      */
     fun open(difficulty: Difficulty) {
         val date = _uiState.value.date ?: return
+        if (openingGame) return
+        openingGame = true
         viewModelScope.launch {
-            val game = gameRepository.startDaily(date, difficulty)
-            if (game == null) load(date) else _openGame.send(game.state.puzzle.id)
+            try {
+                val game = gameRepository.startDaily(date, difficulty)
+                if (game == null) load(date) else _openGame.send(game.state.puzzle.id)
+            } finally {
+                openingGame = false
+            }
         }
     }
 

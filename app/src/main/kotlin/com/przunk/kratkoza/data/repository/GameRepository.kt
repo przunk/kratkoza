@@ -46,6 +46,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -65,6 +67,15 @@ class GameRepository(
     private val computationDispatcher: CoroutineDispatcher,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
+
+    /**
+     * Makes checking and claiming a Daily board one process-local operation.
+     *
+     * [com.przunk.kratkoza.di.AppContainer] owns one repository over one local, single-process
+     * database, so a mutex closes every entry point without a schema migration. If the app ever
+     * gains another process or repository instance, this invariant must move into Room instead.
+     */
+    private val dailyStartMutex = Mutex()
 
     /**
      * Starts a new game: generates a board, stores it, and opens the history row that project.md
@@ -150,15 +161,17 @@ class GameRepository(
         val row = ensureDailyPuzzles(date).firstOrNull { it.difficulty == difficulty.name }
             ?: error("No daily board for $date at $difficulty")
 
-        val attempts = historyDao.attemptsOn(listOf(row.puzzleId))
-        if (attempts.any { it.completed }) return null
+        return dailyStartMutex.withLock {
+            val attempts = historyDao.attemptsOn(listOf(row.puzzleId))
+            if (attempts.any { it.completed }) return@withLock null
 
-        loadGame(row.puzzleId)?.let { return it }
+            loadGame(row.puzzleId)?.let { return@withLock it }
 
-        val puzzle = puzzleDao.byId(row.puzzleId)?.toPuzzle()
-            ?: error("The daily board for $date at $difficulty is missing from storage")
+            val puzzle = puzzleDao.byId(row.puzzleId)?.toPuzzle()
+                ?: error("The daily board for $date at $difficulty is missing from storage")
 
-        return openGame(puzzle, rankedEligible = eligibilityOf(attempts, save = null))
+            openGame(puzzle, rankedEligible = eligibilityOf(attempts, save = null))
+        }
     }
 
     /**

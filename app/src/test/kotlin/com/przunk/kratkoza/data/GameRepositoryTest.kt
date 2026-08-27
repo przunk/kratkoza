@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.data
 
 import com.przunk.kratkoza.data.repository.GameRepository
+import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
@@ -17,6 +18,12 @@ import com.przunk.kratkoza.domain.sudoku.SudokuBoard
 import com.przunk.kratkoza.domain.sudoku.SudokuFixtures
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import kotlin.random.Random
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -489,6 +496,41 @@ class GameRepositoryTest {
     }
 
     @Test
+    fun `two concurrent Daily starts create one attempt and return that same game`() = runTest {
+        val racingPuzzles = RacingPuzzleDao()
+        val racingSaves = FakeSavedGameDao(racingPuzzles)
+        val racingHistory = FakeGameHistoryDao(racingSaves)
+        val racingRepository = GameRepository(
+            puzzleDao = racingPuzzles,
+            dailyPuzzleDao = FakeDailyPuzzleDao(),
+            savedGameDao = racingSaves,
+            historyDao = racingHistory,
+            generator = SudokuGenerator(),
+            computationDispatcher = Dispatchers.Default,
+            clock = { now },
+        )
+        racingRepository.dailySet(DAY)
+        racingPuzzles.armRace()
+
+        val ready = CountDownLatch(2)
+        val start = CountDownLatch(1)
+        val calls = List(2) {
+            async(Dispatchers.Default) {
+                ready.countDown()
+                check(start.await(2, TimeUnit.SECONDS))
+                racingRepository.startDaily(DAY, Difficulty.EASY)
+            }
+        }
+        check(ready.await(2, TimeUnit.SECONDS))
+        start.countDown()
+        val games = calls.awaitAll().map(::requireNotNull)
+
+        assertEquals(1, racingHistory.all.count { it.puzzleId == games.first().state.puzzle.id })
+        assertEquals(1, racingSaves.writeCount)
+        assertEquals(games.first().historyId, games.last().historyId)
+    }
+
+    @Test
     fun `a finished daily is reported as completed with its time and mistakes`() = runTest {
         repository.dailySet(DAY)
         val game = requireNotNull(repository.startDaily(DAY, Difficulty.MASTER))
@@ -682,5 +724,36 @@ class GameRepositoryTest {
             entry.score,
         )
         assertTrue("and that has to be a real loss", entry.score!! < DailyScore.baseFor(Difficulty.EASY))
+    }
+}
+
+/**
+ * Holds two callers after both have observed that no save exists yet.
+ *
+ * The timeout is intentional: once the repository serializes the critical section, the second
+ * caller cannot arrive until the first has claimed the board. Without serialization both callers
+ * meet here and deterministically continue from the same stale state.
+ */
+private class RacingPuzzleDao : FakePuzzleDao() {
+    private val firstArrived = AtomicBoolean(false)
+    private val releaseFirst = CountDownLatch(1)
+
+    @Volatile
+    private var raceArmed = false
+
+    fun armRace() {
+        raceArmed = true
+    }
+
+    override suspend fun byId(puzzleId: String): PuzzleEntity? {
+        val puzzle = super.byId(puzzleId)
+        if (!raceArmed) return puzzle
+
+        if (firstArrived.compareAndSet(false, true)) {
+            releaseFirst.await(500, TimeUnit.MILLISECONDS)
+        } else {
+            releaseFirst.countDown()
+        }
+        return puzzle
     }
 }
