@@ -237,21 +237,30 @@ całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.
 **Stan: 🟡 wstępnie przyjęte 2026-08-27.** `project.md` §39 zostawia wzór na wynik bazowy otwarty;
 §29 ustala jedynie karę za błędy.
 
-    wynik = 1000 × cel / (cel + czas)      następnie      × 0.7 ^ błędy
+    wynik = 2 × baza(poziom) × cel(poziom) / (cel + czas) × 0.7 ^ błędy
 
-Druga połowa to §29 dosłownie. Pierwsza opada gładko zamiast skokowo: natychmiastowe rozwiązanie
-dąży do 1000, czas równy celowi daje 500, dwukrotność 333. Nic nie spada z progu, więc żadna
-pojedyncza sekunda nie jest warta stu punktów, i nic nie osiąga zera — wolne rozwiązanie to słaby
-wynik, nie brak wyniku.
+| poziom | baza | cel |
+|---|---|---|
+| Łatwy | 500 | 5 min |
+| Normalny | 700 | 9 min |
+| Trudny | 1000 | 15 min |
+| Ekspert | 1400 | 20 min |
+| Morderczy | 2000 | 25 min |
 
-**Czasy odniesienia:** 6 / 10 / 18 / 28 / 40 minut dla kolejnych poziomów.
+**Co robi każdy człon.** Baza niesie wagę poziomu — pierwsza wersja punktowała wyłącznie osiągi
+względem poziomu, więc sam poziom znikał z odpowiedzi i bezbłędny Łatwy bił dobrego Morderczego.
+Człon czasowy wynosi dokładnie 1 przy czasie równym celowi, więc **cel jest miarą, nie limitem**:
+trafiony daje bazę, pobity podnosi mnożnik ku dwóm, przekroczony opada gładko i nigdy nie sięga
+zera. Ostatni człon to §29 dosłownie.
 
-Są to liczby dobrane oceną, i warto zapisać, że **próba wyprowadzenia ich z solvera się nie udała**.
-Liczba kroków logicznego rozwiązania wynosi 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
-niespełna półtorakrotny, podczas gdy ludzki jest kilkukrotny. O trudności planszy decyduje
-**znalezienie** techniki, a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi.
+**Dlaczego nie zerujemy przy trzech błędach**, mimo propozycji. Po pierwsze §29 podaje wprost
+mnożnik i tabelę procentów. Po drugie — i ważniejsze — wynik zerowy kończyłby grę we wszystkim poza
+literą: gracz z trzema błędami nie miałby o co grać, a `project.md` §16 mówi, że gra nie ma systemu
+żyć i błąd nie blokuje rozgrywki. Sedno zgłoszenia („błędy za mało bolą") załatwia natomiast waga
+poziomu: **jeden błąd na Morderczym kosztuje 600 punktów, czyli więcej, niż wart jest bezbłędny
+Łatwy.** Wcześniej mnożnik działał na wynik, który i tak nie zależał od poziomu.
 
-**Pomyłka tutaj kosztuje niewiele.** Wszyscy na jednej planszy dzielą jej cel, więc wewnątrz poziomu
-kolejność jest identyczna niezależnie od liczby. Cel ma znaczenie wyłącznie przy porównywaniu
-poziomów i przy sumowaniu dnia — i dokładnie tam da się go dostroić, gdy będą prawdziwe czasy do
-obejrzenia.
+**Czasy odniesienia dobrane oceną.** Próba wyprowadzenia ich z solvera się nie udała i warto to
+zapisać: kroków logicznego rozwiązania jest 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
+niespełna półtorakrotny, gdy ludzki jest kilkukrotny. O trudności decyduje **znalezienie** techniki,
+a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi. Dostroić, gdy będą prawdziwe czasy.

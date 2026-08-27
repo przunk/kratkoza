@@ -10,22 +10,50 @@ class DailyScoreTest {
     private fun minutes(count: Double) = (count * 60_000).toLong()
 
     @Test
-    fun `the target time scores half of the maximum`() {
+    fun `hitting the target scores exactly the level's base`() {
+        // The meaning of the target: a yardstick, not a deadline. Hit it and you score what the
+        // level is worth.
         for (difficulty in Difficulty.entries) {
             val target = minutes(DailyScore.targetMinutesFor(difficulty).toDouble())
-            assertEquals("$difficulty", 500, DailyScore.of(difficulty, target, mistakeCount = 0))
+            assertEquals(
+                "$difficulty",
+                DailyScore.baseFor(difficulty),
+                DailyScore.of(difficulty, target, mistakeCount = 0),
+            )
         }
     }
 
     @Test
-    fun `an instant solve approaches the maximum without exceeding it`() {
-        assertEquals(1000, DailyScore.of(Difficulty.HARD, elapsedMillis = 0, mistakeCount = 0))
+    fun `a harder board is worth more than an easier one played equally well`() {
+        // The thing the previous formula got wrong: it scored performance relative to the level, so
+        // the level itself disappeared from the answer and a flawless Easy beat a good Master.
+        val atTarget = Difficulty.entries.map {
+            DailyScore.of(it, minutes(DailyScore.targetMinutesFor(it).toDouble()), mistakeCount = 0)
+        }
+        assertEquals(atTarget.sorted(), atTarget)
+        assertTrue(
+            "the spread should be several-fold, not marginal",
+            atTarget.last() >= atTarget.first() * 3,
+        )
     }
 
     @Test
-    fun `twice the target scores a third`() {
+    fun `speed is worth at most double, never more`() {
+        // Bounded on purpose: an unbounded bonus would make a suspiciously fast time worth any
+        // number of ordinary ones.
+        for (difficulty in Difficulty.entries) {
+            assertEquals(
+                "$difficulty",
+                DailyScore.baseFor(difficulty) * 2,
+                DailyScore.of(difficulty, elapsedMillis = 0, mistakeCount = 0),
+            )
+        }
+    }
+
+    @Test
+    fun `twice the target scores two thirds of the base`() {
         val target = minutes(DailyScore.targetMinutesFor(Difficulty.HARD).toDouble())
-        assertEquals(333, DailyScore.of(Difficulty.HARD, target * 2, mistakeCount = 0))
+        assertEquals(667, DailyScore.of(Difficulty.HARD, target * 2, mistakeCount = 0))
     }
 
     @Test
@@ -40,7 +68,7 @@ class DailyScoreTest {
             if (previous != Int.MAX_VALUE) biggestDrop = maxOf(biggestDrop, previous - score)
             previous = score
         }
-        assertTrue("a five-second step cost $biggestDrop points", biggestDrop <= 5)
+        assertTrue("a five-second step cost $biggestDrop points", biggestDrop <= 20)
     }
 
     @Test
@@ -52,15 +80,33 @@ class DailyScoreTest {
     @Test
     fun `mistakes cost what project md section 29 says they cost`() {
         val target = minutes(DailyScore.targetMinutesFor(Difficulty.EASY).toDouble())
-        val clean = DailyScore.of(Difficulty.EASY, target, mistakeCount = 0)
 
-        assertEquals(500, clean)
+        assertEquals(500, DailyScore.of(Difficulty.EASY, target, mistakeCount = 0))
         assertEquals(350, DailyScore.of(Difficulty.EASY, target, mistakeCount = 1))
         assertEquals(245, DailyScore.of(Difficulty.EASY, target, mistakeCount = 2))
         // 171, not the 172 that 500 × 0.7³ gives on paper: 0.7³ is a shade under 0.343 in binary
         // floating point, so the product lands just below the halfway point and rounds down. Pinned
         // rather than papered over, because a score that quietly shifts by one is worth noticing.
         assertEquals(171, DailyScore.of(Difficulty.EASY, target, mistakeCount = 3))
+    }
+
+    @Test
+    fun `a mistake on a hard board costs more than a whole easy board is worth`() {
+        // What the level weighting buys, and the answer to "mistakes do not hurt enough": one
+        // mistake on Master gives up more points than a flawless Easy earns.
+        val masterTarget = minutes(DailyScore.targetMinutesFor(Difficulty.MASTER).toDouble())
+        val cost = DailyScore.of(Difficulty.MASTER, masterTarget, 0) -
+            DailyScore.of(Difficulty.MASTER, masterTarget, 1)
+
+        assertTrue(cost > DailyScore.baseFor(Difficulty.EASY))
+    }
+
+    @Test
+    fun `no number of mistakes empties the score`() {
+        // project.md section 16: there are no lives, and a mistake does not end the game. A score
+        // that reached zero would end it in every way that matters, leaving nothing to play for.
+        val target = minutes(DailyScore.targetMinutesFor(Difficulty.MASTER).toDouble())
+        assertTrue(DailyScore.of(Difficulty.MASTER, target, mistakeCount = 8) > 0)
     }
 
     @Test
@@ -75,13 +121,10 @@ class DailyScoreTest {
     }
 
     @Test
-    fun `the same relative performance scores the same on every level`() {
-        // What the per-level target buys: solving a Master board in Master time is worth as much as
-        // solving an Easy board in Easy time, so the three boards of a day are comparable.
-        val scores = Difficulty.entries.map {
-            DailyScore.of(it, minutes(DailyScore.targetMinutesFor(it).toDouble()), mistakeCount = 0)
-        }
-        assertEquals(1, scores.toSet().size)
+    fun `harder levels are worth more before speed is considered`() {
+        val bases = Difficulty.entries.map(DailyScore::baseFor)
+        assertEquals(bases.sorted(), bases)
+        assertEquals("no two levels may be worth the same", bases.size, bases.toSet().size)
     }
 
     @Test

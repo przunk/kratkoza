@@ -6,6 +6,7 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailyScore
 import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.progress.PlayerProgress
 import com.przunk.kratkoza.domain.share.BoardCode
@@ -614,10 +615,17 @@ class GameRepositoryTest {
         // compared against, so it has no score — which is not the same as a score of zero.
         repository.dailySet(DAY)
         val daily = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
-        repository.finishGame(daily.copy(elapsedMillis = 18 * 60_000L), completed = true)
+        // Asked for through DailyScore rather than written out, so tuning the targets does not turn
+        // this into a test of last month's numbers.
+        val target = DailyScore.targetMinutesFor(Difficulty.HARD) * 60_000L
+        repository.finishGame(daily.copy(elapsedMillis = target), completed = true)
 
         val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
-        assertEquals("solving in the target time is worth half of the maximum", 500, entry.score)
+        assertEquals(
+            "hitting the target is worth the level's base",
+            DailyScore.baseFor(Difficulty.HARD),
+            entry.score,
+        )
 
         val solo = repository.startNewGame(Difficulty.HARD)
         repository.finishGame(solo.copy(elapsedMillis = 60_000), completed = true)
@@ -647,13 +655,19 @@ class GameRepositoryTest {
                 autoRemoveCandidates = false,
             )
         }
+        val target = DailyScore.targetMinutesFor(Difficulty.EASY) * 60_000L
         repository.finishGame(
-            daily.copy(state = state, elapsedMillis = 6 * 60_000L),
+            daily.copy(state = state, elapsedMillis = target),
             completed = true,
         )
 
         val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
         assertEquals(2, entry.mistakeCount)
-        assertEquals("500 × 0.7²", 245, entry.score)
+        assertEquals(
+            "the base, less section 29's penalty for two mistakes",
+            DailyScore.of(Difficulty.EASY, target, mistakeCount = 2),
+            entry.score,
+        )
+        assertTrue("and that has to be a real loss", entry.score!! < DailyScore.baseFor(Difficulty.EASY))
     }
 }
