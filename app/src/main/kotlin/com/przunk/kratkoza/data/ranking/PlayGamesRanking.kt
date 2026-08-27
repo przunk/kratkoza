@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.data.ranking
 
 import android.app.Activity
+import android.content.Intent
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.tasks.Task
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -46,13 +47,27 @@ class PlayGamesRanking(
         val intent = request.awaitOrNull()
             ?: return LeaderboardOutcome.Failed(describe(request.exception, leaderboard))
 
-        // Play Games resolves this against its own overlay, which is not guaranteed to be present.
-        return runCatching { activity.startActivity(intent) }
+        // startActivityForResult, not startActivity: the Play Games overlay is documented to be
+        // launched for a result, and some of its screens close immediately when started without
+        // one — which looks exactly like nothing happening.
+        return runCatching { activity.startActivityForResult(intent, REQUEST_LEADERBOARD) }
             .fold(
-                onSuccess = { LeaderboardOutcome.Shown },
+                onSuccess = { LeaderboardOutcome.Shown(resolve(activity, intent)) },
                 onFailure = { LeaderboardOutcome.Failed("cannot open Play Games: ${it.message}") },
             )
     }
+
+    /**
+     * What will actually handle the intent.
+     *
+     * Worth naming, because "the intent started and nothing appeared" has two very different
+     * causes: something opened and closed again, or nothing on the device claims this intent at
+     * all. From inside `startActivity` those are indistinguishable.
+     */
+    private fun resolve(activity: Activity, intent: Intent): String =
+        activity.packageManager.resolveActivity(intent, 0)?.activityInfo
+            ?.let { "${it.packageName}/${it.name.substringAfterLast('.')}" }
+            ?: "nothing on this device claims that intent"
 
     /**
      * The failure in a form somebody can act on.
@@ -96,6 +111,9 @@ class PlayGamesRanking(
     }
 
     private companion object {
+        /** Unused — the overlay reports nothing back — but the launch has to carry one. */
+        const val REQUEST_LEADERBOARD = 9001
+
         /**
          * A Play Services task that never calls back would otherwise suspend for ever, and a button
          * whose coroutine is still waiting looks exactly like a button that does nothing. Ten

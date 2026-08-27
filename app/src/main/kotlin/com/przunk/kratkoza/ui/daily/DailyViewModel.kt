@@ -76,7 +76,7 @@ class DailyViewModel(
             _messages.send("→ $difficulty")
 
             when (val outcome = ranking.showLeaderboard(difficulty)) {
-                is LeaderboardOutcome.Shown -> _messages.send("opened")
+                is LeaderboardOutcome.Shown -> _messages.send("opened: ${outcome.target}")
                 is LeaderboardOutcome.Failed -> _messages.send(outcome.detail)
             }
         }

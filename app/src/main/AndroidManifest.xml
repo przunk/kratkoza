@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      From API 30 an app cannot see other installed packages unless it says which ones it cares
+      about. The Play Games overlay lives in its own app, so without this the leaderboard intent
+      cannot even be resolved, let alone reported on.
+    -->
+    <queries>
+        <package android:name="com.google.android.play.games" />
+    </queries>
+
     <application
         android:name=".KratkozaApplication"
         android:allowBackup="true"

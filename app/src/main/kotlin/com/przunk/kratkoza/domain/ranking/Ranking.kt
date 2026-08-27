@@ -50,7 +50,8 @@ interface Ranking {
  * screen, and the reasons come from an SDK whose failures are not an enumerable set.
  */
 sealed interface LeaderboardOutcome {
-    data object Shown : LeaderboardOutcome
+    /** [target] names what actually handled the intent, which is not always what one expects. */
+    data class Shown(val target: String) : LeaderboardOutcome
     data class Failed(val detail: String) : LeaderboardOutcome
 }
 

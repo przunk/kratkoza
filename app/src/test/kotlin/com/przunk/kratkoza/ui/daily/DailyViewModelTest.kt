@@ -144,7 +144,7 @@ class DailyViewModelTest {
 private class FakeRanking(
     override val isAvailable: Boolean = true,
     private var signedIn: Boolean = false,
-    private val outcome: LeaderboardOutcome = LeaderboardOutcome.Shown,
+    private val outcome: LeaderboardOutcome = LeaderboardOutcome.Shown("test"),
 ) : Ranking {
 
     val shown = mutableListOf<Difficulty>()
