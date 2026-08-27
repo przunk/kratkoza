@@ -116,6 +116,14 @@
     <string name="statistics_best_time">Best time</string>
     <string name="statistics_average_time">Average time</string>
     <string name="statistics_none">—</string>
+    <string name="statistics_daily">Daily Sudoku</string>
+    <string name="statistics_daily_completed">Daily completed</string>
+    <string name="statistics_daily_by_difficulty">Completed by difficulty</string>
+    <string name="statistics_daily_scores">Scores</string>
+    <string name="statistics_daily_total_score">Total score</string>
+    <string name="statistics_daily_best_score">Best score</string>
+    <string name="statistics_daily_average_score">Average score</string>
+    <string name="statistics_daily_ranked_eligible">Ranking-eligible completions</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

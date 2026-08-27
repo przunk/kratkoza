@@ -24,10 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.progress.Progress
+import com.przunk.kratkoza.domain.stats.DailyStatistics
 import com.przunk.kratkoza.domain.stats.DifficultyStatistics
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
 import com.przunk.kratkoza.ui.common.labelRes
@@ -105,6 +107,24 @@ fun StatisticsScreen(
                 )
             }
 
+            statistics.daily?.let { daily ->
+                item { SectionTitle(stringResource(R.string.statistics_daily)) }
+                item {
+                    DailyCompletionCard(
+                        statistics = daily,
+                        formatCount = integerFormat::format,
+                    )
+                }
+                item {
+                    DailyScoreCard(
+                        statistics = daily,
+                        noneLabel = none,
+                        formatCount = integerFormat::format,
+                        formatDecimal = decimalFormat::format,
+                    )
+                }
+            }
+
             item {
                 OutlinedButton(
                     onClick = { confirmingReset = true },
@@ -139,6 +159,67 @@ fun StatisticsScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun DailyCompletionCard(
+    statistics: DailyStatistics,
+    formatCount: (Number) -> String,
+) {
+    Card {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            StatRow(
+                stringResource(R.string.statistics_daily_completed),
+                formatCount(statistics.completedCount),
+            )
+            Text(
+                text = stringResource(R.string.statistics_daily_by_difficulty),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+            )
+            for (level in statistics.perDifficulty) {
+                StatRow(
+                    stringResource(level.difficulty.labelRes()),
+                    formatCount(level.completedCount),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DailyScoreCard(
+    statistics: DailyStatistics,
+    noneLabel: String,
+    formatCount: (Number) -> String,
+    formatDecimal: (Number) -> String,
+) {
+    Card {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.statistics_daily_scores),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            StatRow(
+                stringResource(R.string.statistics_daily_total_score),
+                statistics.totalScore?.let(formatCount) ?: noneLabel,
+            )
+            StatRow(
+                stringResource(R.string.statistics_daily_best_score),
+                statistics.bestScore?.let(formatCount) ?: noneLabel,
+            )
+            StatRow(
+                stringResource(R.string.statistics_daily_average_score),
+                statistics.averageScore?.let(formatDecimal) ?: noneLabel,
+            )
+            StatRow(
+                stringResource(R.string.statistics_daily_ranked_eligible),
+                formatCount(statistics.rankedEligibleCount),
+            )
+        }
     }
 }
 
@@ -242,7 +323,12 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun StatRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        // A label and its value are one statement. Merging them stops a screen reader from
+        // announcing a run of detached labels followed by a run of unexplained numbers.
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium)

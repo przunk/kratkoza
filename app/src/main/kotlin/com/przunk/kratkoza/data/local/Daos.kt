@@ -201,6 +201,36 @@ abstract class GameHistoryDao {
     )
     abstract fun observeByDifficulty(): Flow<List<DifficultyStatisticsRow>>
 
+    /**
+     * The scored Daily record, without unfinished attempts or solo games.
+     *
+     * Score aggregates deliberately remain nullable. A completed row from before scoring existed
+     * is not a zero-point result, and SQLite's handling of `NULL` preserves that distinction.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) AS completedCount,
+               SUM(score) AS totalScore,
+               MAX(score) AS bestScore,
+               AVG(score) AS averageScore,
+               COUNT(CASE WHEN rankedEligible THEN 1 END) AS rankedEligibleCount
+        FROM game_history
+        WHERE gameType = 'DAILY' AND completed
+        """,
+    )
+    abstract fun observeDailySummary(): Flow<DailyStatisticsSummaryRow>
+
+    /** Completed Daily boards per level; absent levels do not produce empty rows. */
+    @Query(
+        """
+        SELECT difficulty AS difficulty, COUNT(*) AS completedCount
+        FROM game_history
+        WHERE gameType = 'DAILY' AND completed
+        GROUP BY difficulty
+        """,
+    )
+    abstract fun observeDailyByDifficulty(): Flow<List<DailyDifficultyStatisticsRow>>
+
 }
 
 /** Projection for the count of games still on the board, per difficulty. */
@@ -232,4 +262,19 @@ data class DifficultyStatisticsRow(
     val bestTimeMillis: Long?,
     val averageTimeMillis: Double?,
     val averageMistakes: Double?,
+)
+
+/** Overall Daily aggregates; scores stay null until at least one scored completion exists. */
+data class DailyStatisticsSummaryRow(
+    val completedCount: Int,
+    val totalScore: Long?,
+    val bestScore: Int?,
+    val averageScore: Double?,
+    val rankedEligibleCount: Int,
+)
+
+/** Projection for completed Daily boards at one level. */
+data class DailyDifficultyStatisticsRow(
+    val difficulty: String,
+    val completedCount: Int,
 )

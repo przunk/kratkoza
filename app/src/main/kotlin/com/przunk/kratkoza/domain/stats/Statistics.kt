@@ -20,6 +20,8 @@ data class Statistics(
     /** Experience and level (project.md section 32). */
     val progress: Progress,
     val perDifficulty: List<DifficultyStatistics>,
+    /** `null` until at least one Daily has been completed, keeping an empty section off screen. */
+    val daily: DailyStatistics?,
 ) {
     /** `0f` when nothing has been started, rather than a division by zero. */
     val completionRate: Float
@@ -36,6 +38,7 @@ data class Statistics(
             totalMistakes = 0,
             progress = Progress.NONE,
             perDifficulty = emptyList(),
+            daily = null,
         )
     }
 }
@@ -53,4 +56,21 @@ data class DifficultyStatistics(
     val bestTimeMillis: Long?,
     val averageTimeMillis: Long?,
     val averageMistakes: Double?,
+)
+
+/** The completed Daily record (project.md section 33). */
+data class DailyStatistics(
+    val completedCount: Int,
+    /** Null when the completed rows predate scoring; a real zero score remains `0`. */
+    val totalScore: Long?,
+    val bestScore: Int?,
+    val averageScore: Double?,
+    val rankedEligibleCount: Int,
+    val perDifficulty: List<DailyDifficultyStatistics>,
+)
+
+/** How many Daily boards were completed at one level. */
+data class DailyDifficultyStatistics(
+    val difficulty: Difficulty,
+    val completedCount: Int,
 )
