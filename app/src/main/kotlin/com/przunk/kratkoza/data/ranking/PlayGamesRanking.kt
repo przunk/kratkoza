@@ -4,6 +4,7 @@ import android.app.Activity
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.tasks.Task
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.Ranking
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
@@ -31,18 +32,36 @@ class PlayGamesRanking(
 
     override suspend fun signIn(): Boolean {
         val activity = activities.current() ?: return false
-        return PlayGames.getGamesSignInClient(activity).signIn().orNull()?.isAuthenticated == true
+        return PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull()?.isAuthenticated == true
     }
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean {
-        val leaderboard = config.leaderboardFor(difficulty) ?: return false
-        val activity = activities.current() ?: return false
-        val intent = PlayGames.getLeaderboardsClient(activity)
-            .getLeaderboardIntent(leaderboard)
-            .orNull() ?: return false
+    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome {
+        val leaderboard = config.leaderboardFor(difficulty)
+            ?: return LeaderboardOutcome.Failed("no leaderboard id for $difficulty")
+        val activity = activities.current()
+            ?: return LeaderboardOutcome.Failed("no activity attached")
 
-        activity.startActivity(intent)
-        return true
+        val request = PlayGames.getLeaderboardsClient(activity).getLeaderboardIntent(leaderboard)
+        val intent = request.awaitOrNull()
+            ?: return LeaderboardOutcome.Failed(describe(request.exception, leaderboard))
+
+        // Play Games resolves this against its own overlay, which is not guaranteed to be present.
+        return runCatching { activity.startActivity(intent) }
+            .fold(
+                onSuccess = { LeaderboardOutcome.Shown },
+                onFailure = { LeaderboardOutcome.Failed("cannot open Play Games: ${it.message}") },
+            )
+    }
+
+    /**
+     * The failure in a form somebody can act on.
+     *
+     * The leaderboard id is included because the three differ only in their last character, and
+     * "which board did it actually ask for" is the first question worth answering.
+     */
+    private fun describe(cause: Exception?, leaderboard: String): String {
+        val reason = cause?.let { "${it::class.java.simpleName}: ${it.message}" } ?: "no reason given"
+        return "$leaderboard — $reason"
     }
 
     override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
@@ -54,11 +73,11 @@ class PlayGamesRanking(
         // and a caller that records "this reached the ranking" would be recording a guess.
         return PlayGames.getLeaderboardsClient(activity)
             .submitScoreImmediate(leaderboard, score.toLong())
-            .orNull() != null
+            .awaitOrNull() != null
     }
 
     private suspend fun signedIn(activity: Activity): Boolean =
-        PlayGames.getGamesSignInClient(activity).isAuthenticated().orNull()?.isAuthenticated == true
+        PlayGames.getGamesSignInClient(activity).isAuthenticated().awaitOrNull()?.isAuthenticated == true
 
     /**
      * A Play Services [Task] as a suspending call, treating any failure as absence.
@@ -66,7 +85,7 @@ class PlayGamesRanking(
      * Written out rather than pulled in with kotlinx-coroutines-play-services: that dependency
      * exists to provide this, and technical_requirements.md section 8 asks for restraint.
      */
-    private suspend fun <T> Task<T>.orNull(): T? = suspendCancellableCoroutine { continuation ->
+    private suspend fun <T> Task<T>.awaitOrNull(): T? = suspendCancellableCoroutine { continuation ->
         addOnCompleteListener { task ->
             continuation.resume(if (task.isSuccessful) task.result else null)
         }

@@ -19,6 +19,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,8 +64,15 @@ fun DailyScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(viewModel) {
         viewModel.openGame.collect(onOpenGame)
+    }
+
+    LaunchedEffect(viewModel) {
+        // Long, because these carry a reason to read rather than a fact to notice.
+        viewModel.messages.collect { snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long) }
     }
 
     // Coming back from a board changes what the cards should say — a game may now be in progress,
@@ -78,6 +87,7 @@ fun DailyScreen(
         title = stringResource(R.string.daily_title),
         modifier = modifier,
         onNavigateBack = onNavigateBack,
+        snackbarHostState = snackbarHostState,
     ) { padding ->
         if (state.isLoading && state.entries.isEmpty()) {
             Box(

@@ -7,6 +7,7 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
 import java.time.Instant
@@ -42,6 +43,10 @@ class DailyViewModel(
     private val _openGame = Channel<String>(Channel.BUFFERED)
     val openGame = _openGame.receiveAsFlow()
 
+    /** Things that went wrong in a way the player asked for and should therefore hear about. */
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages = _messages.receiveAsFlow()
+
     init {
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
         viewModelScope.launch { watchForChangeover() }
@@ -62,9 +67,12 @@ class DailyViewModel(
         }
     }
 
-    /** Opens the Play Games leaderboard for one level. */
+    /** Opens the Play Games leaderboard for one level, reporting why if it will not open. */
     fun showLeaderboard(difficulty: Difficulty) {
-        viewModelScope.launch { ranking.showLeaderboard(difficulty) }
+        viewModelScope.launch {
+            val outcome = ranking.showLeaderboard(difficulty)
+            if (outcome is LeaderboardOutcome.Failed) _messages.send(outcome.detail)
+        }
     }
 
     private suspend fun refreshSignIn() {

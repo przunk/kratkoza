@@ -8,6 +8,7 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.settings.GameSettings
@@ -712,7 +713,8 @@ private class RecordingRanking(
 
     override suspend fun signIn(): Boolean = true
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean = false
+    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
+        LeaderboardOutcome.Failed("the game screen never opens one")
 
     override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
         submissions += difficulty to score

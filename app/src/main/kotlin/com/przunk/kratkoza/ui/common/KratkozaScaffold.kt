@@ -5,6 +5,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -26,12 +28,15 @@ fun KratkozaScaffold(
     title: String,
     modifier: Modifier = Modifier,
     onNavigateBack: (() -> Unit)? = null,
+    /** Where transient messages appear; screens that have none leave it out. */
+    snackbarHostState: SnackbarHostState? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val backDescription = stringResource(R.string.common_back)
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
         topBar = {
             TopAppBar(
                 title = { Text(title) },
