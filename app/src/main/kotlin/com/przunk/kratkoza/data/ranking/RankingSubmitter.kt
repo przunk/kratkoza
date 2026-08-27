@@ -59,10 +59,11 @@ class RankingSubmitter(
             log.add("ranking: skipped — no board for ${finished.difficulty}")
             return
         }
-        val totals = repository.dailyTotals(puzzleId) ?: run {
-            log.add("ranking: skipped — $puzzleId is not a daily board")
-            return
-        }
+        // Not a reason to stop. Without the totals the two sum boards have nothing to hear, but
+        // the level board carries this game's own score and is unaffected — and it is the one whose
+        // acceptance decides publiclyRanked.
+        val totals = repository.dailyTotals(puzzleId)
+        if (totals == null) log.add("ranking: no totals for $puzzleId — sending the level only")
 
         // Every board is asked what it wants from this result, rather than the sending order being
         // written out here. A board added to the enum is picked up by this loop without touching

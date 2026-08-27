@@ -299,7 +299,8 @@ dwie w `Leaderboard`, trzecią w `PlayGamesConfig`. Wcześniej submitter milcza�
 **Wymiana identyfikatorów** przed premierą to edycja wyłącznie `res/values/play_games_ids.xml`;
 procedura jest opisana w nagłówku tego pliku.
 
-**Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk.
+**Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk —
+przeniesione do [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
 ## Wymaga decyzji
 
