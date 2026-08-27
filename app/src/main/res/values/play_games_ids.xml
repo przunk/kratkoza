@@ -1,13 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Identyfikatory z Play Console → Play Games Services. Trzymane osobno od strings.xml, bo to nie są
-  napisy do przetłumaczenia, tylko konfiguracja jednego środowiska — i dlatego ten plik nie ma
-  odpowiednika w values-pl.
+  Identyfikatory z Play Console → Play Games Services.
 
-  Puste wartości są bezpieczne. Sprawdzone na bajtkodzie play-services-games-v2:20.1.2: SDK czyta
-  APP_ID przez Bundle.getString(..., "") i Long.parseLong, a powstały NumberFormatException łapie
-  we własnej tablicy wyjątków i zwraca null. Aplikacja startuje normalnie, nie działa wyłącznie
-  logowanie do Play Games. Nie jest to więc plik, którego brak wywraca build ani aplikację.
+  ## Wymiana tablic
+
+  To jedyne miejsce, które trzeba zmienić, żeby przełączyć aplikację na inne tablice — na przykład
+  na świeże, bez wyników testowych, przed premierą. Utwórz tablice w konsoli, wklej tu ich
+  identyfikatory, zbuduj. Kod nie zna żadnego z tych ciągów.
+
+  Co się **nie** zmienia przy wymianie: nazwy zasobów. Wiąże je z aplikacją enum
+  `domain/ranking/Leaderboard` i mapowanie w `data/ranking/PlayGamesConfig` — nazwa zasobu jest
+  częścią kodu, jego wartość nie.
+
+  ## Dodanie nowej tablicy
+
+  Dopisz tu wartość, dopisz stałą do `Leaderboard` i odpowiedz na dwa `when` w tym enumie. Kompilator
+  sam upomni się o mapowanie zasobu w `PlayGamesConfig`; wysyłka podchwyci nową pozycję sama, bo
+  `RankingSubmitter` przechodzi po `Leaderboard.entries` zamiast trzymać własną listę.
+
+  ## Dlaczego to nie jest w strings.xml
+
+  To nie są napisy do przetłumaczenia, tylko konfiguracja jednego środowiska Play Console — dlatego
+  ten plik nie ma odpowiednika w `values-pl` i wszystko jest tu `translatable="false"`.
+
+  ## Puste wartości są bezpieczne
+
+  Sprawdzone na bajtkodzie play-services-games-v2:20.1.2: SDK czyta APP_ID przez
+  Bundle.getString(..., "") i Long.parseLong, a powstały NumberFormatException łapie we własnej
+  tablicy wyjątków i zwraca null. Aplikacja startuje normalnie, nie działa wyłącznie logowanie do
+  Play Games. Brak tego pliku nie wywraca ani builda, ani aplikacji.
 -->
 <resources>
     <string name="play_games_app_id" translatable="false">714318331964</string>

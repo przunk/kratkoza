@@ -286,30 +286,20 @@ Do ustalenia poza liczbą użyć:
 - czy w grze solo działa bez ograniczeń (§18 dopuszcza),
 - czy pole wstawione podpowiedzią jest oznaczone i czy liczy się do XP.
 
-### Wymiana tablic wyników i reużywalność modułu rankingu
+### ~~Wymiana tablic wyników i reużywalność modułu rankingu~~ — zrobione 2026-08-28
 
-**Zgłoszone:** 2026-08-27. Do zrobienia **przed premierą** — patrz „Reset statystyk nie czyści
-tablic wyników" wyżej: tablice zbierają dziś wyniki testowe, których nie da się usunąć, więc przed
-publikacją i tak powstaną nowe.
+Deklaracja tablicy jest teraz w jednym miejscu: enum `domain/ranking/Leaderboard`. Dodanie tablicy to
+stała plus odpowiedź na dwa `when`; kompilator dopomina się wtedy o identyfikator w
+`PlayGamesConfig`, a wysyłka podchwytuje nową pozycję sama, bo `RankingSubmitter` przechodzi po
+`Leaderboard.entries` zamiast trzymać własną listę.
 
-Skoro wymiana jest pewna, ma być jednym ruchem, a nie polowaniem po plikach.
+Sprawdzone doświadczalnie, nie założone: dopisanie `WEEKLY_TOTAL` daje trzy odmowy kompilacji —
+dwie w `Leaderboard`, trzecią w `PlayGamesConfig`. Wcześniej submitter milczał.
 
-**Jak jest teraz.** Identyfikatory siedzą w `res/values/play_games_ids.xml` — to już dobrze i
-celowo. Ale sama *definicja* tablicy jest rozsypana: `Leaderboard` wylicza je w enumie,
-`PlayGamesConfig` mapuje każdą pozycję na osobny zasób ręcznym `when`, a `RankingSubmitter` wie z
-osobna, które trzy wysyłać po ukończeniu Daily i skąd brać ich wartości.
+**Wymiana identyfikatorów** przed premierą to edycja wyłącznie `res/values/play_games_ids.xml`;
+procedura jest opisana w nagłówku tego pliku.
 
-**Czego to nie wytrzyma.** Dołożenie tablicy — tygodniowej, regionalnej, dla trybu, którego jeszcze
-nie ma — wymaga dziś dotknięcia trzech plików i pamiętania o czwartym. Rozejście się tych miejsc
-nie wywoła błędu kompilacji wszędzie tam, gdzie powinno: `when` w `PlayGamesConfig` owszem, ale
-lista wysyłek w `RankingSubmitter` już nie.
-
-**Kierunek, nie rozstrzygnięcie.** Jedna deklaracja na tablicę, niosąca identyfikator zasobu i to,
-skąd bierze się wysyłana wartość — wtedy dodanie tablicy jest jedną pozycją, a wymiana identyfikatorów
-zostaje tam, gdzie jest. Wymaga przemyślenia, jak taka deklaracja sięga po dane, żeby nie wciągnąć
-repozytorium do domeny.
-
-**Przy okazji warto rozstrzygnąć:** czy suma wszech czasów ma dalej iść za resetem statystyk.
+**Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk.
 
 ## Wymaga decyzji
 
