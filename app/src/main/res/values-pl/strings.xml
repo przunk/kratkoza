@@ -24,6 +24,9 @@
     <string name="daily_results_total">Razem</string>
     <string name="daily_results_pending">Jeszcze nieukończone</string>
     <string name="daily_continue">Kontynuuj</string>
+    <string name="daily_leaderboard">Tablica wyników</string>
+    <string name="daily_sign_in">Zaloguj się do Play Games</string>
+    <string name="daily_sign_in_explained">Zaloguj się, żeby porównywać swoje dzienne wyniki z innymi graczami.</string>
     <string name="home_saved_games">Zapisane gry</string>
     <string name="home_statistics">Statystyki</string>
     <string name="home_settings">Ustawienia</string>

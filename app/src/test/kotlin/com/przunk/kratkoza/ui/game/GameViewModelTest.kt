@@ -707,6 +707,13 @@ private class RecordingRanking(
 
     val submissions = mutableListOf<Pair<Difficulty, Int>>()
 
+    // The game screen never signs in or opens a board; those belong to the Daily screen.
+    override suspend fun isSignedIn(): Boolean = true
+
+    override suspend fun signIn(): Boolean = true
+
+    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean = false
+
     override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
         submissions += difficulty to score
         return accepts

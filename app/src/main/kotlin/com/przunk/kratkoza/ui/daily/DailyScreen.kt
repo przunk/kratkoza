@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -123,13 +124,50 @@ fun DailyScreen(
             }
 
             items(state.entries, key = { it.puzzleId }) { entry ->
-                DailyCard(entry = entry, onOpen = { viewModel.open(entry.difficulty) })
+                DailyCard(
+                    entry = entry,
+                    onOpen = { viewModel.open(entry.difficulty) },
+                    // The board is worth showing whether or not today's attempt is done; it is the
+                    // only place the player can see where the score actually landed.
+                    onShowLeaderboard = if (state.signedIn) {
+                        { viewModel.showLeaderboard(entry.difficulty) }
+                    } else {
+                        null
+                    },
+                )
             }
 
             // Only once there is something to show. An empty results card on a day nobody has
             // played is a promise of information rather than information.
             if (state.entries.any { it.score != null }) {
                 item { DailyResults(entries = state.entries) }
+            }
+
+            // Below the boards, not above them: signing in is optional, and the day's puzzles are
+            // what the screen is for. Absent entirely when Play Games is not configured.
+            if (state.rankingAvailable && !state.signedIn) {
+                item { SignInCard(onSignIn = viewModel::signIn) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SignInCard(onSignIn: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.daily_sign_in_explained),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                OutlinedButton(onClick = onSignIn) {
+                    Text(stringResource(R.string.daily_sign_in))
+                }
             }
         }
     }
@@ -148,7 +186,12 @@ private fun changeoverText(date: LocalDate): String = remember(date) {
 }
 
 @Composable
-private fun DailyCard(entry: DailyEntry, onOpen: () -> Unit) {
+private fun DailyCard(
+    entry: DailyEntry,
+    onOpen: () -> Unit,
+    /** `null` when there is no ranking to open — the button is absent rather than dead. */
+    onShowLeaderboard: (() -> Unit)?,
+) {
     val context = LocalContext.current
     val solved = entry.status == DailyStatus.COMPLETED
 
@@ -169,6 +212,14 @@ private fun DailyCard(entry: DailyEntry, onOpen: () -> Unit) {
                         tint = SolvedTick,
                         modifier = Modifier.size(TICK_SIZE_DP.dp),
                     )
+                }
+                if (onShowLeaderboard != null) {
+                    IconButton(onClick = onShowLeaderboard) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_ranked),
+                            contentDescription = stringResource(R.string.daily_leaderboard),
+                        )
+                    }
                 }
             }
             Text(

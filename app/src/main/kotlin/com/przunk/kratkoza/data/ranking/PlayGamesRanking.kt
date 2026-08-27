@@ -24,10 +24,31 @@ class PlayGamesRanking(
     override val isAvailable: Boolean
         get() = config.isConfigured
 
+    override suspend fun isSignedIn(): Boolean {
+        val activity = activities.current() ?: return false
+        return signedIn(activity)
+    }
+
+    override suspend fun signIn(): Boolean {
+        val activity = activities.current() ?: return false
+        return PlayGames.getGamesSignInClient(activity).signIn().orNull()?.isAuthenticated == true
+    }
+
+    override suspend fun showLeaderboard(difficulty: Difficulty): Boolean {
+        val leaderboard = config.leaderboardFor(difficulty) ?: return false
+        val activity = activities.current() ?: return false
+        val intent = PlayGames.getLeaderboardsClient(activity)
+            .getLeaderboardIntent(leaderboard)
+            .orNull() ?: return false
+
+        activity.startActivity(intent)
+        return true
+    }
+
     override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
         val leaderboard = config.leaderboardFor(difficulty) ?: return false
         val activity = activities.current() ?: return false
-        if (!isSignedIn(activity)) return false
+        if (!signedIn(activity)) return false
 
         // submitScoreImmediate rather than submitScore: the fire-and-forget variant reports nothing,
         // and a caller that records "this reached the ranking" would be recording a guess.
@@ -36,7 +57,7 @@ class PlayGamesRanking(
             .orNull() != null
     }
 
-    private suspend fun isSignedIn(activity: Activity): Boolean =
+    private suspend fun signedIn(activity: Activity): Boolean =
         PlayGames.getGamesSignInClient(activity).isAuthenticated().orNull()?.isAuthenticated == true
 
     /**
