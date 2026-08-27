@@ -10,11 +10,8 @@ import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.GameType
-import com.przunk.kratkoza.domain.ranking.Leaderboard
-import com.przunk.kratkoza.domain.ranking.NoRanking
-import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.data.ranking.RankingSubmitter
 import com.przunk.kratkoza.domain.ranking.RankingLog
-import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.sudoku.Sudoku
@@ -50,7 +47,8 @@ class GameViewModel(
      * Where a finished Daily goes afterwards. Defaults to nowhere so that every test, and every
      * build without Play Games configured, behaves like a player who is simply not signed in.
      */
-    private val ranking: Ranking = NoRanking,
+    /** Absent in tests that do not care; the ranking is not this screen's job beyond handing over. */
+    private val rankingSubmitter: RankingSubmitter? = null,
     /**
      * Whether to offer the debug-only shortcuts. Defaults to the build type, so the control cannot
      * reach a release APK even if somebody forgets to hide it in the UI.
@@ -63,10 +61,6 @@ class GameViewModel(
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
-
-    /** What the ranking did with this game. Debug builds only — see [report]. */
-    private val _messages = Channel<String>(Channel.BUFFERED)
-    val messages = _messages.receiveAsFlow()
 
     private var game: SavedGame? = null
     private var settings: GameSettings = GameSettings.DEFAULT
@@ -306,81 +300,15 @@ class GameViewModel(
 
     private suspend fun finish() {
         val snapshot = snapshot() ?: run {
-            // Nothing to close out means the board was solved with no game loaded, which should be
-            // impossible — so it is worth hearing about rather than returning quietly.
-            report("game: finished with no snapshot")
+            rankingLog.add("game: finished with no snapshot")
             return
         }
         val finished = gameRepository.finishGame(snapshot, completed = true)
-        // Written before anything is decided, so the log distinguishes "the ranking said no" from
-        // "the game never reached this code".
-        report("game: finished ${finished.gameType} ${finished.difficulty} score=${finished.score}")
-        submitToRanking(finished)
-    }
+        rankingLog.add("game: finished ${finished.gameType} ${finished.difficulty} score=${finished.score}")
 
-    /**
-     * Offers a finished Daily to the public ranking.
-     *
-     * Deliberately silent in both directions. The board is already solved and already recorded, so
-     * a submission that does not land changes nothing the player can act on, and interrupting the
-     * finished-game screen to say so would be noise. What it does buy is an honest
-     * `publiclyRanked` flag, written only once the score has actually been accepted.
-     */
-    /** Debug builds only; a player has nothing to do about any of this. */
-    private suspend fun report(message: String) {
-        if (!debugTools) return
-        rankingLog.add(message)
-        _messages.send(message)
-    }
-
-    private suspend fun submitToRanking(finished: FinishedGame) {
-        // Each way out says so. Silence used to cover all of them at once, which made "no message"
-        // mean anything from "this was a solo game" to "the code never ran".
-        if (finished.gameType != GameType.DAILY) {
-            report("ranking: skipped — solo games are not ranked")
-            return
-        }
-        if (!finished.rankedEligible) {
-            report("ranking: skipped — this daily left the ranking")
-            return
-        }
-        val score = finished.score ?: run {
-            report("ranking: skipped — no score was recorded")
-            return
-        }
-        if (!ranking.isAvailable) {
-            report("ranking: skipped — Play Games is not configured")
-            return
-        }
-        val board = Leaderboard.forDaily(finished.difficulty) ?: run {
-            report("ranking: skipped — no board for ${finished.difficulty}")
-            return
-        }
-
-        // The level board first: it is the one whose acceptance decides publiclyRanked, because it
-        // is the only one carrying this game's own result rather than a running sum.
-        if (send(board, score.toLong()) is SubmissionOutcome.Submitted) {
-            gameRepository.markPubliclyRanked(finished.historyId)
-        }
-
-        // Then the totals, which are recomputed from the record rather than added up here — the
-        // stored rows are what the statistics screen reads, and two additions of the same numbers
-        // would eventually disagree.
-        val totals = gameRepository.dailyTotals(puzzleId) ?: return
-        send(Leaderboard.DAILY_TOTAL, totals.today)
-        send(Leaderboard.ALL_TIME_TOTAL, totals.allTime)
-    }
-
-    private suspend fun send(board: Leaderboard, value: Long): SubmissionOutcome {
-        val outcome = ranking.submit(board, value)
-        report(
-            when (outcome) {
-                is SubmissionOutcome.Submitted -> "ranking: sent $value to $board"
-                is SubmissionOutcome.Queued -> "ranking: queued $value to $board (${outcome.detail})"
-                is SubmissionOutcome.Failed -> "ranking: $board — ${outcome.detail}"
-            },
-        )
-        return outcome
+        // Handed over rather than awaited. The submitter runs on the application's scope, so the
+        // sequence survives this screen being left — which it previously did not.
+        rankingSubmitter?.submit(finished, puzzleId)
     }
 
     /** Writes the current game out. Fire and forget: the next move will write again anyway. */
