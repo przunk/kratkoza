@@ -57,28 +57,85 @@ Play nie wpuści aplikacji bez nich, a wypełnić może je tylko właściciel.
 
 ## 6. Play Games Services — to blokuje ranking
 
-- [ ] **Play Games Services → utwórz grę** i powiąż ją z aplikacją `com.przunk.kratkoza`.
-- [ ] **Dodaj odciski SHA-1 do poświadczeń OAuth.** Uwaga, to najczęstsze miejsce potknięcia —
-      trzeba dodać **dwa lub trzy**, nie jeden:
+- [x] **Play Games Services → utwórz grę** i powiąż ją z aplikacją `com.przunk.kratkoza`.
+- [x] Projekt Cloud i klient OAuth utworzone i podpięte pod aplikację.
+- [x] Ikona i grafika gry, konfiguracja projektu.
 
-  | klucz | skąd | po co |
-  |---|---|---|
-  | **klucz podpisujący aplikację** | Play Console → Integralność aplikacji | buildy z Play — bez tego logowanie działa lokalnie i pada u graczy |
-  | klucz upload | `keytool -list -v -keystore ~/keys/kratkoza-upload.jks -alias kratkoza` | buildy wysyłane przez Ciebie |
-  | klucz debug | `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` | APK z `build-kratkoza-debug.sh` |
+### Odciski SHA-1 — krok po kroku
 
-  Jeśli masz włączone Play App Signing (domyślne), Google **przepisuje** podpis po wysłaniu. Wtedy
-  odcisk, który liczy się dla graczy, to ten z „Integralności aplikacji", a nie Twój klucz upload.
-  Zarejestrowanie tylko uploadowego to klasyczny błąd, który objawia się jako „logowanie działa
-  u mnie, nie działa u nikogo innego".
+To jest najczęstsze miejsce potknięcia w całej konfiguracji, więc rozpisane dokładnie.
 
-- [ ] **Utwórz trzy tablice wyników**, po jednej na poziom Daily. Sortowanie: **wynik większy jest
+**Dlaczego trzy, a nie jeden.** Klient OAuth typu Android to para: *nazwa pakietu + jeden odcisk
+SHA-1*. Play Games wpuszcza urządzenie do logowania tylko wtedy, gdy certyfikat, którym naprawdę
+podpisano zainstalowany APK, ma swojego klienta OAuth w projekcie Cloud powiązanym z grą. Na
+urządzeniach ląduje **kilka różnych certyfikatów**, więc jeden klient nie wystarczy:
+
+| certyfikat | trafia na urządzenie gdy | skąd wziąć odcisk |
+|---|---|---|
+| **klucz podpisujący aplikację** | gracz pobiera z Play — Google przepisuje podpis | Play Console → Testowanie i publikowanie → **Integralność aplikacji** |
+| klucz upload | instalujesz lokalnie to, co sam podpisałeś | `keytool` na `google-play-upload.jks` |
+| klucz debug | instalujesz APK z `build-kratkoza-debug.sh` | już znany, patrz niżej |
+
+Pominięcie pierwszego wiersza daje objaw „logowanie działa u mnie, nie działa u nikogo innego" —
+bo u Ciebie na telefonie siedzi build podpisany kluczem upload albo debug, a u graczy build
+przepisany przez Google.
+
+**Krok 1 — zbierz trzy odciski.**
+
+Debug (sprawdzony na tej maszynie, nic nie musisz robić):
+
+```
+DB:9E:B7:2C:7C:72:87:14:3F:AB:00:4A:E1:0C:D8:CE:C0:C2:7F:53
+```
+
+Upload — wpisz hasło, gdy zapyta. Hasło nie trafi ani do historii powłoki, ani do wyniku:
+
+```bash
+read -rs -p "haslo keystore: " KS && echo && \
+  /mnt/workspace/.tooling/jdk/bin/keytool -list -v \
+    -keystore /mnt/d/Projects/google-play-upload.jks -storepass "$KS" \
+  | grep -E "Alias name|SHA1:"; unset KS
+```
+
+Klucz podpisujący: **Play Console → Testowanie i publikowanie → Integralność aplikacji →
+Certyfikat klucza podpisywania aplikacji**. Skopiuj wiersz `SHA-1`.
+
+**Krok 2 — sprawdź, który z nich już masz.** W **Google Cloud Console** otwórz projekt powiązany
+z grą, dalej **Interfejsy API i usługi → Dane logowania**. W sekcji *Identyfikatory klientów
+OAuth 2.0* kliknij pozycję typu Android — pokaże nazwę pakietu i odcisk. Porównaj z trzema
+powyżej i zapisz, którego wiersza dotyczy.
+
+**Krok 3 — dołóż dwa brakujące.** Tam samo: **+ Utwórz dane logowania → Identyfikator klienta
+OAuth → Typ aplikacji: Android**. Dla każdego brakującego odcisku:
+
+- Nazwa: taka, żeby dało się je rozróżnić, np. `Kratkoza – klucz upload`,
+- Nazwa pakietu: `com.przunk.kratkoza` (identyczna we wszystkich trzech),
+- Odcisk certyfikatu SHA-1: wklej odcisk z kroku 1.
+
+Wszystkie trzy muszą powstać **w tym samym projekcie Cloud**, tym, który jest powiązany z grą.
+Klient OAuth w innym projekcie nie zadziała i nie da żadnego komunikatu o błędzie.
+
+**Krok 4 — wróć do Play Games Services → Konfiguracja → Dane logowania** i upewnij się, że gra ma
+poświadczenie typu Android wskazujące na klienta z kluczem podpisywania aplikacji. Jeśli konsola
+pozwala dodać kolejne poświadczenia Android, dodaj też pozostałe dwa. Jeśli nie pozwala — nic
+straconego, dopasowanie i tak idzie po projekcie Cloud.
+
+**Krok 5 — dodaj siebie jako testera:** Play Games Services → **Testerzy**. Zanim gra zostanie
+opublikowana, zalogują się wyłącznie konta z tej listy. Bez tego własny build wygląda jak zepsuty.
+
+### Reszta konfiguracji
+
+- [x] **Utwórz trzy tablice wyników**, po jednej na poziom Daily. Sortowanie: **wynik większy jest
       lepszy**, format liczbowy całkowity.
 - [ ] **Opublikuj konfigurację Play Games** — dopóki jest w wersji roboczej, nie działa nawet dla
       Ciebie.
-- [ ] Dodaj siebie jako testera w sekcji testów Play Games.
-- [ ] **Przekaż mi identyfikatory tablic.** Wyglądają jak `CgkI...`. Bez nich integracji nie da się
-      napisać inaczej niż w ciemno.
+- [ ] **Przekaż mi identyfikatory tablic.** Wyglądają jak `CgkI...`. Znajdziesz je przy każdej
+      tablicy w Play Games Services → Tablice wyników. Bez nich integracji nie da się napisać
+      inaczej niż w ciemno.
+- [ ] **Nazwa trzeciej tablicy.** Nazwałeś ją „Daily – deadly”, a poziom w aplikacji nazywa się
+      **Master**. Play pokazuje graczowi nazwę z konsoli, więc albo zmień ją na „Daily – master”,
+      albo powiedz, że zostaje — wtedy tak samo nazwiemy poziom w aplikacji. Byle nie zostały dwie
+      różne nazwy jednej rzeczy.
 
 Trzy fakty sprawdzone w dokumentacji, żebyś nie odkrywał ich w konsoli:
 
