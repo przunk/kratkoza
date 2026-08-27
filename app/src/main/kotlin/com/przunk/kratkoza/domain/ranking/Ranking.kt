@@ -63,7 +63,18 @@ sealed interface LeaderboardOutcome {
  * otherwise unanswerable from outside.
  */
 sealed interface SubmissionOutcome {
+    /** Confirmed by the service: the score is on the board. */
     data object Submitted : SubmissionOutcome
+
+    /**
+     * Handed over, not confirmed.
+     *
+     * Play Games can accept a score without being able to say what became of it, and delivering it
+     * afterwards is then its own business. That is a real success from the game's side and a
+     * genuinely unknown one from the record's, so it is neither of the other two.
+     */
+    data class Queued(val detail: String) : SubmissionOutcome
+
     data class Failed(val detail: String) : SubmissionOutcome
 }
 

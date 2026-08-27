@@ -327,6 +327,10 @@ class GameViewModel(
                 report("ranking: sent $score")
             }
 
+            // Not marked as ranked: Play Services owns delivery from here and cannot say whether
+            // it happened, and a flag that means "confirmed" must not start meaning "probably".
+            is SubmissionOutcome.Queued -> report("ranking: queued $score (${outcome.detail})")
+
             is SubmissionOutcome.Failed -> report("ranking: ${outcome.detail}")
         }
     }

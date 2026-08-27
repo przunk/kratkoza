@@ -677,7 +677,7 @@ class GameViewModelTest {
         // No signed-in player, no network, no Play Games at all: the board is solved either way,
         // and only the public half of the result is missing.
         val daily = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking(accepts = false)
+        val ranking = RecordingRanking(outcome = SubmissionOutcome.Failed("refused"))
         val viewModel = viewModelFor(daily, ranking)
 
         solve(viewModel, daily)
@@ -722,6 +722,23 @@ class GameViewModelTest {
         assertTrue(historyDao.all.none { it.completed })
     }
 
+    @Test
+    fun `a queued score is not claimed as confirmed`() = gameTest {
+        // Play Services took the score but cannot say what became of it. The board is on its way to
+        // the ranking, and publiclyRanked still means "confirmed" rather than "probably".
+        val daily = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking(outcome = SubmissionOutcome.Queued("client reconnect required"))
+        val viewModel = viewModelFor(daily, ranking)
+
+        viewModel.autoSolve()
+        idle()
+
+        assertEquals(1, ranking.submissions.size)
+        val row = historyDao.all.single()
+        assertTrue("the game is still finished and scored", row.completed)
+        assertFalse("but nothing confirmed it reached the board", row.publiclyRanked)
+    }
+
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
@@ -741,7 +758,7 @@ class GameViewModelTest {
 /** A ranking that remembers what it was handed, and whether it agreed to take it. */
 private class RecordingRanking(
     override val isAvailable: Boolean = true,
-    private val accepts: Boolean = true,
+    private val outcome: SubmissionOutcome = SubmissionOutcome.Submitted,
 ) : Ranking {
 
     val submissions = mutableListOf<Pair<Difficulty, Int>>()
@@ -756,7 +773,7 @@ private class RecordingRanking(
 
     override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome {
         submissions += difficulty to score
-        return if (accepts) SubmissionOutcome.Submitted else SubmissionOutcome.Failed("refused")
+        return outcome
     }
 }
 

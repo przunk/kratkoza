@@ -100,19 +100,27 @@ class PlayGamesRanking(
         var request = submitOnce(activity, leaderboard, score)
 
         // CLIENT_RECONNECT_REQUIRED means the games client's session went stale between
-        // authenticating and submitting — isAuthenticated says yes while the connection behind it
-        // no longer holds. Re-authenticating and trying once more is the remedy, and it is
-        // invisible to the player, who has already finished the board.
+        // authenticating and submitting — isAuthenticated answers yes while the connection behind
+        // it no longer holds. Re-authenticating and trying once more is the first remedy.
         if (statusCodeOf(request.exception) == CLIENT_RECONNECT_REQUIRED) {
             PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull()
             request = submitOnce(activity, leaderboard, score)
         }
 
-        return if (request.isSuccessful) {
-            SubmissionOutcome.Submitted
-        } else {
-            SubmissionOutcome.Failed(describe(request.exception, leaderboard))
-        }
+        if (request.isSuccessful) return SubmissionOutcome.Submitted
+
+        // Nothing left to confirm with, so stop trying to confirm. submitScore returns void because
+        // it does not report back at all: it queues the score inside Play Services, which delivers
+        // it when the client is next healthy. That is exactly the situation here, and it is the
+        // difference between a score that eventually lands and one that is thrown away for the sake
+        // of a receipt.
+        val reason = describe(request.exception, leaderboard)
+        return runCatching {
+            PlayGames.getLeaderboardsClient(activity).submitScore(leaderboard, score.toLong())
+        }.fold(
+            onSuccess = { SubmissionOutcome.Queued(reason) },
+            onFailure = { SubmissionOutcome.Failed("$reason; queueing also failed: ${it.message}") },
+        )
     }
 
     /**
