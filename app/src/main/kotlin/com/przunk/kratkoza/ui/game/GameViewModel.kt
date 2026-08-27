@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.BoardInsights
+import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
+import com.przunk.kratkoza.domain.ranking.NoRanking
+import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.sudoku.Sudoku
@@ -36,6 +39,11 @@ class GameViewModel(
      * taking the flow keeps this class free of Android `Context` and testable on the JVM.
      */
     settingsFlow: Flow<GameSettings>,
+    /**
+     * Where a finished Daily goes afterwards. Defaults to nowhere so that every test, and every
+     * build without Play Games configured, behaves like a player who is simply not signed in.
+     */
+    private val ranking: Ranking = NoRanking,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
@@ -260,8 +268,25 @@ class GameViewModel(
     }
 
     private suspend fun finish() {
-        val finished = snapshot() ?: return
-        gameRepository.finishGame(finished, completed = true)
+        val snapshot = snapshot() ?: return
+        val finished = gameRepository.finishGame(snapshot, completed = true)
+        submitToRanking(finished)
+    }
+
+    /**
+     * Offers a finished Daily to the public ranking.
+     *
+     * Deliberately silent in both directions. The board is already solved and already recorded, so
+     * a submission that does not land changes nothing the player can act on, and interrupting the
+     * finished-game screen to say so would be noise. What it does buy is an honest
+     * `publiclyRanked` flag, written only once the score has actually been accepted.
+     */
+    private suspend fun submitToRanking(finished: FinishedGame) {
+        if (!finished.belongsInRanking || !ranking.isAvailable) return
+        val score = finished.score ?: return
+        if (ranking.submitDailyScore(finished.difficulty, score)) {
+            gameRepository.markPubliclyRanked(finished.historyId)
+        }
     }
 
     /** Writes the current game out. Fire and forget: the next move will write again anyway. */

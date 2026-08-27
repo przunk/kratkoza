@@ -10,9 +10,9 @@
   logowanie do Play Games. Nie jest to więc plik, którego brak wywraca build ani aplikację.
 -->
 <resources>
-    <string name="play_games_app_id" translatable="false"></string>
+    <string name="play_games_app_id" translatable="false">714318331964</string>
 
-    <string name="leaderboard_daily_easy" translatable="false"></string>
-    <string name="leaderboard_daily_hard" translatable="false"></string>
-    <string name="leaderboard_daily_master" translatable="false"></string>
+    <string name="leaderboard_daily_easy" translatable="false">CgkIvIDDheUUEAIQAQ</string>
+    <string name="leaderboard_daily_hard" translatable="false">CgkIvIDDheUUEAIQAg</string>
+    <string name="leaderboard_daily_master" translatable="false">CgkIvIDDheUUEAIQAw</string>
 </resources>

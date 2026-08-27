@@ -2,8 +2,12 @@ package com.przunk.kratkoza.di
 
 import android.content.Context
 import com.przunk.kratkoza.data.local.KratkozaDatabase
+import com.przunk.kratkoza.data.ranking.ActivityHolder
+import com.przunk.kratkoza.data.ranking.PlayGamesConfig
+import com.przunk.kratkoza.data.ranking.PlayGamesRanking
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.data.repository.SettingsRepository
+import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import kotlinx.coroutines.Dispatchers
 
@@ -23,6 +27,16 @@ class AppContainer(context: Context) {
     private val database: KratkozaDatabase by lazy { KratkozaDatabase.create(applicationContext) }
 
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(applicationContext) }
+
+    /**
+     * The Activity the Play Games SDK asks for. MainActivity puts itself here; nothing else should.
+     */
+    val activities = ActivityHolder()
+
+    /** The public ranking (project.md section 27), inert until Play Console identifiers are filled in. */
+    val ranking: Ranking by lazy {
+        PlayGamesRanking(PlayGamesConfig(applicationContext), activities)
+    }
 
     val gameRepository: GameRepository by lazy {
         GameRepository(

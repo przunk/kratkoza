@@ -20,6 +20,7 @@ import com.przunk.kratkoza.domain.daily.DailyScore
 import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.game.GameState
+import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.game.SavedGameSummary
@@ -325,7 +326,7 @@ class GameRepository(
      * The game is then counted as both started and finished at this moment, which is the honest
      * reading: as far as the record is concerned, it began when the record did.
      */
-    suspend fun finishGame(game: SavedGame, completed: Boolean) {
+    suspend fun finishGame(game: SavedGame, completed: Boolean): FinishedGame {
         val now = clock()
         // project.md section 32: XP is for finishing. An abandoned game earns none, and mistakes
         // take none away — the penalty for guessing belongs to the ranking (section 29), not here.
@@ -347,7 +348,7 @@ class GameRepository(
             null
         }
 
-        if (game.historyId == NO_HISTORY_ROW) {
+        val historyId = if (game.historyId == NO_HISTORY_ROW) {
             historyDao.insert(
                 historyEntry(game.state.puzzle, startedAt = game.startedAt).copy(
                     finishedAt = now,
@@ -370,9 +371,26 @@ class GameRepository(
                 rankedEligible = game.rankedEligible,
                 score = score,
             )
+            game.historyId
         }
         savedGameDao.delete(game.state.puzzle.id)
+
+        return FinishedGame(
+            historyId = historyId,
+            gameType = game.state.puzzle.gameType,
+            difficulty = game.state.puzzle.difficulty,
+            score = score,
+            rankedEligible = game.rankedEligible,
+        )
     }
+
+    /**
+     * Records that a result actually reached the public ranking.
+     *
+     * Separate from finishing on purpose: the row has to be written before the network is involved,
+     * so that a solved board survives a failed submission. This is the second, optional half.
+     */
+    suspend fun markPubliclyRanked(historyId: Long) = historyDao.markPubliclyRanked(historyId)
 
     /** Abandons a game. The history row stays open, so it still counts as started but not completed. */
     suspend fun deleteSave(puzzleId: String) = savedGameDao.delete(puzzleId)

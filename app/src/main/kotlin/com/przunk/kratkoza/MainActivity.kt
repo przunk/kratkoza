@@ -38,11 +38,20 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(AppLocales.wrap(newBase, language))
     }
 
+    override fun onDestroy() {
+        (application as KratkozaApplication).container.activities.detach()
+        super.onDestroy()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         val container = (application as KratkozaApplication).container
+
+        // Play Games obtains every one of its clients from an Activity, and there is only ever this
+        // one. The holder keeps the reference weak, and onDestroy drops it either way.
+        container.activities.attach(this)
 
         setContent {
             // Read here rather than inside the theme so the whole tree recomposes on one value, and

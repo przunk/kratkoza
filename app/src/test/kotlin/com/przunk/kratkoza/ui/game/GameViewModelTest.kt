@@ -8,6 +8,8 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.NoRanking
+import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
@@ -23,6 +25,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -70,11 +73,12 @@ class GameViewModelTest {
      */
     private val store = ViewModelStore()
 
-    private fun viewModelFor(game: SavedGame): GameViewModel {
+    private fun viewModelFor(game: SavedGame, ranking: Ranking = NoRanking): GameViewModel {
         val viewModel = GameViewModel(
             puzzleId = game.state.puzzle.id,
             gameRepository = repository,
             settingsFlow = settings,
+            ranking = ranking,
             clock = { now },
         )
         store.put(game.state.puzzle.id, viewModel)
@@ -615,6 +619,97 @@ class GameViewModelTest {
             daily.state.puzzle.solution[gap],
             viewModel.uiState.value.eightOfNineHints[gap],
         )
+    }
+
+    @Test
+    fun `a solved daily reaches the ranking and is then recorded as ranked`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking()
+        val viewModel = viewModelFor(daily, ranking)
+
+        solve(viewModel, daily)
+        idle()
+
+        val row = historyDao.all.single()
+        val (difficulty, score) = ranking.submissions.single()
+        assertEquals(Difficulty.EASY, difficulty)
+        // The score that travels is the one that was stored, not a second evaluation of the rules.
+        assertEquals(row.score, score)
+        assertTrue("an accepted submission must be recorded", row.publiclyRanked)
+    }
+
+    @Test
+    fun `a daily that lost its ranking eligibility is never submitted`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        repository.save(daily.copy(rankedEligible = false))
+        val ranking = RecordingRanking()
+        val viewModel = viewModelFor(daily, ranking)
+
+        solve(viewModel, daily)
+        idle()
+
+        assertTrue("an ineligible daily must not reach the ranking", ranking.submissions.isEmpty())
+        assertFalse(historyDao.all.single().publiclyRanked)
+    }
+
+    @Test
+    fun `a solo game is not offered to the ranking`() = gameTest {
+        // project.md section 29: only a Daily is scored, so only a Daily has anywhere to go.
+        val game = startGame(Difficulty.EASY)
+        val ranking = RecordingRanking()
+        val viewModel = viewModelFor(game, ranking)
+
+        solve(viewModel, game)
+        idle()
+
+        assertTrue(ranking.submissions.isEmpty())
+    }
+
+    @Test
+    fun `a rejected submission still leaves the game finished`() = gameTest {
+        // No signed-in player, no network, no Play Games at all: the board is solved either way,
+        // and only the public half of the result is missing.
+        val daily = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking(accepts = false)
+        val viewModel = viewModelFor(daily, ranking)
+
+        solve(viewModel, daily)
+        idle()
+
+        assertEquals(GameUiState.Phase.SOLVED, viewModel.uiState.value.phase)
+        val row = historyDao.all.single()
+        assertTrue("the game itself must still be finished", row.completed)
+        assertNotNull("and still scored", row.score)
+        assertFalse("but not claimed as ranked", row.publiclyRanked)
+    }
+
+    private suspend fun startDaily(difficulty: Difficulty): SavedGame {
+        val day = java.time.LocalDate.parse("2026-08-26")
+        repository.dailySet(day)
+        return requireNotNull(repository.startDaily(day, difficulty))
+    }
+
+    /** Fills every empty cell with the solution, the way a player finishing a board would. */
+    private fun solve(viewModel: GameViewModel, game: SavedGame) {
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (!game.state.puzzle.givens.isEmpty(cell)) continue
+            viewModel.selectCell(cell)
+            viewModel.enterDigit(game.state.puzzle.solution[cell])
+        }
+    }
+}
+
+/** A ranking that remembers what it was handed, and whether it agreed to take it. */
+private class RecordingRanking(
+    override val isAvailable: Boolean = true,
+    private val accepts: Boolean = true,
+) : Ranking {
+
+    val submissions = mutableListOf<Pair<Difficulty, Int>>()
+
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
+        submissions += difficulty to score
+        return accepts
     }
 }
 
