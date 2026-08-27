@@ -1,86 +1,72 @@
-# Zadanie: testy Compose UI dla ekranów pomocniczych
+# Zadanie: statystyki Daily
 
 > Zasady współpracy — worktree, gałęzie, konwencje, kto scala — są w `codex_instructions.md`.
 > Przeczytaj je najpierw. Ten plik opisuje wyłącznie bieżące zadanie.
 
-**Gałąź:** `test/compose-ui-screens` z `develop`.
+**Gałąź:** `feature/daily-statistics` z `develop`.
 
-**Pliki, których dotyczy zadanie — same testy:**
-- `app/src/test/kotlin/com/przunk/kratkoza/ui/settings/`
-- `app/src/test/kotlin/com/przunk/kratkoza/ui/statistics/`
-- `app/src/test/kotlin/com/przunk/kratkoza/ui/saves/`
-- `app/src/test/kotlin/com/przunk/kratkoza/ui/newgame/`
+**Pliki, których dotyczy zadanie:**
+- `data/local/Daos.kt` — nowe zapytania
+- `domain/stats/Statistics.kt` — model
+- `data/repository/GameRepository.kt` — złożenie
+- `ui/statistics/` — ekran i ViewModel
+- `res/values*/strings.xml` — sekcja „Statystyki"
+- testy: `data/`, `data/local/`, `ui/statistics/`
 
-**Nie zmieniaj kodu produkcyjnego.** Jeśli test czegoś nie da się napisać bez zmiany w `app/src/main`,
-to jest wynik sam w sobie — zapisz co i dlaczego, i zostaw resztę zadania zrobioną.
-
-Równolegle trwa praca nad Daily, która dotyka `ui/game/*`, `ui/daily/*`, `ui/home/*`,
-`domain/daily/*`, `data/*` i `navigation/*`. **Tych ekranów nie testuj w tym zadaniu** — zmieniają
-się pod ręką i testy do nich trzeba będzie pisać po scaleniu.
+Równolegle piszę testy Compose dla ekranów gry, Daily i ekranu głównego — dotykam
+`app/src/test/kotlin/.../ui/{game,daily,home}/`. **Tam nie wchodź.** Poza tym nasze zakresy się nie
+przecinają.
 
 ---
 
 ## Dlaczego to zadanie
 
-`technical_requirements.md` §15 wymaga testów Compose dla najważniejszych interakcji, a projekt nie
-ma ich wcale. `docs/STATUS.md` mówi wprost: **żadna zmiana wizualna nie jest wyłapywana maszynowo.**
-To ostatnia duża dziura w pokryciu — logika, warstwa danych i ViewModele są przetestowane.
+`project.md` §33 wymienia **statystyki Daily** wśród wymaganych statystyk lokalnych i jest to
+jedyna pozycja z tej listy, której nie ma. Daily działa od wczoraj, więc dane już się zbierają —
+tylko nikt ich nie pokazuje.
 
-**Infrastruktura jest już gotowa i sprawdzona.** Testy Compose działają w tym projekcie na JVM przez
-Robolectrica, bez urządzenia — patrz `ComposeSmokeTest`, który to potwierdza i celowo został jako
-osobny plik. Nie musisz nic konfigurować; `createComposeRule()` i `@RunWith(AndroidJUnit4::class)`
-wystarczą.
+## Co ma być widać
 
-## Co ma być pokryte
+Sekcja „Daily" na ekranie statystyk, obok tego, co już tam jest:
 
-Ekrany, których dotyczy zadanie, mają ViewModele o prostych zależnościach — użyj istniejących
-atrap z `app/src/test/kotlin/com/przunk/kratkoza/data/FakeDaos.kt`, tak jak robią to testy
-ViewModeli obok.
+- **ile Daily ukończono** — łącznie i z podziałem na poziomy,
+- **suma zdobytych punktów** oraz **najlepszy pojedynczy wynik**,
+- **średni wynik** na ukończone Daily,
+- **ile Daily rozegrano bez utraty kwalifikacji rankingowej** — kolumna `rankedEligible`
+  w `game_history` już to niesie.
 
-**Ustawienia** (`SettingsScreen`)
-- każda sekcja jest widoczna: język, paleta, wygląd, rozgrywka, o aplikacji,
-- przełącznik faktycznie zmienia stan — kliknięcie „Automatycznie usuwaj kandydatów" odbija się
-  w `GameSettings`,
-- wybór palety zaznacza właściwą pozycję i pokazuje podgląd dla każdej z czterech,
-- wersja z `BuildConfig` jest wypisana.
+Sekcja pojawia się **tylko wtedy, gdy jest co pokazać**. Zero wierszy z zerami na koncie kogoś, kto
+nie grał jeszcze w Daily — reszta ekranu robi to samo i warto zachować spójność.
 
-**Statystyki** (`StatisticsScreen`)
-- pusty dorobek nie pokazuje „—" tam, gdzie powinna być liczba, ani odwrotnie,
-- poziom i pasek XP zgadzają się z `Progress`,
-- wiersz „W toku" pojawia się tylko dla poziomów, które faktycznie coś mają,
-- przycisk resetu jest nieaktywny przy pustym dorobku i pyta o potwierdzenie przy niepustym.
+## Skąd brać dane
 
-**Zapisane gry** (`SavedGamesScreen`)
-- pusta lista pokazuje komunikat, a nie pustą kartę,
-- wiersz pokazuje poziom, czas, procent wypełnienia i liczbę błędów,
-- **dwustopniowe usuwanie**: kosz → „USUŃ" → dopiero drugie kliknięcie usuwa; po 3 s wraca kosz,
-- uzbrojenie jednego wiersza rozbraja poprzedni.
+`game_history` ma wszystko: `gameType = 'DAILY'`, `completed`, `score`, `rankedEligible`,
+`difficulty`. Wynik jest liczony przy kończeniu gry przez `DailyScore` i zapisywany — **nie licz go
+ponownie w zapytaniu ani w UI.** Gdyby wzór się zmienił, wiersze historii mają dalej mówić, ile
+partia była warta wtedy; to ta sama zasada, dla której istnieje `rulesetVersion`.
 
-**Nowa gra** (`NewGameScreen`)
-- pięć poziomów, każdy klikalny,
-- okno wklejania kodu przyjmuje tekst i zamyka się,
-- trzy komunikaty błędu importu pojawiają się dla trzech różnych przyczyn.
+`score` jest `NULL` dla gier solo i dla nieukończonych. `NULL` to „nie punktowana", a nie zero —
+`AVG` i `SUM` same je pomijają, ale `COUNT(*)` już nie, więc uważaj, co liczysz.
 
 ## Na co uważać
 
-- **Testuj to, co widzi gracz, nie strukturę.** Wyszukiwanie po tekście z zasobów jest odporne na
-  przestawienie układu; wyszukiwanie po pozycji w drzewie nie jest.
-- Teksty biorą się z zasobów, a testy chodzą po angielsku — pobieraj je przez kontekst zamiast
-  wpisywać na sztywno, inaczej test przestanie przechodzić przy pierwszej korekcie tłumaczenia.
-- Dwustopniowe usuwanie ma **odliczanie 3 s**. `ComposeTestRule` domyślnie sam przesuwa zegar; jeśli
-  będzie z tym kłopot, `mainClock.advanceTimeBy` daje kontrolę.
-- Jeżeli test przechodzi, ale nie umiałbyś powiedzieć, co by go zepsuło — usuń go. Test, który nie
-  potrafi zawieść, kosztuje czas budowania i niczego nie chroni.
+- **Zapytania agregujące pisz z testem na prawdziwej bazie**, nie tylko na atrapie. `FakeDaos`
+  reimplementuje SQL w Kotlinie i tak właśnie przeszedł kiedyś zepsuty reset statystyk — sprawdzał
+  imitację, nie kod. Wzorzec jest w `GameHistoryDaoTest`.
+- **Reset statystyk musi czyścić też te liczby.** Skoro liczysz z `game_history`, dostaniesz to za
+  darmo — ale sprawdź testem, bo to jest dokładnie ta rzecz, którą łatwo przeoczyć.
+- Liczby formatuj przez `NumberFormat`, jak reszta ekranu (`project.md` §4).
+- Puste wartości pokazuj jako „—", nie jako zero. „Brak najlepszego wyniku" i „najlepszy wynik
+  zero" to dwa różne zdania.
+- Dopisz testy Compose dla nowej sekcji — infrastruktura działa, a Twoje testy z poprzedniego
+  zadania są dobrym wzorem.
 
 ## Weryfikacja
 
 ```bash
-cd <twój worktree>
 ./scripts/test-kratkoza.sh
 ./scripts/lint-kratkoza.sh
 ```
 
-Wersji **nie podbijaj** — robi to scalający.
-
-W opisie commita napisz, czego **nie** udało się przetestować i dlaczego. To cenniejsze niż lista
-tego, co przeszło.
+Wersji nie podbijaj, jeśli nie scalasz. W opisie commita napisz, czego **nie** udało się sprawdzić
+maszynowo.
