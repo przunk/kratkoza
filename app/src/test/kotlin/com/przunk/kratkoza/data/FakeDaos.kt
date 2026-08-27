@@ -1,10 +1,12 @@
 package com.przunk.kratkoza.data
 
 import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyDifficultyStatisticsRow
 import com.przunk.kratkoza.data.local.DailyPuzzleDao
 import com.przunk.kratkoza.data.local.DailyPuzzleEntity
 import com.przunk.kratkoza.data.local.GameHistoryDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
+import com.przunk.kratkoza.data.local.DailyStatisticsSummaryRow
 import com.przunk.kratkoza.data.local.PuzzleDao
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
@@ -12,6 +14,7 @@ import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
+import com.przunk.kratkoza.domain.model.GameType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -187,6 +190,28 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
             )
         }
     }
+
+    override fun observeDailySummary(): Flow<DailyStatisticsSummaryRow> = entries.map { list ->
+        val completed = list.filter { it.gameType == GameType.DAILY.name && it.completed }
+        val scores = completed.mapNotNull { it.score }
+        DailyStatisticsSummaryRow(
+            completedCount = completed.size,
+            totalScore = scores.takeIf { it.isNotEmpty() }?.sumOf { it.toLong() },
+            bestScore = scores.maxOrNull(),
+            averageScore = scores.averageOrNull(),
+            rankedEligibleCount = completed.count { it.rankedEligible },
+        )
+    }
+
+    override fun observeDailyByDifficulty(): Flow<List<DailyDifficultyStatisticsRow>> =
+        entries.map { list ->
+            list.filter { it.gameType == GameType.DAILY.name && it.completed }
+                .groupingBy { it.difficulty }
+                .eachCount()
+                .map { (difficulty, completedCount) ->
+                    DailyDifficultyStatisticsRow(difficulty, completedCount)
+                }
+        }
 }
 
 private fun List<Number>.averageOrNull(): Double? =

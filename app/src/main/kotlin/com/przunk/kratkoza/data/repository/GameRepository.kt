@@ -2,8 +2,10 @@ package com.przunk.kratkoza.data.repository
 
 import com.przunk.kratkoza.data.local.GameHistoryDao
 import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyDifficultyStatisticsRow
 import com.przunk.kratkoza.data.local.DailyPuzzleDao
 import com.przunk.kratkoza.data.local.DailyPuzzleEntity
+import com.przunk.kratkoza.data.local.DailyStatisticsSummaryRow
 import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.MoveHistoryCodec
@@ -28,6 +30,8 @@ import com.przunk.kratkoza.domain.progress.PlayerProgress
 import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.share.BoardImportResult
 import com.przunk.kratkoza.domain.stats.DifficultyStatistics
+import com.przunk.kratkoza.domain.stats.DailyDifficultyStatistics
+import com.przunk.kratkoza.domain.stats.DailyStatistics
 import com.przunk.kratkoza.domain.stats.Statistics
 import com.przunk.kratkoza.domain.sudoku.DifficultyEvaluator
 import com.przunk.kratkoza.domain.sudoku.PuzzleId
@@ -396,12 +400,19 @@ class GameRepository(
         historyDao.observeTotalXp(),
         historyDao.observeByDifficulty(),
         savedGameDao.observeInProgressByDifficulty(),
+        historyDao.observeDailySummary(),
+        historyDao.observeDailyByDifficulty(),
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         val perDifficulty = values[4] as List<DifficultyStatisticsRow>
 
         @Suppress("UNCHECKED_CAST")
         val inProgress = (values[5] as List<InProgressCountRow>).associateBy { it.difficulty }
+
+        val dailySummary = values[6] as DailyStatisticsSummaryRow
+
+        @Suppress("UNCHECKED_CAST")
+        val dailyByDifficulty = values[7] as List<DailyDifficultyStatisticsRow>
 
         Statistics(
             startedCount = values[0] as Int,
@@ -418,6 +429,23 @@ class GameRepository(
                     bestTimeMillis = row?.bestTimeMillis,
                     averageTimeMillis = row?.averageTimeMillis?.roundToLong(),
                     averageMistakes = row?.averageMistakes,
+                )
+            },
+            daily = dailySummary.takeIf { it.completedCount > 0 }?.let { summary ->
+                DailyStatistics(
+                    completedCount = summary.completedCount,
+                    totalScore = summary.totalScore,
+                    bestScore = summary.bestScore,
+                    averageScore = summary.averageScore,
+                    rankedEligibleCount = summary.rankedEligibleCount,
+                    perDifficulty = Difficulty.entries.mapNotNull { difficulty ->
+                        dailyByDifficulty.firstOrNull { it.difficulty == difficulty.name }?.let {
+                            DailyDifficultyStatistics(
+                                difficulty = difficulty,
+                                completedCount = it.completedCount,
+                            )
+                        }
+                    },
                 )
             },
         )

@@ -2,6 +2,7 @@ package com.przunk.kratkoza.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.model.GameType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -75,6 +76,103 @@ class GameHistoryDaoTest {
         assertEquals(0, history.observeTotalMistakes().first())
         assertEquals(0L, history.observeTotalXp().first())
         assertTrue(history.observeByDifficulty().first().isEmpty())
+
+        val daily = history.observeDailySummary().first()
+        assertEquals(0, daily.completedCount)
+        assertNull(daily.totalScore)
+        assertNull(daily.bestScore)
+        assertNull(daily.averageScore)
+        assertEquals(0, daily.rankedEligibleCount)
+        assertTrue(history.observeDailyByDifficulty().first().isEmpty())
+    }
+
+    @Test
+    fun `Daily aggregates exclude solo and unfinished rows without turning null scores into zero`() = runTest {
+        givenPuzzle("daily-easy-one", Difficulty.EASY)
+        givenPuzzle("daily-easy-zero", Difficulty.EASY)
+        givenPuzzle("daily-master", Difficulty.MASTER)
+        givenPuzzle("daily-unfinished", Difficulty.HARD)
+        givenPuzzle("solo", Difficulty.MASTER)
+        history.insert(
+            historyEntity(
+                "daily-easy-one",
+                difficulty = Difficulty.EASY,
+                completed = true,
+                gameType = GameType.DAILY,
+                score = 100,
+                rankedEligible = true,
+            ),
+        )
+        history.insert(
+            historyEntity(
+                "daily-easy-zero",
+                difficulty = Difficulty.EASY,
+                completed = true,
+                gameType = GameType.DAILY,
+                score = 0,
+            ),
+        )
+        history.insert(
+            historyEntity(
+                "daily-master",
+                difficulty = Difficulty.MASTER,
+                completed = true,
+                gameType = GameType.DAILY,
+                score = 300,
+                rankedEligible = true,
+            ),
+        )
+        history.insert(
+            historyEntity(
+                "daily-unfinished",
+                difficulty = Difficulty.HARD,
+                completed = false,
+                gameType = GameType.DAILY,
+            ),
+        )
+        history.insert(
+            historyEntity(
+                "solo",
+                difficulty = Difficulty.MASTER,
+                completed = true,
+                gameType = GameType.SOLO,
+                score = 9_000,
+                rankedEligible = true,
+            ),
+        )
+
+        val daily = history.observeDailySummary().first()
+        assertEquals(3, daily.completedCount)
+        assertEquals(400L, daily.totalScore)
+        assertEquals(300, daily.bestScore)
+        assertEquals(400.0 / 3.0, daily.averageScore!!, 0.001)
+        assertEquals(2, daily.rankedEligibleCount)
+
+        val byDifficulty = history.observeDailyByDifficulty().first()
+            .associate { it.difficulty to it.completedCount }
+        assertEquals(mapOf(Difficulty.EASY.name to 2, Difficulty.MASTER.name to 1), byDifficulty)
+    }
+
+    @Test
+    fun `completed Daily without a score keeps every score aggregate absent`() = runTest {
+        givenPuzzle("legacy-daily", Difficulty.HARD)
+        history.insert(
+            historyEntity(
+                "legacy-daily",
+                difficulty = Difficulty.HARD,
+                completed = true,
+                gameType = GameType.DAILY,
+                score = null,
+                rankedEligible = true,
+            ),
+        )
+
+        val daily = history.observeDailySummary().first()
+        assertEquals(1, daily.completedCount)
+        assertNull(daily.totalScore)
+        assertNull(daily.bestScore)
+        assertNull(daily.averageScore)
+        assertEquals(1, daily.rankedEligibleCount)
     }
 
     @Test
@@ -135,14 +233,26 @@ class GameHistoryDaoTest {
         // had done nothing.
         givenPuzzle("finished")
         givenPuzzle("in-progress")
-        history.insert(historyEntity("finished", completed = true, xpEarned = 40))
+        history.insert(
+            historyEntity(
+                "finished",
+                completed = true,
+                xpEarned = 40,
+                gameType = GameType.DAILY,
+                score = 500,
+                rankedEligible = true,
+            ),
+        )
         val openRow = history.insert(historyEntity("in-progress"))
         saves.upsert(savedGameEntity("in-progress", historyId = openRow))
+        assertEquals(1, history.observeDailySummary().first().completedCount)
 
         history.resetStatistics()
 
         assertEquals(0, history.observeStartedCount().first())
         assertEquals(0L, history.observeTotalXp().first())
+        assertEquals(0, history.observeDailySummary().first().completedCount)
+        assertTrue(history.observeDailyByDifficulty().first().isEmpty())
 
         val save = saves.byId("in-progress")
         assertTrue("the game on the board must survive", save != null)

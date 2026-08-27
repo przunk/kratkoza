@@ -30,6 +30,7 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.progress.PlayerProgress
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
+import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.ui.theme.KratkozaTheme
 import java.text.NumberFormat
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +74,8 @@ class StatisticsScreenTest {
         compose.onAllNodesWithText(context.getString(R.string.statistics_none)).assertCountEquals(4)
         compose.onAllNodesWithText(context.getString(R.string.statistics_in_progress))
             .assertCountEquals(0)
+        compose.onAllNodesWithText(context.getString(R.string.statistics_daily))
+            .assertCountEquals(0)
 
         val reset = context.getString(R.string.statistics_reset)
         scrollToText(reset)
@@ -110,6 +113,66 @@ class StatisticsScreenTest {
         compose.onNodeWithText(context.getString(R.string.statistics_reset_message)).assertIsDisplayed()
     }
 
+    @Test
+    fun `Daily section shows completion levels scores and ranking eligibility`() {
+        seedDailyGame(
+            puzzleId = "daily-easy",
+            difficulty = Difficulty.EASY,
+            score = 1_234,
+            rankedEligible = true,
+        )
+        seedDailyGame(
+            puzzleId = "daily-hard",
+            difficulty = Difficulty.HARD,
+            score = 3_456,
+            rankedEligible = false,
+        )
+        seedDailyGame(
+            puzzleId = "daily-easy-second",
+            difficulty = Difficulty.EASY,
+            score = 310,
+            rankedEligible = true,
+        )
+        showScreen()
+
+        scrollToText(context.getString(R.string.statistics_daily))
+        scrollToText(context.getString(R.string.statistics_daily_completed))
+        assertStatRow(R.string.statistics_daily_completed, NumberFormat.getIntegerInstance().format(3))
+        scrollToText(context.getString(R.string.statistics_daily_by_difficulty))
+        compose.onNode(
+            hasText(context.getString(Difficulty.EASY.labelRes())) and
+                hasText(NumberFormat.getIntegerInstance().format(2)),
+        ).assertIsDisplayed()
+        compose.onNode(
+            hasText(context.getString(Difficulty.HARD.labelRes())) and
+                hasText(NumberFormat.getIntegerInstance().format(1)),
+        ).assertIsDisplayed()
+
+        scrollToText(context.getString(R.string.statistics_daily_total_score))
+        assertStatRow(R.string.statistics_daily_total_score, NumberFormat.getIntegerInstance().format(5_000))
+        scrollToText(context.getString(R.string.statistics_daily_best_score))
+        assertStatRow(R.string.statistics_daily_best_score, NumberFormat.getIntegerInstance().format(3_456))
+        scrollToText(context.getString(R.string.statistics_daily_average_score))
+        val decimalFormat = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 1 }
+        assertStatRow(R.string.statistics_daily_average_score, decimalFormat.format(5_000.0 / 3.0))
+        scrollToText(context.getString(R.string.statistics_daily_ranked_eligible))
+        assertStatRow(R.string.statistics_daily_ranked_eligible, NumberFormat.getIntegerInstance().format(2))
+    }
+
+    @Test
+    fun `unscored Daily renders missing score aggregates as none`() {
+        seedDailyGame(
+            puzzleId = "daily-without-score",
+            difficulty = Difficulty.MASTER,
+            score = null,
+            rankedEligible = true,
+        )
+        showScreen()
+
+        scrollToText(context.getString(R.string.statistics_daily_scores))
+        compose.onAllNodesWithText(context.getString(R.string.statistics_none)).assertCountEquals(3)
+    }
+
     private fun showScreen() {
         val viewModel = StatisticsViewModel(repository)
         compose.setContent {
@@ -123,6 +186,10 @@ class StatisticsScreenTest {
     private fun scrollToText(text: String) {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText(text))
         compose.onNodeWithText(text).assertIsDisplayed()
+    }
+
+    private fun assertStatRow(labelRes: Int, value: String) {
+        compose.onNode(hasText(context.getString(labelRes)) and hasText(value)).assertIsDisplayed()
     }
 
     private fun seedCompletedGame(totalXp: Int) = runBlocking {
@@ -171,6 +238,32 @@ class StatisticsScreenTest {
                 undoHistory = "",
                 mistakeCount = 0,
                 rankedEligible = false,
+            ),
+        )
+    }
+
+    private fun seedDailyGame(
+        puzzleId: String,
+        difficulty: Difficulty,
+        score: Int?,
+        rankedEligible: Boolean,
+    ) = runBlocking {
+        historyDao.insert(
+            GameHistoryEntity(
+                puzzleId = puzzleId,
+                gameType = GameType.DAILY.name,
+                difficulty = difficulty.name,
+                startedAt = 1_000,
+                finishedAt = 61_000,
+                elapsedMillis = 60_000,
+                mistakeCount = 1,
+                completed = true,
+                score = score,
+                xpEarned = 0,
+                publiclyRanked = false,
+                rankedEligible = rankedEligible,
+                autoRemoveCandidates = true,
+                rulesetVersion = SudokuGenerator.GENERATOR_VERSION,
             ),
         )
     }

@@ -184,6 +184,7 @@ class GameRepositoryTest {
         assertEquals(Difficulty.entries.toList(), statistics.perDifficulty.map { it.difficulty })
         assertEquals(0f, statistics.completionRate, 0f)
         assertNull(statistics.averageMistakes)
+        assertNull(statistics.daily)
     }
 
     @Test
@@ -516,6 +517,18 @@ class GameRepositoryTest {
         val statistics = repository.statistics.first()
         assertEquals(1, statistics.completedCount)
         assertTrue(statistics.progress.totalXp > 0)
+
+        val daily = requireNotNull(statistics.daily)
+        val expectedScore = DailyScore.of(Difficulty.EASY, elapsedMillis = 60_000, mistakeCount = 0)
+        assertEquals(1, daily.completedCount)
+        assertEquals(expectedScore.toLong(), daily.totalScore)
+        assertEquals(expectedScore, daily.bestScore)
+        assertEquals(expectedScore.toDouble(), daily.averageScore!!, 0.001)
+        assertEquals(1, daily.rankedEligibleCount)
+        assertEquals(
+            listOf(Difficulty.EASY to 1),
+            daily.perDifficulty.map { it.difficulty to it.completedCount },
+        )
     }
 
     @Test

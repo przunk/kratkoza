@@ -116,6 +116,14 @@
     <string name="statistics_best_time">Najlepszy czas</string>
     <string name="statistics_average_time">Średni czas</string>
     <string name="statistics_none">—</string>
+    <string name="statistics_daily">Daily Sudoku</string>
+    <string name="statistics_daily_completed">Ukończone Daily</string>
+    <string name="statistics_daily_by_difficulty">Ukończone według poziomu</string>
+    <string name="statistics_daily_scores">Wyniki</string>
+    <string name="statistics_daily_total_score">Łączny wynik</string>
+    <string name="statistics_daily_best_score">Najlepszy wynik</string>
+    <string name="statistics_daily_average_score">Średni wynik</string>
+    <string name="statistics_daily_ranked_eligible">Ukończone bez utraty kwalifikacji</string>
 
     <!-- Ustawienia -->
     <string name="settings_title">Ustawienia</string>
