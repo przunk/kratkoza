@@ -56,8 +56,8 @@ enum class Leaderboard {
         DAILY_EASY, DAILY_HARD, DAILY_MASTER ->
             result.score.toLong().takeIf { forDaily(result.difficulty) == this }
 
-        DAILY_TOTAL -> result.totals.today
-        ALL_TIME_TOTAL -> result.totals.allTime
+        DAILY_TOTAL -> result.totals?.today
+        ALL_TIME_TOTAL -> result.totals?.allTime
     }
 
     companion object {
@@ -81,5 +81,11 @@ enum class Leaderboard {
 data class DailyResult(
     val difficulty: Difficulty,
     val score: Int,
-    val totals: DailyTotals,
+    /**
+     * `null` when the day's totals could not be read.
+     *
+     * The level board still has everything it needs — this game's own score — so one unreadable
+     * sum must not cost the submission that does not depend on it.
+     */
+    val totals: DailyTotals?,
 )

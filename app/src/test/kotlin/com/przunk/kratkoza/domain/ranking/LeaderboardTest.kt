@@ -53,6 +53,18 @@ class LeaderboardTest {
     }
 
     @Test
+    fun `an unreadable total costs the totals and nothing else`() {
+        // The regression this guards: sending was rewritten to walk the enum, and for a moment a
+        // missing total returned early and took the level board down with it. The level board
+        // carries this game's own score and does not depend on any sum.
+        val result = DailyResult(difficulty = Difficulty.EASY, score = 407, totals = null)
+
+        assertEquals(407L, Leaderboard.DAILY_EASY.valueFor(result))
+        assertNull(Leaderboard.DAILY_TOTAL.valueFor(result))
+        assertNull(Leaderboard.ALL_TIME_TOTAL.valueFor(result))
+    }
+
+    @Test
     fun `only the level boards carry a game's own result`() {
         // publiclyRanked follows these. A total accepted on a game's behalf is not the same claim,
         // and conflating the two is the bug that made the column necessary in the first place.

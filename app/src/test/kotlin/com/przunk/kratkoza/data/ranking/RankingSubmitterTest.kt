@@ -138,6 +138,23 @@ class RankingSubmitterTest {
         )
     }
 
+    @Test
+    fun `a daily whose totals cannot be read still reaches its level board`() = runTest {
+        // dailyTotals returns null when the board is not in daily_puzzles for the current ruleset
+        // version — after a ruleset change, for a game begun under the old one. The level score is
+        // still a real result and still belongs on its board.
+        val (submitter, ranking) = submitterWith()
+        val finished = finishDaily(Difficulty.EASY)
+
+        submitter.submit(finished.game, puzzleId = "not-a-daily-board")
+
+        assertEquals(
+            listOf(Leaderboard.DAILY_EASY),
+            ranking.submissions.map { it.first },
+        )
+        assertTrue(historyDao.all.single().publiclyRanked)
+    }
+
     private fun submitterWith(
         outcome: SubmissionOutcome = SubmissionOutcome.Submitted(newBest = true),
     ): Pair<RankingSubmitter, RecordingRanking> {
