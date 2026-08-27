@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Identyfikatory z Play Console → Play Games Services. Trzymane osobno od strings.xml, bo to nie są
+  napisy do przetłumaczenia, tylko konfiguracja jednego środowiska — i dlatego ten plik nie ma
+  odpowiednika w values-pl.
+
+  Puste wartości są bezpieczne. Sprawdzone na bajtkodzie play-services-games-v2:20.1.2: SDK czyta
+  APP_ID przez Bundle.getString(..., "") i Long.parseLong, a powstały NumberFormatException łapie
+  we własnej tablicy wyjątków i zwraca null. Aplikacja startuje normalnie, nie działa wyłącznie
+  logowanie do Play Games. Nie jest to więc plik, którego brak wywraca build ani aplikację.
+-->
+<resources>
+    <string name="play_games_app_id" translatable="false"></string>
+
+    <string name="leaderboard_daily_easy" translatable="false"></string>
+    <string name="leaderboard_daily_hard" translatable="false"></string>
+    <string name="leaderboard_daily_master" translatable="false"></string>
+</resources>

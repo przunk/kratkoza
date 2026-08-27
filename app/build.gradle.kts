@@ -185,6 +185,11 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.9.8")
     implementation("androidx.room:room-runtime:2.8.4")
 
+    // The one unavoidable external dependency: Play Games Services has no protocol to speak to
+    // directly, so ranking means Google's SDK or no ranking. project.md section 27 asks for the
+    // ranking, and technical_requirements.md section 8 asks for restraint everywhere else.
+    implementation("com.google.android.gms:play-services-games-v2:20.1.2")
+
     ksp("androidx.room:room-compiler:2.8.4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
