@@ -3,6 +3,7 @@ package com.przunk.kratkoza.data.ranking
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.DailyResult
 import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.ranking.RankingLog
@@ -54,23 +55,27 @@ class RankingSubmitter(
             log.add("ranking: skipped — Play Games is not configured")
             return
         }
-        val board = Leaderboard.forDaily(finished.difficulty) ?: run {
+        if (Leaderboard.forDaily(finished.difficulty) == null) {
             log.add("ranking: skipped — no board for ${finished.difficulty}")
             return
         }
-
-        // The level board first: it is the one whose acceptance decides publiclyRanked, because it
-        // is the only one carrying this game's own result rather than a running sum.
-        if (sendOne(board, score.toLong()) is SubmissionOutcome.Submitted) {
-            repository.markPubliclyRanked(finished.historyId)
+        val totals = repository.dailyTotals(puzzleId) ?: run {
+            log.add("ranking: skipped — $puzzleId is not a daily board")
+            return
         }
 
-        // Then the totals, recomputed from the record rather than added up here — the stored rows
-        // are what the statistics screen reads, and two additions of the same numbers would
-        // eventually disagree.
-        val totals = repository.dailyTotals(puzzleId) ?: return
-        sendOne(Leaderboard.DAILY_TOTAL, totals.today)
-        sendOne(Leaderboard.ALL_TIME_TOTAL, totals.allTime)
+        // Every board is asked what it wants from this result, rather than the sending order being
+        // written out here. A board added to the enum is picked up by this loop without touching
+        // this file — which is the whole reason the declaration lives in one place.
+        val result = DailyResult(finished.difficulty, score, totals)
+        for (board in Leaderboard.entries) {
+            val value = board.valueFor(result) ?: continue
+            val outcome = sendOne(board, value)
+
+            if (board.carriesOwnResult && outcome is SubmissionOutcome.Submitted) {
+                repository.markPubliclyRanked(finished.historyId)
+            }
+        }
     }
 
     private suspend fun sendOne(board: Leaderboard, value: Long): SubmissionOutcome {
