@@ -264,3 +264,31 @@ poziomu: **jeden błąd na Morderczym kosztuje 600 punktów, czyli więcej, niż
 zapisać: kroków logicznego rozwiązania jest 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
 niespełna półtorakrotny, gdy ludzki jest kilkukrotny. O trudności decyduje **znalezienie** techniki,
 a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi. Dostroić, gdy będą prawdziwe czasy.
+
+---
+
+## Czy reset statystyk ma zerować sumę wysyłaną do rankingu?
+
+**Otwarte od 2026-08-28.** Właściciel projektu chce najpierw pożyć z tym trochę i zdecydować
+z doświadczenia, a nie z rozumowania — więc pytanie czeka, a zachowanie zostaje takie, jak jest.
+
+**Jak jest teraz.** Suma wszech czasów jest przeliczana z lokalnej historii, którą reset statystyk
+czyści. Tablica po stronie Google trzyma najlepszy wynik i nic o resecie nie wie, więc po resecie
+wysyłane sumy są niższe niż to, co tablica już ma, i są ignorowane, dopóki nowa suma nie przekroczy
+starej. Lokalny rekord i publiczny rozjeżdżają się wtedy na stałe.
+
+**Co przemawia za zostawieniem.** „Reset statystyk" znaczy dokładnie to, co mówi: zerujesz swój
+lokalny rekord i wszystko, co się z niego liczy. Wyjątek dla jednej liczby byłby regułą, o której
+nikt się nie dowie, dopóki go nie zauważy.
+
+**Co przemawia za zmianą.** Suma wszech czasów jest rekordem publicznym, a nie prywatnym. Gracz,
+który czyści swoje statystyki, prawdopodobnie chce zacząć od nowa u siebie, a nie wypaść z rankingu,
+w którym już jest — i przez pewien czas widzieć, że jego wyniki „nie działają".
+
+**Czego nie da się zrobić.** Wyzerować tablicy po stronie Google. Reset wyników jest tylko dla
+testerów i tylko przed publikacją, więc cokolwiek zostanie postanowione, musi działać bez tego.
+
+**Jeśli padnie na zmianę:** trzeba liczyć sumę wszech czasów z osobnego licznika, którego reset
+statystyk nie dotyka — czyli dodać coś, co przeżywa reset, i nazwać to tak, żeby było jasne, czemu
+przeżywa.
+
