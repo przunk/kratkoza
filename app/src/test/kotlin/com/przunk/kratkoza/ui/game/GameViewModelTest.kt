@@ -8,11 +8,6 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
-import com.przunk.kratkoza.domain.ranking.Leaderboard
-import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
-import com.przunk.kratkoza.domain.ranking.NoRanking
-import com.przunk.kratkoza.domain.ranking.Ranking
-import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
@@ -79,16 +74,11 @@ class GameViewModelTest {
      */
     private val store = ViewModelStore()
 
-    private fun viewModelFor(
-        game: SavedGame,
-        ranking: Ranking = NoRanking,
-        debugTools: Boolean = true,
-    ): GameViewModel {
+    private fun viewModelFor(game: SavedGame, debugTools: Boolean = true): GameViewModel {
         val viewModel = GameViewModel(
             puzzleId = game.state.puzzle.id,
             gameRepository = repository,
             settingsFlow = settings,
-            ranking = ranking,
             debugTools = debugTools,
             clock = { now },
         )
@@ -633,70 +623,11 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `a solved daily reaches the ranking and is then recorded as ranked`() = gameTest {
-        val daily = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking()
-        val viewModel = viewModelFor(daily, ranking)
-
-        solve(viewModel, daily)
-        idle()
-
-        val row = historyDao.all.single()
-        // The score that travels is the one that was stored, not a second evaluation of the rules.
-        val score = requireNotNull(row.score).toLong()
-        // Three boards: the level, and the two running totals. With one daily solved all three
-        // carry the same number, which is what makes the next test worth having as well.
-        assertEquals(
-            listOf(
-                Leaderboard.DAILY_EASY to score,
-                Leaderboard.DAILY_TOTAL to score,
-                Leaderboard.ALL_TIME_TOTAL to score,
-            ),
-            ranking.submissions,
-        )
-        assertTrue("an accepted submission must be recorded", row.publiclyRanked)
-    }
-
-    @Test
-    fun `a daily that lost its ranking eligibility is never submitted`() = gameTest {
-        val daily = startDaily(Difficulty.EASY)
-        repository.save(daily.copy(rankedEligible = false))
-        val ranking = RecordingRanking()
-        val viewModel = viewModelFor(daily, ranking)
-
-        solve(viewModel, daily)
-        idle()
-
-        assertTrue("an ineligible daily must not reach the ranking", ranking.submissions.isEmpty())
-        assertFalse(historyDao.all.single().publiclyRanked)
-        // And says so, after the line that proves the completion path ran at all. Those two being
-        // separate is the whole point: a skipped submission used to look like code that never ran.
-        assertEquals(
-            listOf("game: finished DAILY EASY score=1000", "ranking: skipped — this daily left the ranking"),
-            viewModel.messages.take(2).toList(),
-        )
-    }
-
-    @Test
-    fun `a solo game is not offered to the ranking`() = gameTest {
-        // project.md section 29: only a Daily is scored, so only a Daily has anywhere to go.
-        val game = startGame(Difficulty.EASY)
-        val ranking = RecordingRanking()
-        val viewModel = viewModelFor(game, ranking)
-
-        solve(viewModel, game)
-        idle()
-
-        assertTrue(ranking.submissions.isEmpty())
-    }
-
-    @Test
     fun `a rejected submission still leaves the game finished`() = gameTest {
         // No signed-in player, no network, no Play Games at all: the board is solved either way,
         // and only the public half of the result is missing.
         val daily = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking(outcome = SubmissionOutcome.Failed("refused"))
-        val viewModel = viewModelFor(daily, ranking)
+        val viewModel = viewModelFor(daily)
 
         solve(viewModel, daily)
         idle()
@@ -713,8 +644,7 @@ class GameViewModelTest {
         // It goes through selection and entry rather than writing a solved board, so scoring, XP
         // and the ranking all happen exactly as they do for a player.
         val daily = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking()
-        val viewModel = viewModelFor(daily, ranking)
+        val viewModel = viewModelFor(daily)
 
         viewModel.autoSolve()
         idle()
@@ -723,7 +653,6 @@ class GameViewModelTest {
         val row = historyDao.all.single()
         assertTrue(row.completed)
         assertNotNull("a solved daily must be scored", row.score)
-        assertEquals(3, ranking.submissions.size)
     }
 
     @Test
@@ -740,46 +669,6 @@ class GameViewModelTest {
         assertTrue(historyDao.all.none { it.completed })
     }
 
-    @Test
-    fun `a queued score is not claimed as confirmed`() = gameTest {
-        // Play Services took the score but cannot say what became of it. The board is on its way to
-        // the ranking, and publiclyRanked still means "confirmed" rather than "probably".
-        val daily = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking(outcome = SubmissionOutcome.Queued("client reconnect required"))
-        val viewModel = viewModelFor(daily, ranking)
-
-        viewModel.autoSolve()
-        idle()
-
-        assertEquals(3, ranking.submissions.size)
-        val row = historyDao.all.single()
-        assertTrue("the game is still finished and scored", row.completed)
-        assertFalse("but nothing confirmed it reached the board", row.publiclyRanked)
-    }
-
-    @Test
-    fun `the totals add up across the day rather than repeating one score`() = gameTest {
-        // The point of two totals boards. Both are sums, which is what lets them live on a service
-        // that keeps a best score: a sum only grows, so the highest it has seen is the current one.
-        val easy = startDaily(Difficulty.EASY)
-        val ranking = RecordingRanking()
-        viewModelFor(easy, ranking).let { viewModel ->
-            viewModel.autoSolve()
-            idle()
-        }
-        val hard = startDaily(Difficulty.HARD)
-        viewModelFor(hard, ranking).let { viewModel ->
-            viewModel.autoSolve()
-            idle()
-        }
-
-        val scores = historyDao.all.mapNotNull { it.score }.map(Int::toLong)
-        assertEquals("both dailies must be scored", 2, scores.size)
-
-        val totals = ranking.submissions.filter { it.first == Leaderboard.ALL_TIME_TOTAL }
-        assertEquals(listOf(scores[0], scores.sum()), totals.map { it.second })
-    }
-
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {
         val day = java.time.LocalDate.parse("2026-08-26")
         repository.dailySet(day)
@@ -793,28 +682,6 @@ class GameViewModelTest {
             viewModel.selectCell(cell)
             viewModel.enterDigit(game.state.puzzle.solution[cell])
         }
-    }
-}
-
-/** A ranking that remembers what it was handed, and whether it agreed to take it. */
-private class RecordingRanking(
-    override val isAvailable: Boolean = true,
-    private val outcome: SubmissionOutcome = SubmissionOutcome.Submitted,
-) : Ranking {
-
-    val submissions = mutableListOf<Pair<Leaderboard, Long>>()
-
-    // The game screen never signs in or opens a board; those belong to the Daily screen.
-    override suspend fun isSignedIn(): Boolean = true
-
-    override suspend fun signIn(): Boolean = true
-
-    override suspend fun show(board: Leaderboard): LeaderboardOutcome =
-        LeaderboardOutcome.Failed("the game screen never opens one")
-
-    override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome {
-        submissions += board to value
-        return outcome
     }
 }
 

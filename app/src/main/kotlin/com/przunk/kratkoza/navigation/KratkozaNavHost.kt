@@ -87,7 +87,7 @@ fun KratkozaNavHost(
                             puzzleId = puzzleId,
                             gameRepository = container.gameRepository,
                             settingsFlow = container.settingsRepository.settings,
-                            ranking = container.ranking,
+                            rankingSubmitter = container.rankingSubmitter,
                             rankingLog = container.rankingLog,
                         )
                     },

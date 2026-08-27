@@ -110,22 +110,17 @@ dwa równoległe wywołania zdążą ją minąć — obie widzą stan sprzed zap
 ale nie samą lukę. Reguła powinna być nieprzekraczalna w repozytorium, a przycisk ma być tylko
 uprzejmością. Warto przy okazji sprawdzić tę samą ścieżkę przy „Kontynuuj".
 
-### Suma wszech czasów nie zawsze dociera
+### ~~Suma wszech czasów nie zawsze dociera~~ — naprawione 2026-08-27
 
-**Zgłoszone:** 2026-08-27. Testowane na buildzie 0.16.0 (26).
+Trzy partie dały: Łatwy 1 wysyłkę z 3, Trudny 2 z 3, Morderczy 2 z 3. Liczby, które doszły, były
+co do jednego poprawne (2405 i 6402 zgadzały się z sumą wyników), a brakowało zawsze **ogona
+sekwencji** — co jest sygnaturą anulowania, nie błędu w rozgałęzieniu.
 
-Po ukończeniu Daily wysyłane są trzy wyniki: tablica poziomu, suma dnia i suma wszech czasów.
-Z trzech rozegranych partii tylko jedna (Morderczy) pokazała `sent` dla wszystkich trzech —
-przy Łatwym i Trudnym trzecia wysyłka się nie pojawiła jako `sent`.
+Przyczyna: wysyłka szła w `viewModelScope` ekranu gry. Trzy wysyłki to trzy okrążenia po sieci,
+a gracz w tym czasie wraca do listy Daily — co czyści ten ViewModel i anuluje wszystko, co jeszcze
+robił. Wynik zależał od tego, jak długo ktoś patrzył na rozwiązaną planszę.
 
-**Czego jeszcze nie wiemy.** Kod wysyła trzecią bezwarunkowo, zaraz po drugiej, więc nie jest to
-pominięcie w rozgałęzieniu. Najprawdopodobniej trzecia wysyłka kończy się jako `queued` albo błędem
-— trzy żądania pod rząd potrafią zastać klienta Play Games w stanie, na który skarżył się już
-`26502 CLIENT_RECONNECT_REQUIRED`. Karta „Ranking (debug)" pokazuje wszystkie trzy wyniki, nie tylko
-udane, więc następnym razem trzeba **przeczytać ją w całości**, a nie tylko wyłapać Toasty.
-
-**Jeśli to potwierdzi się jako kolejkowanie**, wynik i tak dociera — ale wysyłanie trzech rzeczy
-jedna po drugiej to prawdopodobnie o dwie za dużo naraz i warto je rozłożyć albo połączyć.
+Naprawa: `RankingSubmitter` na zakresie aplikacji, oddzielony od ekranu.
 
 ## Do zrobienia
 
