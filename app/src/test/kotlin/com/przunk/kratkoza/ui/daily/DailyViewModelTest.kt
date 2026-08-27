@@ -132,12 +132,9 @@ class DailyViewModelTest {
 
         viewModel.showLeaderboard(Difficulty.EASY)
 
-        // Two messages: the press is acknowledged before the SDK is touched, so a press that
-        // produces nothing at all can only mean the press never arrived.
-        assertEquals(
-            listOf("leaderboard: opening EASY", "leaderboard: no such board"),
-            viewModel.messages.take(2).toList(),
-        )
+        // Only the failure reaches the player. A successful open announces itself by the overlay
+        // appearing, and the step-by-step trail now lives in the log rather than in Toasts.
+        assertEquals("no such board", viewModel.messages.first())
     }
 }
 

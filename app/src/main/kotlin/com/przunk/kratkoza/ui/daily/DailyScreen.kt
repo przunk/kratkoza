@@ -68,12 +68,20 @@ fun DailyScreen(
         viewModel.openGame.collect(onOpenGame)
     }
 
+    // Resolved in the composition rather than inside the effect: a resource read through Context
+    // does not follow a configuration change, and the effect only needs the finished string.
+    val unavailable = stringResource(R.string.daily_leaderboard_unavailable)
+
     LaunchedEffect(viewModel) {
         // A Toast rather than a Snackbar: these report that something the player pressed did not
         // work, and they have to survive whatever the screen is doing — including the Play Games
         // overlay taking the foreground. A Toast has no host to be missing and no layout to be
         // clipped by, which is exactly what is wanted from a message about a failure.
-        viewModel.messages.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+        viewModel.messages.collect { message ->
+            // The ViewModel has no resources, so it names the string and the screen resolves it.
+            val text = if (message == DailyViewModel.FAILED_TO_OPEN_KEY) unavailable else message
+            Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+        }
     }
 
     // Coming back from a board changes what the cards should say — a game may now be in progress,

@@ -25,6 +25,7 @@
     <string name="daily_results_pending">Not finished yet</string>
     <string name="daily_continue">Continue</string>
     <string name="daily_leaderboard">Leaderboard</string>
+    <string name="daily_leaderboard_unavailable">Could not open the leaderboard. Try again in a moment.</string>
     <string name="daily_sign_in">Sign in to Play Games</string>
     <string name="daily_sign_in_explained">Sign in to compare your daily scores with other players.</string>
     <string name="home_saved_games">Saved games</string>
