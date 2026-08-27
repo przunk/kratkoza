@@ -39,8 +39,8 @@ interface Ranking {
      */
     suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome
 
-    /** Sends one Daily score, answering whether it landed. */
-    suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean
+    /** Sends one Daily score, answering whether it landed and why not when it did not. */
+    suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome
 }
 
 /**
@@ -55,6 +55,18 @@ sealed interface LeaderboardOutcome {
     data class Failed(val detail: String) : LeaderboardOutcome
 }
 
+/**
+ * What came of sending a score.
+ *
+ * A player never sees [Failed]: the board is solved and recorded either way, and there is nothing
+ * for them to do about it. Debug builds show it, because "did the score actually travel" is
+ * otherwise unanswerable from outside.
+ */
+sealed interface SubmissionOutcome {
+    data object Submitted : SubmissionOutcome
+    data class Failed(val detail: String) : SubmissionOutcome
+}
+
 /** The ranking when there is none: nobody is signed in and nothing can be shown or sent. */
 object NoRanking : Ranking {
     override val isAvailable: Boolean = false
@@ -62,5 +74,6 @@ object NoRanking : Ranking {
     override suspend fun signIn(): Boolean = false
     override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
         LeaderboardOutcome.Failed("Play Games is not configured in this build")
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean = false
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome =
+        SubmissionOutcome.Failed("Play Games is not configured in this build")
 }

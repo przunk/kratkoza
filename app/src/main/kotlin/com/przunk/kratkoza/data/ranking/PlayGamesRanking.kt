@@ -7,6 +7,7 @@ import com.google.android.gms.tasks.Task
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -81,16 +82,23 @@ class PlayGamesRanking(
         return "$leaderboard — $reason"
     }
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
-        val leaderboard = config.leaderboardFor(difficulty) ?: return false
-        val activity = activities.current() ?: return false
-        if (!signedIn(activity)) return false
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome {
+        val leaderboard = config.leaderboardFor(difficulty)
+            ?: return SubmissionOutcome.Failed("no leaderboard id for $difficulty")
+        val activity = activities.current()
+            ?: return SubmissionOutcome.Failed("no activity attached")
+        if (!signedIn(activity)) return SubmissionOutcome.Failed("not signed in to Play Games")
 
         // submitScoreImmediate rather than submitScore: the fire-and-forget variant reports nothing,
         // and a caller that records "this reached the ranking" would be recording a guess.
-        return PlayGames.getLeaderboardsClient(activity)
+        val request = PlayGames.getLeaderboardsClient(activity)
             .submitScoreImmediate(leaderboard, score.toLong())
-            .awaitOrNull() != null
+
+        return if (request.awaitOrNull() != null) {
+            SubmissionOutcome.Submitted
+        } else {
+            SubmissionOutcome.Failed(describe(request.exception, leaderboard))
+        }
     }
 
     private suspend fun signedIn(activity: Activity): Boolean =

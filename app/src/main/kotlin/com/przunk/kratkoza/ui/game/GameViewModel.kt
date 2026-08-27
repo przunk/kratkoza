@@ -11,14 +11,17 @@ import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -55,6 +58,10 @@ class GameViewModel(
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+
+    /** What the ranking did with this game. Debug builds only — see [report]. */
+    private val _messages = Channel<String>(Channel.BUFFERED)
+    val messages = _messages.receiveAsFlow()
 
     private var game: SavedGame? = null
     private var settings: GameSettings = GameSettings.DEFAULT
@@ -306,11 +313,21 @@ class GameViewModel(
      * finished-game screen to say so would be noise. What it does buy is an honest
      * `publiclyRanked` flag, written only once the score has actually been accepted.
      */
+    /** Debug builds only; a player has nothing to do about any of this. */
+    private suspend fun report(message: String) {
+        if (debugTools) _messages.send(message)
+    }
+
     private suspend fun submitToRanking(finished: FinishedGame) {
         if (!finished.belongsInRanking || !ranking.isAvailable) return
         val score = finished.score ?: return
-        if (ranking.submitDailyScore(finished.difficulty, score)) {
-            gameRepository.markPubliclyRanked(finished.historyId)
+        when (val outcome = ranking.submitDailyScore(finished.difficulty, score)) {
+            is SubmissionOutcome.Submitted -> {
+                gameRepository.markPubliclyRanked(finished.historyId)
+                report("ranking: sent $score")
+            }
+
+            is SubmissionOutcome.Failed -> report("ranking: ${outcome.detail}")
         }
     }
 

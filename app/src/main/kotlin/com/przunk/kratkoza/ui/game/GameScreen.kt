@@ -81,6 +81,12 @@ fun GameScreen(
     // appeared. Fired on the transition, not on the state, so a game that was never ranked and one
     // that has already been told both stay silent.
     val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        // Debug builds only, and the ViewModel is what decides that — see GameViewModel.report.
+        viewModel.messages.collect { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+    }
+
     val lostMessage = stringResource(R.string.game_ranking_lost)
     var wasRanked by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.rankedEligible) {

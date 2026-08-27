@@ -11,6 +11,7 @@ import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
@@ -753,9 +754,9 @@ private class RecordingRanking(
     override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
         LeaderboardOutcome.Failed("the game screen never opens one")
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean {
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome {
         submissions += difficulty to score
-        return accepts
+        return if (accepts) SubmissionOutcome.Submitted else SubmissionOutcome.Failed("refused")
     }
 }
 

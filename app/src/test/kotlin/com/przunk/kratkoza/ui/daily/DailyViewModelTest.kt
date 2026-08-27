@@ -9,6 +9,7 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import androidx.lifecycle.ViewModelStore
 import java.time.Instant
@@ -161,5 +162,6 @@ private class FakeRanking(
         return outcome
     }
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): Boolean = true
+    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome =
+        SubmissionOutcome.Submitted
 }
