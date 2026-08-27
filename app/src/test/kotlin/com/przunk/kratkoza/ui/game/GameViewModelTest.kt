@@ -17,6 +17,8 @@ import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import androidx.lifecycle.ViewModelStore
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -658,8 +660,12 @@ class GameViewModelTest {
 
         assertTrue("an ineligible daily must not reach the ranking", ranking.submissions.isEmpty())
         assertFalse(historyDao.all.single().publiclyRanked)
-        // And says so. A skipped submission used to be indistinguishable from code that never ran.
-        assertEquals("ranking: skipped — this daily left the ranking", viewModel.messages.first())
+        // And says so, after the line that proves the completion path ran at all. Those two being
+        // separate is the whole point: a skipped submission used to look like code that never ran.
+        assertEquals(
+            listOf("game: finished DAILY EASY score=1000", "ranking: skipped — this daily left the ranking"),
+            viewModel.messages.take(2).toList(),
+        )
     }
 
     @Test

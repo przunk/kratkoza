@@ -135,7 +135,7 @@ class DailyViewModelTest {
         // Two messages: the press is acknowledged before the SDK is touched, so a press that
         // produces nothing at all can only mean the press never arrived.
         assertEquals(
-            listOf("\u2192 EASY", "no such board"),
+            listOf("leaderboard: opening EASY", "leaderboard: no such board"),
             viewModel.messages.take(2).toList(),
         )
     }

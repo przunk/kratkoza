@@ -10,6 +10,7 @@ import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.RankingLog
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.channels.Channel
@@ -34,6 +35,7 @@ class DailyViewModel(
      * every test — simply shows no ranking controls rather than showing dead ones.
      */
     private val ranking: Ranking = NoRanking,
+    private val rankingLog: RankingLog = RankingLog(),
     private val clock: () -> Instant = Instant::now,
 ) : ViewModel() {
 
@@ -51,6 +53,11 @@ class DailyViewModel(
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
         viewModelScope.launch { watchForChangeover() }
         viewModelScope.launch { refreshSignIn() }
+        viewModelScope.launch {
+            rankingLog.entries.collect { entries ->
+                _uiState.value = _uiState.value.copy(diagnostics = entries)
+            }
+        }
     }
 
     /**
@@ -73,20 +80,25 @@ class DailyViewModel(
             // Reported before the SDK is touched, so that a press which produces no message at all
             // means the press never arrived — rather than leaving that indistinguishable from an
             // SDK call that answered nothing.
-            _messages.send("→ $difficulty")
+            note("leaderboard: opening $difficulty")
 
             when (val outcome = ranking.showLeaderboard(difficulty)) {
-                is LeaderboardOutcome.Shown -> _messages.send("opened: ${outcome.target}")
-                is LeaderboardOutcome.Failed -> _messages.send(outcome.detail)
+                is LeaderboardOutcome.Shown -> note("leaderboard: opened ${outcome.target}")
+                is LeaderboardOutcome.Failed -> note("leaderboard: ${outcome.detail}")
             }
         }
     }
 
+    private suspend fun note(message: String) {
+        rankingLog.add(message)
+        _messages.send(message)
+    }
+
     private suspend fun refreshSignIn() {
-        _uiState.value = _uiState.value.copy(
-            rankingAvailable = ranking.isAvailable,
-            signedIn = ranking.isAvailable && ranking.isSignedIn(),
-        )
+        val available = ranking.isAvailable
+        val signedIn = available && ranking.isSignedIn()
+        rankingLog.add("sign-in: configured=$available signedIn=$signedIn")
+        _uiState.value = _uiState.value.copy(rankingAvailable = available, signedIn = signedIn)
     }
 
     /** Reloads the day's state — the statuses change as soon as a game is played and returned from. */
@@ -95,6 +107,11 @@ class DailyViewModel(
         // Coming back from Play Games is one of the ways sign-in changes without this screen being
         // rebuilt, so the state is re-read rather than assumed to be still true.
         viewModelScope.launch { refreshSignIn() }
+        viewModelScope.launch {
+            rankingLog.entries.collect { entries ->
+                _uiState.value = _uiState.value.copy(diagnostics = entries)
+            }
+        }
     }
 
     /**
@@ -158,4 +175,6 @@ data class DailyUiState(
     /** Whether Play Games is configured at all; false hides every ranking control. */
     val rankingAvailable: Boolean = false,
     val signedIn: Boolean = false,
+    /** Debug builds only: what the ranking has been doing, newest first. */
+    val diagnostics: List<String> = emptyList(),
 )

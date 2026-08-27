@@ -12,6 +12,7 @@ import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.RankingLog
 import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.share.BoardCode
@@ -54,6 +55,8 @@ class GameViewModel(
      * reach a release APK even if somebody forgets to hide it in the UI.
      */
     private val debugTools: Boolean = BuildConfig.DEBUG,
+    /** Where ranking events are kept so they can be read after the moment has passed. */
+    private val rankingLog: RankingLog = RankingLog(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
@@ -301,8 +304,16 @@ class GameViewModel(
     }
 
     private suspend fun finish() {
-        val snapshot = snapshot() ?: return
+        val snapshot = snapshot() ?: run {
+            // Nothing to close out means the board was solved with no game loaded, which should be
+            // impossible — so it is worth hearing about rather than returning quietly.
+            report("game: finished with no snapshot")
+            return
+        }
         val finished = gameRepository.finishGame(snapshot, completed = true)
+        // Written before anything is decided, so the log distinguishes "the ranking said no" from
+        // "the game never reached this code".
+        report("game: finished ${finished.gameType} ${finished.difficulty} score=${finished.score}")
         submitToRanking(finished)
     }
 
@@ -316,7 +327,9 @@ class GameViewModel(
      */
     /** Debug builds only; a player has nothing to do about any of this. */
     private suspend fun report(message: String) {
-        if (debugTools) _messages.send(message)
+        if (!debugTools) return
+        rankingLog.add(message)
+        _messages.send(message)
     }
 
     private suspend fun submitToRanking(finished: FinishedGame) {
