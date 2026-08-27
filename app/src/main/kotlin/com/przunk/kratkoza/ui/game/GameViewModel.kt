@@ -9,6 +9,7 @@ import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
+import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
@@ -319,8 +320,25 @@ class GameViewModel(
     }
 
     private suspend fun submitToRanking(finished: FinishedGame) {
-        if (!finished.belongsInRanking || !ranking.isAvailable) return
-        val score = finished.score ?: return
+        // Each way out says so. Silence used to cover all of them at once, which made "no message"
+        // mean anything from "this was a solo game" to "the code never ran".
+        if (finished.gameType != GameType.DAILY) {
+            report("ranking: skipped — solo games are not ranked")
+            return
+        }
+        if (!finished.rankedEligible) {
+            report("ranking: skipped — this daily left the ranking")
+            return
+        }
+        val score = finished.score ?: run {
+            report("ranking: skipped — no score was recorded")
+            return
+        }
+        if (!ranking.isAvailable) {
+            report("ranking: skipped — Play Games is not configured")
+            return
+        }
+
         when (val outcome = ranking.submitDailyScore(finished.difficulty, score)) {
             is SubmissionOutcome.Submitted -> {
                 gameRepository.markPubliclyRanked(finished.historyId)

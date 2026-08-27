@@ -16,6 +16,7 @@ import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import androidx.lifecycle.ViewModelStore
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -657,6 +658,8 @@ class GameViewModelTest {
 
         assertTrue("an ineligible daily must not reach the ranking", ranking.submissions.isEmpty())
         assertFalse(historyDao.all.single().publiclyRanked)
+        // And says so. A skipped submission used to be indistinguishable from code that never ran.
+        assertEquals("ranking: skipped — this daily left the ranking", viewModel.messages.first())
     }
 
     @Test
