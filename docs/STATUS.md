@@ -88,6 +88,45 @@ funkcje wyłączone z zakresu etapu:
 
 Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE.md) §5 i §8.
 
+## Znane usterki
+
+Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
+tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
+
+### Podwójne kliknięcie „Start" otwiera dwie plansze Daily
+
+**Zgłoszone:** 2026-08-27. Testowane na buildzie 0.16.0 (26).
+
+Szybkie dwukrotne naciśnięcie „Start" na karcie Daily uruchamia grę dwa razy. Druga plansza zostaje
+w tle i po ukończeniu pierwszej gracz widzi ją od nowa — wygląda to tak, jakby Daily dało się
+rozegrać drugi raz.
+
+**Co jest podejrzane w kodzie.** `DailyViewModel.open` startuje korutynę na każde naciśnięcie i nic
+nie pilnuje, żeby druga nie weszła, zanim pierwsza skończy `startDaily`. Sama reguła „jedno podejście
+dziennie" jest po stronie repozytorium (`startDaily` zwraca `null`, gdy gra jest ukończona), ale
+dwa równoległe wywołania zdążą ją minąć — obie widzą stan sprzed zapisania czegokolwiek.
+
+**Czego naprawa musi dotknąć.** Nie wystarczy zablokować przycisku w UI: to zamyka najczęstszą drogę,
+ale nie samą lukę. Reguła powinna być nieprzekraczalna w repozytorium, a przycisk ma być tylko
+uprzejmością. Warto przy okazji sprawdzić tę samą ścieżkę przy „Kontynuuj".
+
+### Suma wszech czasów nie zawsze dociera
+
+**Zgłoszone:** 2026-08-27. Testowane na buildzie 0.16.0 (26).
+
+Po ukończeniu Daily wysyłane są trzy wyniki: tablica poziomu, suma dnia i suma wszech czasów.
+Z trzech rozegranych partii tylko jedna (Morderczy) pokazała `sent` dla wszystkich trzech —
+przy Łatwym i Trudnym trzecia wysyłka się nie pojawiła jako `sent`.
+
+**Czego jeszcze nie wiemy.** Kod wysyła trzecią bezwarunkowo, zaraz po drugiej, więc nie jest to
+pominięcie w rozgałęzieniu. Najprawdopodobniej trzecia wysyłka kończy się jako `queued` albo błędem
+— trzy żądania pod rząd potrafią zastać klienta Play Games w stanie, na który skarżył się już
+`26502 CLIENT_RECONNECT_REQUIRED`. Karta „Ranking (debug)" pokazuje wszystkie trzy wyniki, nie tylko
+udane, więc następnym razem trzeba **przeczytać ją w całości**, a nie tylko wyłapać Toasty.
+
+**Jeśli to potwierdzi się jako kolejkowanie**, wynik i tak dociera — ale wysyłanie trzech rzeczy
+jedna po drugiej to prawdopodobnie o dwie za dużo naraz i warto je rozłożyć albo połączyć.
+
 ## Do zrobienia
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
