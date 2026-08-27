@@ -286,6 +286,31 @@ Do ustalenia poza liczbą użyć:
 - czy w grze solo działa bez ograniczeń (§18 dopuszcza),
 - czy pole wstawione podpowiedzią jest oznaczone i czy liczy się do XP.
 
+### Wymiana tablic wyników i reużywalność modułu rankingu
+
+**Zgłoszone:** 2026-08-27. Do zrobienia **przed premierą** — patrz „Reset statystyk nie czyści
+tablic wyników" wyżej: tablice zbierają dziś wyniki testowe, których nie da się usunąć, więc przed
+publikacją i tak powstaną nowe.
+
+Skoro wymiana jest pewna, ma być jednym ruchem, a nie polowaniem po plikach.
+
+**Jak jest teraz.** Identyfikatory siedzą w `res/values/play_games_ids.xml` — to już dobrze i
+celowo. Ale sama *definicja* tablicy jest rozsypana: `Leaderboard` wylicza je w enumie,
+`PlayGamesConfig` mapuje każdą pozycję na osobny zasób ręcznym `when`, a `RankingSubmitter` wie z
+osobna, które trzy wysyłać po ukończeniu Daily i skąd brać ich wartości.
+
+**Czego to nie wytrzyma.** Dołożenie tablicy — tygodniowej, regionalnej, dla trybu, którego jeszcze
+nie ma — wymaga dziś dotknięcia trzech plików i pamiętania o czwartym. Rozejście się tych miejsc
+nie wywoła błędu kompilacji wszędzie tam, gdzie powinno: `when` w `PlayGamesConfig` owszem, ale
+lista wysyłek w `RankingSubmitter` już nie.
+
+**Kierunek, nie rozstrzygnięcie.** Jedna deklaracja na tablicę, niosąca identyfikator zasobu i to,
+skąd bierze się wysyłana wartość — wtedy dodanie tablicy jest jedną pozycją, a wymiana identyfikatorów
+zostaje tam, gdzie jest. Wymaga przemyślenia, jak taka deklaracja sięga po dane, żeby nie wciągnąć
+repozytorium do domeny.
+
+**Przy okazji warto rozstrzygnąć:** czy suma wszech czasów ma dalej iść za resetem statystyk.
+
 ## Wymaga decyzji
 
 Siedem rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
