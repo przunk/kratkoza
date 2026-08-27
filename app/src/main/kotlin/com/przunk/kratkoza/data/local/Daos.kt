@@ -26,6 +26,12 @@ interface DailyPuzzleDao {
 
     @Query("SELECT * FROM daily_puzzles WHERE date = :date AND rulesetVersion = :rulesetVersion")
     suspend fun forDate(date: String, rulesetVersion: Int): List<DailyPuzzleEntity>
+
+    /** Which day a board belongs to, so a finished game can be totalled against the right one. */
+    @Query(
+        "SELECT date FROM daily_puzzles WHERE puzzleId = :puzzleId AND rulesetVersion = :rulesetVersion LIMIT 1",
+    )
+    suspend fun dateOf(puzzleId: String, rulesetVersion: Int): String?
 }
 
 @Dao
@@ -117,6 +123,24 @@ abstract class GameHistoryDao {
         rankedEligible: Boolean,
         score: Int?,
     )
+
+    /**
+     * The scored Daily total across a set of boards — one day's worth, in practice.
+     *
+     * Null when none of them is scored, which is not the same as zero: an unscored day has no total
+     * rather than a total of nothing.
+     */
+    @Query(
+        """
+        SELECT SUM(score) FROM game_history
+        WHERE gameType = 'DAILY' AND completed AND puzzleId IN (:puzzleIds)
+        """,
+    )
+    abstract suspend fun dailyScoreSum(puzzleIds: List<String>): Long?
+
+    /** Every Daily ever finished, added together. */
+    @Query("SELECT SUM(score) FROM game_history WHERE gameType = 'DAILY' AND completed")
+    abstract suspend fun allTimeDailyScoreSum(): Long?
 
     /** Marks a finished result as one the public ranking accepted. */
     @Query("UPDATE game_history SET publiclyRanked = 1 WHERE id = :id")

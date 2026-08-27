@@ -8,6 +8,7 @@ import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
@@ -641,10 +642,18 @@ class GameViewModelTest {
         idle()
 
         val row = historyDao.all.single()
-        val (difficulty, score) = ranking.submissions.single()
-        assertEquals(Difficulty.EASY, difficulty)
         // The score that travels is the one that was stored, not a second evaluation of the rules.
-        assertEquals(row.score, score)
+        val score = requireNotNull(row.score).toLong()
+        // Three boards: the level, and the two running totals. With one daily solved all three
+        // carry the same number, which is what makes the next test worth having as well.
+        assertEquals(
+            listOf(
+                Leaderboard.DAILY_EASY to score,
+                Leaderboard.DAILY_TOTAL to score,
+                Leaderboard.ALL_TIME_TOTAL to score,
+            ),
+            ranking.submissions,
+        )
         assertTrue("an accepted submission must be recorded", row.publiclyRanked)
     }
 
@@ -714,7 +723,7 @@ class GameViewModelTest {
         val row = historyDao.all.single()
         assertTrue(row.completed)
         assertNotNull("a solved daily must be scored", row.score)
-        assertEquals(1, ranking.submissions.size)
+        assertEquals(3, ranking.submissions.size)
     }
 
     @Test
@@ -742,10 +751,33 @@ class GameViewModelTest {
         viewModel.autoSolve()
         idle()
 
-        assertEquals(1, ranking.submissions.size)
+        assertEquals(3, ranking.submissions.size)
         val row = historyDao.all.single()
         assertTrue("the game is still finished and scored", row.completed)
         assertFalse("but nothing confirmed it reached the board", row.publiclyRanked)
+    }
+
+    @Test
+    fun `the totals add up across the day rather than repeating one score`() = gameTest {
+        // The point of two totals boards. Both are sums, which is what lets them live on a service
+        // that keeps a best score: a sum only grows, so the highest it has seen is the current one.
+        val easy = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking()
+        viewModelFor(easy, ranking).let { viewModel ->
+            viewModel.autoSolve()
+            idle()
+        }
+        val hard = startDaily(Difficulty.HARD)
+        viewModelFor(hard, ranking).let { viewModel ->
+            viewModel.autoSolve()
+            idle()
+        }
+
+        val scores = historyDao.all.mapNotNull { it.score }.map(Int::toLong)
+        assertEquals("both dailies must be scored", 2, scores.size)
+
+        val totals = ranking.submissions.filter { it.first == Leaderboard.ALL_TIME_TOTAL }
+        assertEquals(listOf(scores[0], scores.sum()), totals.map { it.second })
     }
 
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {
@@ -770,18 +802,18 @@ private class RecordingRanking(
     private val outcome: SubmissionOutcome = SubmissionOutcome.Submitted,
 ) : Ranking {
 
-    val submissions = mutableListOf<Pair<Difficulty, Int>>()
+    val submissions = mutableListOf<Pair<Leaderboard, Long>>()
 
     // The game screen never signs in or opens a board; those belong to the Daily screen.
     override suspend fun isSignedIn(): Boolean = true
 
     override suspend fun signIn(): Boolean = true
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome =
+    override suspend fun show(board: Leaderboard): LeaderboardOutcome =
         LeaderboardOutcome.Failed("the game screen never opens one")
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome {
-        submissions += difficulty to score
+    override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome {
+        submissions += board to value
         return outcome
     }
 }

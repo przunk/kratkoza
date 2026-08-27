@@ -6,6 +6,7 @@ import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
@@ -119,7 +120,7 @@ class DailyViewModelTest {
 
         viewModel.showLeaderboard(Difficulty.MASTER)
 
-        assertEquals(listOf(Difficulty.MASTER), ranking.shown)
+        assertEquals(listOf(Leaderboard.DAILY_MASTER), ranking.shown)
     }
 
     @Test
@@ -145,7 +146,7 @@ private class FakeRanking(
     private val outcome: LeaderboardOutcome = LeaderboardOutcome.Shown("test"),
 ) : Ranking {
 
-    val shown = mutableListOf<Difficulty>()
+    val shown = mutableListOf<Leaderboard>()
 
     override suspend fun isSignedIn(): Boolean = signedIn
 
@@ -154,11 +155,11 @@ private class FakeRanking(
         return true
     }
 
-    override suspend fun showLeaderboard(difficulty: Difficulty): LeaderboardOutcome {
-        shown += difficulty
+    override suspend fun show(board: Leaderboard): LeaderboardOutcome {
+        shown += board
         return outcome
     }
 
-    override suspend fun submitDailyScore(difficulty: Difficulty, score: Int): SubmissionOutcome =
+    override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome =
         SubmissionOutcome.Submitted
 }

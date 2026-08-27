@@ -40,6 +40,7 @@ import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.daily.DailyStatus
+import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
 import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.util.formatDuration
@@ -158,7 +159,14 @@ fun DailyScreen(
             // Only once there is something to show. An empty results card on a day nobody has
             // played is a promise of information rather than information.
             if (state.entries.any { it.score != null }) {
-                item { DailyResults(entries = state.entries) }
+                item {
+                    DailyResults(
+                        entries = state.entries,
+                        // Only once signed in. The totals are a comparison with other players, and
+                        // a board nobody can be placed on is not worth a button.
+                        onShowBoard = if (state.signedIn) viewModel::showBoard else null,
+                    )
+                }
             }
 
             // Below the boards, not above them: signing in is optional, and the day's puzzles are
@@ -318,7 +326,7 @@ private fun DailyCard(
  * results are already here and are most of what the card is for — seeing today at a glance.
  */
 @Composable
-private fun DailyResults(entries: List<DailyEntry>) {
+private fun DailyResults(entries: List<DailyEntry>, onShowBoard: ((Leaderboard) -> Unit)?) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
@@ -365,6 +373,29 @@ private fun DailyResults(entries: List<DailyEntry>) {
                     text = stringResource(R.string.daily_score, entries.sumOf { it.score ?: 0 }),
                     style = MaterialTheme.typography.titleSmall,
                 )
+            }
+
+            // The same number, next to other people's. Two boards rather than one because Play
+            // Games keeps a best score, and a day's total and a lifetime's total are different
+            // questions that would otherwise share an answer.
+            if (onShowBoard != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = { onShowBoard(Leaderboard.DAILY_TOTAL) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.daily_board_today))
+                    }
+                    OutlinedButton(
+                        onClick = { onShowBoard(Leaderboard.ALL_TIME_TOTAL) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.daily_board_all_time))
+                    }
+                }
             }
         }
     }

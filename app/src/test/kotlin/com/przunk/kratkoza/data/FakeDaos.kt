@@ -51,6 +51,10 @@ class FakeDailyPuzzleDao : DailyPuzzleDao {
 
     override suspend fun forDate(date: String, rulesetVersion: Int): List<DailyPuzzleEntity> =
         rows.values.filter { it.date == date && it.rulesetVersion == rulesetVersion }
+
+    override suspend fun dateOf(puzzleId: String, rulesetVersion: Int): String? =
+        rows.values.firstOrNull { it.puzzleId == puzzleId && it.rulesetVersion == rulesetVersion }?.date
+
 }
 
 class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
@@ -190,6 +194,20 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
             )
         }
     }
+
+    override suspend fun dailyScoreSum(puzzleIds: List<String>): Long? =
+        entries.value
+            .filter { it.gameType == GameType.DAILY.name && it.completed && it.puzzleId in puzzleIds }
+            .mapNotNull { it.score }
+            .takeIf { it.isNotEmpty() }
+            ?.sumOf { it.toLong() }
+
+    override suspend fun allTimeDailyScoreSum(): Long? =
+        entries.value
+            .filter { it.gameType == GameType.DAILY.name && it.completed }
+            .mapNotNull { it.score }
+            .takeIf { it.isNotEmpty() }
+            ?.sumOf { it.toLong() }
 
     override suspend fun markPubliclyRanked(id: Long) {
         entries.value = entries.value.map { if (it.id == id) it.copy(publiclyRanked = true) else it }
