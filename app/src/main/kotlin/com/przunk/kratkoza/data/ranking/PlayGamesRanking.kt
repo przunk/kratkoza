@@ -5,6 +5,8 @@ import android.content.Intent
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.games.GamesClientStatusCodes
 import com.google.android.gms.games.PlayGames
+import com.google.android.gms.games.leaderboard.LeaderboardVariant
+import com.google.android.gms.games.leaderboard.ScoreSubmissionData
 import com.google.android.gms.tasks.Task
 import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
@@ -107,7 +109,9 @@ class PlayGamesRanking(
             request = submitOnce(activity, leaderboard, value)
         }
 
-        if (request.isSuccessful) return SubmissionOutcome.Submitted
+        if (request.isSuccessful) {
+            return SubmissionOutcome.Submitted(newBest = request.result?.isNewBest() ?: false)
+        }
 
         // Nothing left to confirm with, so stop trying to confirm. submitScore returns void because
         // it does not report back at all: it queues the score inside Play Services, which delivers
@@ -132,7 +136,20 @@ class PlayGamesRanking(
      * submitScoreImmediate rather than submitScore, because the fire-and-forget variant reports
      * nothing at all and a caller recording "this reached the ranking" would be recording a guess.
      */
-    private suspend fun submitOnce(activity: Activity, leaderboard: String, value: Long): Task<*> {
+    /**
+     * Whether the submission moved the all-time board.
+     *
+     * The all-time span is the one asked about because it is the board's own record of the player;
+     * the daily and weekly spans answer a narrower question that the caller is not asking.
+     */
+    private fun ScoreSubmissionData.isNewBest(): Boolean =
+        getScoreResult(LeaderboardVariant.TIME_SPAN_ALL_TIME)?.newBest == true
+
+    private suspend fun submitOnce(
+        activity: Activity,
+        leaderboard: String,
+        value: Long,
+    ): Task<ScoreSubmissionData> {
         val request = PlayGames.getLeaderboardsClient(activity)
             .submitScoreImmediate(leaderboard, value)
         request.awaitOrNull()

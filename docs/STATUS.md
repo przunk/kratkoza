@@ -122,6 +122,28 @@ robił. Wynik zależał od tego, jak długo ktoś patrzył na rozwiązaną plans
 
 Naprawa: `RankingSubmitter` na zakresie aplikacji, oddzielony od ekranu.
 
+### Reset statystyk nie czyści tablic wyników
+
+**Zgłoszone:** 2026-08-27. Nie jest to usterka, tylko rzecz, którą łatwo wziąć za usterkę — i mająca
+jedną nieprzyjemną konsekwencję.
+
+Play Games trzyma **najlepszy** wynik gracza, nie ostatni. Wysłanie gorszego wyniku kończy się
+sukcesem i nie zmienia tablicy. Reset statystyk w aplikacji czyści wyłącznie lokalną historię —
+tablice żyją po stronie Google i nic o tym resecie nie wiedzą.
+
+**Konsekwencja, o której trzeba pamiętać.** Suma wszech czasów jest przeliczana z lokalnej historii.
+Po resecie statystyk zaczyna od zera, więc kolejne wysyłki są **niższe niż to, co tablica już ma**,
+i będą ignorowane, dopóki nowa suma nie przekroczy starej. Lokalny rekord i publiczny rozjeżdżają
+się wtedy na stałe.
+
+**Co z tym zrobić przed premierą.** Albo zresetować wyniki testerów w Play Console, albo — pewniej —
+utworzyć świeże tablice i podmienić identyfikatory w `res/values/play_games_ids.xml`. Plik jest
+osobny właśnie po to.
+
+**Czy zmieniać zachowanie?** Do decyzji. Można by liczyć sumę wszech czasów niezależnie od resetu
+statystyk, ale wtedy „reset statystyk" przestaje znaczyć to, co mówi. Na razie zostaje tak, jak jest,
+a log rankingu mówi wprost, kiedy wynik został przyjęty, ale niczego nie zmienił.
+
 ## Do zrobienia
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
