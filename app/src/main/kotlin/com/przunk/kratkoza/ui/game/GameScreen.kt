@@ -249,6 +249,14 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
 
         Spacer(Modifier.weight(1f))
 
+        // Debug builds only. Reaching the end of a Daily is otherwise twenty minutes of typing,
+        // which is too much to pay every time the ranking needs testing.
+        if (state.debugTools && state.phase == GameUiState.Phase.PLAYING) {
+            TextButton(onClick = viewModel::autoSolve) {
+                Text(stringResource(R.string.game_debug_solve))
+            }
+        }
+
         if (state.canShareAndSave) {
             ShareBoardAction(state.difficulty, viewModel::shareCode)
             IconButton(

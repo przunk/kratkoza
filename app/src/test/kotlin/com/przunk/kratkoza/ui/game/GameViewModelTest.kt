@@ -74,12 +74,17 @@ class GameViewModelTest {
      */
     private val store = ViewModelStore()
 
-    private fun viewModelFor(game: SavedGame, ranking: Ranking = NoRanking): GameViewModel {
+    private fun viewModelFor(
+        game: SavedGame,
+        ranking: Ranking = NoRanking,
+        debugTools: Boolean = true,
+    ): GameViewModel {
         val viewModel = GameViewModel(
             puzzleId = game.state.puzzle.id,
             gameRepository = repository,
             settingsFlow = settings,
             ranking = ranking,
+            debugTools = debugTools,
             clock = { now },
         )
         store.put(game.state.puzzle.id, viewModel)
@@ -682,6 +687,38 @@ class GameViewModelTest {
         assertTrue("the game itself must still be finished", row.completed)
         assertNotNull("and still scored", row.score)
         assertFalse("but not claimed as ranked", row.publiclyRanked)
+    }
+
+    @Test
+    fun `the debug solve finishes a daily the way typing it in would`() = gameTest {
+        // It goes through selection and entry rather than writing a solved board, so scoring, XP
+        // and the ranking all happen exactly as they do for a player.
+        val daily = startDaily(Difficulty.EASY)
+        val ranking = RecordingRanking()
+        val viewModel = viewModelFor(daily, ranking)
+
+        viewModel.autoSolve()
+        idle()
+
+        assertEquals(GameUiState.Phase.SOLVED, viewModel.uiState.value.phase)
+        val row = historyDao.all.single()
+        assertTrue(row.completed)
+        assertNotNull("a solved daily must be scored", row.score)
+        assertEquals(1, ranking.submissions.size)
+    }
+
+    @Test
+    fun `the debug solve does nothing in a release build`() = gameTest {
+        // The flag follows BuildConfig.DEBUG in production. Pinning it false here proves the guard
+        // is in the ViewModel and not only in whether the button is drawn.
+        val game = startGame(Difficulty.EASY)
+        val viewModel = viewModelFor(game, debugTools = false)
+
+        viewModel.autoSolve()
+        idle()
+
+        assertEquals(GameUiState.Phase.PLAYING, viewModel.uiState.value.phase)
+        assertTrue(historyDao.all.none { it.completed })
     }
 
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {

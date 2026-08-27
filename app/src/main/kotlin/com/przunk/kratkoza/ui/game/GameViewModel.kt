@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.BoardInsights
+import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
@@ -44,6 +45,11 @@ class GameViewModel(
      * build without Play Games configured, behaves like a player who is simply not signed in.
      */
     private val ranking: Ranking = NoRanking,
+    /**
+     * Whether to offer the debug-only shortcuts. Defaults to the build type, so the control cannot
+     * reach a release APK even if somebody forgets to hide it in the UI.
+     */
+    private val debugTools: Boolean = BuildConfig.DEBUG,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
@@ -133,6 +139,25 @@ class GameViewModel(
         val index = selection ?: return
         if (!_uiState.value.isPlayable) return
         apply(GameEngine.clearCell(state, index))
+    }
+
+    /**
+     * Debug builds only: finishes the board as though every remaining digit had been tapped in.
+     *
+     * It really does tap them in — same selection, same entry, same completion check — rather than
+     * writing a solved board straight to the database. A shortcut that bypassed the normal path
+     * would prove nothing about the path being tested, and the reason this exists is to reach the
+     * end of a Daily without spending twenty minutes on it.
+     */
+    fun autoSolve() {
+        if (!debugTools) return
+        val solution = game?.state?.puzzle?.solution ?: return
+
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (game?.state?.board?.isEmpty(cell) != true) continue
+            selectCell(cell)
+            enterDigit(solution[cell])
+        }
     }
 
     fun undo() {

@@ -66,6 +66,8 @@
     <string name="game_mistakes_value">%1$d</string>
     <string name="game_pause">Pauza</string>
     <string name="game_ranked">Rankingowa</string>
+    <!-- Debug builds only; never reaches a release APK. -->
+    <string name="game_debug_solve">Rozwiąż</string>
     <string name="game_unranked">Poza rankingiem</string>
     <string name="game_ranking_lost">Ta gra wypadła z rankingu — możesz ją dokończyć jako zwykłą.</string>
     <string name="daily_next_in_at">Nowe plansze za %1$s, o %2$s</string>
