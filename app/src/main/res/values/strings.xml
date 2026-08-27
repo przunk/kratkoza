@@ -33,7 +33,9 @@
     <string name="difficulty_normal">Normal</string>
     <string name="difficulty_hard">Hard</string>
     <string name="difficulty_expert">Expert</string>
-    <string name="difficulty_master">Master</string>
+    <!-- Matches the Play Games leaderboard, which players see next to their score. The enum
+         behind it stays MASTER: that name is the on-disk storage format, not a label. -->
+    <string name="difficulty_master">Deadly</string>
 
     <!-- New game -->
     <string name="new_game_title">New game</string>
