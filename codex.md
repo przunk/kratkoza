@@ -1,65 +1,75 @@
-# Zadanie: statystyki Daily
+# Zadanie: jedno podejście do Daily, nie do obejścia
 
 > Zasady współpracy — worktree, gałęzie, konwencje, kto scala — są w `codex_instructions.md`.
 > Przeczytaj je najpierw. Ten plik opisuje wyłącznie bieżące zadanie.
 
-**Gałąź:** `feature/daily-statistics` z `develop`.
+**Gałąź:** `fix/daily-single-attempt` z `develop`.
 
 **Pliki, których dotyczy zadanie:**
-- `data/local/Daos.kt` — nowe zapytania
-- `domain/stats/Statistics.kt` — model
-- `data/repository/GameRepository.kt` — złożenie
-- `ui/statistics/` — ekran i ViewModel
-- `res/values*/strings.xml` — sekcja „Statystyki"
-- testy: `data/`, `data/local/`, `ui/statistics/`
+- `data/repository/GameRepository.kt` — `startDaily` i to, co ją broni
+- `data/local/Daos.kt`, `data/local/KratkozaDatabase.kt` — jeśli reguła wymaga zapytania lub migracji
+- `ui/daily/DailyViewModel.kt` — `open`
+- testy: `data/`, `data/local/`, `ui/daily/`
 
-Równolegle piszę testy Compose dla ekranów gry, Daily i ekranu głównego — dotykam
-`app/src/test/kotlin/.../ui/{game,daily,home}/`. **Tam nie wchodź.** Poza tym nasze zakresy się nie
-przecinają.
+Równolegle przebudowuję moduł tablic wyników — dotykam `domain/ranking/`, `data/ranking/` oraz
+`res/values/play_games_ids.xml`. **Tam nie wchodź.** W szczególności **nie edytuj**
+`GameRepository.dailyTotals` ani niczego w `data/ranking/`. Reszta `GameRepository` jest Twoja.
 
 ---
 
-## Dlaczego to zadanie
+## Usterka
 
-`project.md` §33 wymienia **statystyki Daily** wśród wymaganych statystyk lokalnych i jest to
-jedyna pozycja z tej listy, której nie ma. Daily działa od wczoraj, więc dane już się zbierają —
-tylko nikt ich nie pokazuje.
+Szybkie dwukrotne naciśnięcie „Start" na karcie Daily uruchamia grę **dwa razy**. Druga plansza
+zostaje w tle; po ukończeniu pierwszej gracz widzi ją od nowa i wygląda to tak, jakby Daily dało się
+rozegrać drugi raz. Zgłoszone z urządzenia 2026-08-27, build 0.16.0 (26). Opis jest też w
+`docs/STATUS.md` w sekcji „Znane usterki" — zaktualizuj go, gdy skończysz.
 
-## Co ma być widać
+## Dlaczego to nie jest usterka UI
 
-Sekcja „Daily" na ekranie statystyk, obok tego, co już tam jest:
+`DailyViewModel.open` startuje korutynę na każde naciśnięcie. Dwie korutyny wchodzą do
+`GameRepository.startDaily` **równolegle** i obie czytają stan, zanim którakolwiek cokolwiek zapisze
+— więc obie widzą planszę jako nierozegraną i obie ją zakładają.
 
-- **ile Daily ukończono** — łącznie i z podziałem na poziomy,
-- **suma zdobytych punktów** oraz **najlepszy pojedynczy wynik**,
-- **średni wynik** na ukończone Daily,
-- **ile Daily rozegrano bez utraty kwalifikacji rankingowej** — kolumna `rankedEligible`
-  w `game_history` już to niesie.
+**Zablokowanie przycisku nie jest naprawą.** Zamyka najczęstszą drogę i nic poza tym: ta sama luka
+zostaje otwarta dla każdego innego wywołania, dla powrotu z nawigacji i dla wznowienia procesu.
+Reguła „jedno podejście dziennie" jest regułą domeny i ma być nie do obejścia **w repozytorium**.
+Blokada w UI jest mile widziana, ale jako uprzejmość, nie jako mechanizm.
 
-Sekcja pojawia się **tylko wtedy, gdy jest co pokazać**. Zero wierszy z zerami na koncie kogoś, kto
-nie grał jeszcze w Daily — reszta ekranu robi to samo i warto zachować spójność.
+## Co ma być prawdą po naprawie
 
-## Skąd brać dane
+- Dwa równoległe wywołania `startDaily(date, difficulty)` dają **jedną** grę. Drugie dostaje tę
+  samą, którą założyło pierwsze — albo `null`, jeśli plansza jest już ukończona. Nigdy dwie.
+- Sekwencyjne wywołanie po ukończeniu dalej zwraca `null`, tak jak dziś.
+- Wznowienie rozpoczętej gry działa bez zmian.
+- To samo sprawdź dla `startNewGame` i dla ścieżki „Kontynuuj". Jeśli tam luka nie istnieje,
+  napisz w commicie **dlaczego** — to informacja warta tyle samo co poprawka.
 
-`game_history` ma wszystko: `gameType = 'DAILY'`, `completed`, `score`, `rankedEligible`,
-`difficulty`. Wynik jest liczony przy kończeniu gry przez `DailyScore` i zapisywany — **nie licz go
-ponownie w zapytaniu ani w UI.** Gdyby wzór się zmienił, wiersze historii mają dalej mówić, ile
-partia była warta wtedy; to ta sama zasada, dla której istnieje `rulesetVersion`.
+## Wskazówki, nie rozstrzygnięcia
 
-`score` jest `NULL` dla gier solo i dla nieukończonych. `NULL` to „nie punktowana", a nie zero —
-`AVG` i `SUM` same je pomijają, ale `COUNT(*)` już nie, więc uważaj, co liczysz.
+Sedno to atomowość: sprawdzenie i zajęcie planszy muszą być jednym krokiem, którego drugi wątek nie
+przecina. Do rozważenia — Room `@Transaction` na metodzie, która sprawdza i wstawia; unikalny indeks
+na `saved_games`/`game_history`, który po prostu nie pozwoli powstać drugiemu wierszowi; mutex w
+repozytorium. Każde ma inny koszt i inny zasięg:
+
+- **Mutex** jest najprostszy i broni tylko tego procesu — tu wystarczy, bo baza jest lokalna
+  i jednoprocesowa, ale warto to napisać w komentarzu, żeby ktoś kiedyś nie założył więcej.
+- **Indeks unikalny** jest najmocniejszy i przeżywa każdą przyszłą ścieżkę wywołania, ale to
+  **migracja schematu** — wersja bazy w górę i ręcznie napisana migracja, jak dwie poprzednie.
+  Jeśli wybierzesz tę drogę, dopisz test migracji.
+
+Wybierz sam i **uzasadnij wybór w commicie**. Nie ma tu jednej dobrej odpowiedzi, jest kilka
+z różnymi kosztami.
 
 ## Na co uważać
 
-- **Zapytania agregujące pisz z testem na prawdziwej bazie**, nie tylko na atrapie. `FakeDaos`
-  reimplementuje SQL w Kotlinie i tak właśnie przeszedł kiedyś zepsuty reset statystyk — sprawdzał
-  imitację, nie kod. Wzorzec jest w `GameHistoryDaoTest`.
-- **Reset statystyk musi czyścić też te liczby.** Skoro liczysz z `game_history`, dostaniesz to za
-  darmo — ale sprawdź testem, bo to jest dokładnie ta rzecz, którą łatwo przeoczyć.
-- Liczby formatuj przez `NumberFormat`, jak reszta ekranu (`project.md` §4).
-- Puste wartości pokazuj jako „—", nie jako zero. „Brak najlepszego wyniku" i „najlepszy wynik
-  zero" to dwa różne zdania.
-- Dopisz testy Compose dla nowej sekcji — infrastruktura działa, a Twoje testy z poprzedniego
-  zadania są dobrym wzorem.
+- **Test musi naprawdę być równoległy.** Test, który woła `startDaily` dwa razy pod rząd, przejdzie
+  także na niepoprawionym kodzie i niczego nie udowodni. Potrzebne są dwie korutyny startujące
+  razem — `async` + `awaitAll`, albo `coroutineScope` z dwoma `launch`. Sprawdź, że **bez** poprawki
+  ten test pada; jeśli przechodzi na obu wersjach, testuje coś innego, niż myślisz.
+- `FakeDaos` reimplementuje SQL w Kotlinie, więc **sam nie udowodni** niczego o atomowości zapytania.
+  Jeśli reguła siada w SQL-u albo w indeksie, potrzebny jest test na prawdziwej bazie Room —
+  wzorzec jest w `GameHistoryDaoTest`.
+- Nie podbijaj wersji na gałęzi zadaniowej.
 
 ## Weryfikacja
 
@@ -68,5 +78,5 @@ partia była warta wtedy; to ta sama zasada, dla której istnieje `rulesetVersio
 ./scripts/lint-kratkoza.sh
 ```
 
-Wersji nie podbijaj, jeśli nie scalasz. W opisie commita napisz, czego **nie** udało się sprawdzić
-maszynowo.
+W opisie commita napisz, czego **nie** udało się sprawdzić maszynowo — w szczególności to, że nie
+sprawdzałeś podwójnego kliknięcia na urządzeniu.

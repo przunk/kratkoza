@@ -66,9 +66,15 @@ zrebasowana i przez chwilę istniała jako komplet duplikatów gotowych do ponow
 
 ## 3. Gałęzie
 
-- `master` — baza,
-- `develop` — gałąź integracyjna, **nikt nie commituje na nią wprost**,
+- `develop` — **gałąź główna**. Stąd wychodzi każda gałąź zadaniowa i tu wraca. Nikt nie commituje
+  na nią wprost.
+- `master` — **baza wydań**, aktualizowana rzadko. Trafia tam `develop` dopiero wtedy, gdy właściciel
+  projektu uzna dany stan za milestone. To jego decyzja i jego ruch — **nie scalasz do `master`
+  nigdy**, nawet gdy Twoja gałąź jest gotowa i przetestowana.
 - `<typ>/<opis>` — gałąź zadania, np. `fix/game-screen-readability`.
+
+Praktyczny wniosek: `master` bywa o dziesiątki commitów w tyle i to jest stan normalny, a nie coś
+do nadrobienia. Jeśli kiedykolwiek zastanawiasz się, z czego odbić gałąź, odpowiedź brzmi `develop`.
 
 Scalenie do `develop` następuje, gdy zadanie jest skończone i zweryfikowane. **Własną, skończoną
 gałąź możesz scalić sam**, gdy właściciel to potwierdzi; cudzej nie scalasz nigdy.
