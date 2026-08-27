@@ -14,6 +14,7 @@ import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailyScore
 import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.game.GameState
@@ -119,6 +120,7 @@ class GameRepository(
                 },
                 elapsedMillis = finished?.elapsedMillis ?: save?.elapsedMillis,
                 mistakeCount = finished?.mistakeCount ?: save?.mistakeCount,
+                score = finished?.score,
                 rankedEligible = eligibilityOf(
                     attempts = attempts.filter { it.puzzleId == row.puzzleId },
                     save = save,
@@ -329,6 +331,18 @@ class GameRepository(
             0
         }
 
+        // Only a Daily is scored (project.md section 29). A solo game has nothing to be compared
+        // against, and an unfinished board has no score at all — which is not the same as zero.
+        val score = if (completed && game.state.puzzle.gameType == GameType.DAILY) {
+            DailyScore.of(
+                difficulty = game.state.puzzle.difficulty,
+                elapsedMillis = game.elapsedMillis,
+                mistakeCount = game.state.mistakeCount,
+            )
+        } else {
+            null
+        }
+
         if (game.historyId == NO_HISTORY_ROW) {
             historyDao.insert(
                 historyEntry(game.state.puzzle, startedAt = game.startedAt).copy(
@@ -338,6 +352,7 @@ class GameRepository(
                     completed = completed,
                     xpEarned = xp,
                     rankedEligible = game.rankedEligible,
+                    score = score,
                 ),
             )
         } else {
@@ -349,6 +364,7 @@ class GameRepository(
                 completed = completed,
                 xpEarned = xp,
                 rankedEligible = game.rankedEligible,
+                score = score,
             )
         }
         savedGameDao.delete(game.state.puzzle.id)

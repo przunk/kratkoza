@@ -1,30 +1,33 @@
 package com.przunk.kratkoza.domain.daily
 
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DailyScheduleTest {
 
-    /** A Warsaw wall-clock moment, as an instant. */
-    private fun warsaw(text: String) =
-        LocalDateTime.parse(text).atZone(DailySchedule.ZONE).toInstant()
+    private fun utc(text: String): Instant =
+        ZonedDateTime.parse(text + "Z", java.time.format.DateTimeFormatter.ISO_ZONED_DATE_TIME)
+            .toInstant()
+
+    private val warsaw = ZoneId.of("Europe/Warsaw")
 
     @Test
-    fun `the set changes at eight in the morning, not at midnight`() {
-        assertEquals(LocalDate.parse("2026-08-25"), DailySchedule.dailyDateAt(warsaw("2026-08-26T07:59:59")))
-        assertEquals(LocalDate.parse("2026-08-26"), DailySchedule.dailyDateAt(warsaw("2026-08-26T08:00:00")))
+    fun `the set changes at seven UTC, not at midnight`() {
+        assertEquals(LocalDate.parse("2026-08-25"), DailySchedule.dailyDateAt(utc("2026-08-26T06:59:59")))
+        assertEquals(LocalDate.parse("2026-08-26"), DailySchedule.dailyDateAt(utc("2026-08-26T07:00:00")))
     }
 
     @Test
     fun `the small hours still belong to the previous day`() {
-        // The case that catches a boundary written as midnight: somebody playing at 2am is on
-        // yesterday's puzzles, and their result has to be filed against yesterday.
-        assertEquals(LocalDate.parse("2026-08-25"), DailySchedule.dailyDateAt(warsaw("2026-08-26T00:00:00")))
-        assertEquals(LocalDate.parse("2026-08-25"), DailySchedule.dailyDateAt(warsaw("2026-08-26T02:30:00")))
+        assertEquals(LocalDate.parse("2026-08-25"), DailySchedule.dailyDateAt(utc("2026-08-26T00:00:00")))
+        assertEquals(LocalDate.parse("2026-08-25"), DailySchedule.dailyDateAt(utc("2026-08-26T02:30:00")))
     }
 
     @Test
@@ -39,30 +42,41 @@ class DailyScheduleTest {
     }
 
     @Test
-    fun `the changeover stays at eight across the daylight-saving switch`() {
-        // A fixed UTC offset would drift to 07:00 for half the year. Poland moves its clocks on the
-        // last Sunday of March and October.
-        for (day in listOf("2026-03-29", "2026-10-25", "2026-06-15", "2026-12-15")) {
+    fun `every day is exactly twenty-four hours, daylight saving included`() {
+        // The point of pinning the changeover to UTC. A wall-clock boundary makes the day around
+        // the switch 23 or 25 hours long, and a leaderboard cut at a fixed instant would then
+        // disagree with it about which puzzle a result belongs to.
+        for (day in listOf("2026-03-28", "2026-03-29", "2026-10-24", "2026-10-25", "2026-06-15")) {
             val date = LocalDate.parse(day)
-            val startLocal = DailySchedule.startOf(date).atZone(DailySchedule.ZONE)
-
-            assertEquals("changeover on $day", LocalTime.of(8, 0), startLocal.toLocalTime())
+            assertEquals(
+                "day length on $day",
+                24 * 60 * 60 * 1000L,
+                DailySchedule.endOf(date).toEpochMilli() - DailySchedule.startOf(date).toEpochMilli(),
+            )
         }
     }
 
     @Test
-    fun `a day is roughly twenty-four hours, and exactly so outside the switch`() {
-        val ordinary = LocalDate.parse("2026-06-15")
-        assertEquals(
-            24 * 60 * 60 * 1000L,
-            DailySchedule.endOf(ordinary).toEpochMilli() - DailySchedule.startOf(ordinary).toEpochMilli(),
-        )
+    fun `the local hour of the changeover moves with daylight saving, and is reported as it moves`() {
+        // The accepted cost of variant A: the clock face shifts, the instant does not. Anything
+        // shown to the player has to be computed, never assumed.
+        assertEquals(LocalTime.of(9, 0), DailySchedule.localChangeover(LocalDate.parse("2026-06-15"), warsaw))
+        assertEquals(LocalTime.of(8, 0), DailySchedule.localChangeover(LocalDate.parse("2026-12-15"), warsaw))
+    }
 
-        // The spring day loses an hour; that is correct, not a bug to paper over.
-        val springForward = LocalDate.parse("2026-03-28")
-        val length = DailySchedule.endOf(springForward).toEpochMilli() -
-            DailySchedule.startOf(springForward).toEpochMilli()
-        assertEquals(23 * 60 * 60 * 1000L, length)
+    @Test
+    fun `the changeover is the same instant everywhere`() {
+        val date = LocalDate.parse("2026-06-15")
+        val start = DailySchedule.startOf(date)
+
+        for (zone in listOf("Europe/Warsaw", "America/New_York", "Asia/Tokyo", "UTC")) {
+            assertEquals(
+                "a player in $zone must switch at the same moment",
+                date,
+                DailySchedule.dailyDateAt(start),
+            )
+        }
+        assertEquals(LocalTime.of(7, 0), start.atZone(ZoneOffset.UTC).toLocalTime())
     }
 
     @Test
@@ -76,7 +90,6 @@ class DailyScheduleTest {
 
     @Test
     fun `a countdown asked for after the day is over is zero, never negative`() {
-        val date = LocalDate.parse("2026-08-26")
-        assertEquals(0L, DailySchedule.remainingMillis(date, warsaw("2026-09-01T12:00:00")))
+        assertEquals(0L, DailySchedule.remainingMillis(LocalDate.parse("2026-08-26"), utc("2026-09-01T12:00:00")))
     }
 }

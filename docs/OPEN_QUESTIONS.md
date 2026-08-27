@@ -14,6 +14,7 @@ dlaczego, oraz jakie są alternatywy.
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
 | 7 | Edycja poprawnie wpisanej cyfry | 🟢 **ustalone** — zablokowana, cofa tylko Undo |
 | 8 | Co odbiera Daily kwalifikację rankingową | 🟢 **ustalone** — minimalizacja nie, podpowiedź tak |
+| 9 | Wzór na wynik Daily i czasy odniesienia | 🟡 **wstępnie** — wzór przyjęty, czasy do dostrojenia |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
 🟡 = przyjęte tymczasowo, czeka na decyzję.
@@ -228,3 +229,38 @@ nie skoczył wstecz.
 **Czego to nie broni.** Gracz nadal może zrobić zrzut planszy i rozwiązać ją gdzie indziej — ale
 zegar przez ten czas biegnie, więc nic na tym nie zyskuje. `project.md` §31 uznaje wprost, że
 całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.
+
+---
+
+## 9. Wzór na wynik Daily i czasy odniesienia poziomów
+
+**Stan: 🟡 wstępnie przyjęte 2026-08-27.** `project.md` §39 zostawia wzór na wynik bazowy otwarty;
+§29 ustala jedynie karę za błędy.
+
+    wynik = 2 × baza(poziom) × cel(poziom) / (cel + czas) × 0.7 ^ błędy
+
+| poziom | baza | cel |
+|---|---|---|
+| Łatwy | 500 | 5 min |
+| Normalny | 700 | 9 min |
+| Trudny | 1000 | 15 min |
+| Ekspert | 1400 | 20 min |
+| Morderczy | 2000 | 25 min |
+
+**Co robi każdy człon.** Baza niesie wagę poziomu — pierwsza wersja punktowała wyłącznie osiągi
+względem poziomu, więc sam poziom znikał z odpowiedzi i bezbłędny Łatwy bił dobrego Morderczego.
+Człon czasowy wynosi dokładnie 1 przy czasie równym celowi, więc **cel jest miarą, nie limitem**:
+trafiony daje bazę, pobity podnosi mnożnik ku dwóm, przekroczony opada gładko i nigdy nie sięga
+zera. Ostatni człon to §29 dosłownie.
+
+**Dlaczego nie zerujemy przy trzech błędach**, mimo propozycji. Po pierwsze §29 podaje wprost
+mnożnik i tabelę procentów. Po drugie — i ważniejsze — wynik zerowy kończyłby grę we wszystkim poza
+literą: gracz z trzema błędami nie miałby o co grać, a `project.md` §16 mówi, że gra nie ma systemu
+żyć i błąd nie blokuje rozgrywki. Sedno zgłoszenia („błędy za mało bolą") załatwia natomiast waga
+poziomu: **jeden błąd na Morderczym kosztuje 600 punktów, czyli więcej, niż wart jest bezbłędny
+Łatwy.** Wcześniej mnożnik działał na wynik, który i tak nie zależał od poziomu.
+
+**Czasy odniesienia dobrane oceną.** Próba wyprowadzenia ich z solvera się nie udała i warto to
+zapisać: kroków logicznego rozwiązania jest 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
+niespełna półtorakrotny, gdy ludzki jest kilkukrotny. O trudności decyduje **znalezienie** techniki,
+a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi. Dostroić, gdy będą prawdziwe czasy.

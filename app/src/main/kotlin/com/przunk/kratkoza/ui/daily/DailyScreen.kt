@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +40,8 @@ import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.ui.common.KratkozaScaffold
 import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.util.formatDuration
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -110,7 +113,7 @@ fun DailyScreen(
                         text = stringResource(
                             R.string.daily_next_in_at,
                             formatDuration(context, state.remainingMillis),
-                            changeoverText(),
+                            changeoverText(state.date ?: LocalDate.now()),
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -122,14 +125,26 @@ fun DailyScreen(
             items(state.entries, key = { it.puzzleId }) { entry ->
                 DailyCard(entry = entry, onOpen = { viewModel.open(entry.difficulty) })
             }
+
+            // Only once there is something to show. An empty results card on a day nobody has
+            // played is a promise of information rather than information.
+            if (state.entries.any { it.score != null }) {
+                item { DailyResults(entries = state.entries) }
+            }
         }
     }
 }
 
-/** The changeover hour in the reader's own clock format (project.md section 4). */
+/**
+ * The changeover hour in the reader's own clock and format (project.md section 4).
+ *
+ * Derived from the day being shown, because the local hour of a fixed UTC instant moves with
+ * daylight saving — a constant here would be wrong for half the year.
+ */
 @Composable
-private fun changeoverText(): String = remember {
-    DailySchedule.CHANGEOVER.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+private fun changeoverText(date: LocalDate): String = remember(date) {
+    DailySchedule.localChangeover(date, ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 }
 
 @Composable
@@ -197,6 +212,65 @@ private fun DailyCard(entry: DailyEntry, onOpen: () -> Unit) {
 }
 
 /**
+ * The day's own scoreboard (project.md section 29).
+ *
+ * Local only. Comparing against other players waits for the leaderboards, but a player's own three
+ * results are already here and are most of what the card is for — seeing today at a glance.
+ */
+@Composable
+private fun DailyResults(entries: List<DailyEntry>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.daily_results_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+
+            for (entry in entries) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(entry.difficulty.labelRes()),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = entry.score
+                            ?.let { stringResource(R.string.daily_score, it) }
+                            ?: stringResource(R.string.daily_results_pending),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (entry.score == null) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.daily_results_total),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    // Unfinished boards contribute nothing rather than being left out, so the total
+                    // is the day's score and not the score of the parts that went well.
+                    text = stringResource(R.string.daily_score, entries.sumOf { it.score ?: 0 }),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+            }
+        }
+    }
+}
+
+/**
  * Green for a finished board.
  *
  * Fixed rather than taken from the palette: green means done here, and a palette that recoloured it
@@ -215,9 +289,15 @@ private fun statusText(entry: DailyEntry, context: android.content.Context): Str
         R.string.daily_status_in_progress,
         formatDuration(context, entry.elapsedMillis ?: 0),
     )
-    DailyStatus.COMPLETED -> stringResource(
-        R.string.daily_status_completed,
-        formatDuration(context, entry.elapsedMillis ?: 0),
-        pluralStringResource(R.plurals.mistake_count, entry.mistakeCount ?: 0, entry.mistakeCount ?: 0),
-    )
+    DailyStatus.COMPLETED -> {
+        val time = formatDuration(context, entry.elapsedMillis ?: 0)
+        val mistakes = pluralStringResource(
+            R.plurals.mistake_count,
+            entry.mistakeCount ?: 0,
+            entry.mistakeCount ?: 0,
+        )
+        entry.score
+            ?.let { stringResource(R.string.daily_status_completed_scored, time, mistakes, it) }
+            ?: stringResource(R.string.daily_status_completed, time, mistakes)
+    }
 }

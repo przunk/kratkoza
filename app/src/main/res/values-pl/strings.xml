@@ -18,6 +18,11 @@
     <string name="daily_unranked">Poza rankingiem</string>
     <string name="daily_open">Rozpocznij</string>
     <string name="daily_solved_mark">Rozwiązana</string>
+    <string name="daily_score">%1$d pkt</string>
+    <string name="daily_status_completed_scored">Rozwiązana w %1$s · %2$s · %3$d pkt</string>
+    <string name="daily_results_title">Twoje dzisiejsze wyniki</string>
+    <string name="daily_results_total">Razem</string>
+    <string name="daily_results_pending">Jeszcze nieukończone</string>
     <string name="daily_continue">Kontynuuj</string>
     <string name="home_saved_games">Zapisane gry</string>
     <string name="home_statistics">Statystyki</string>
