@@ -1,5 +1,7 @@
 package com.przunk.kratkoza.data
 
+import com.przunk.kratkoza.data.repository.DailyRepository
+import com.przunk.kratkoza.data.repository.StatisticsRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.domain.game.GameEngine
@@ -42,15 +44,26 @@ class GameRepositoryTest {
     private var now = 1_000L
     private val DAY: java.time.LocalDate = java.time.LocalDate.parse("2026-08-26")
 
+    private val dailyPuzzleDao = FakeDailyPuzzleDao()
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
-        dailyPuzzleDao = FakeDailyPuzzleDao(),
+        dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
         computationDispatcher = UnconfinedTestDispatcher(),
         clock = { now },
     )
+    private val dailyRepository = DailyRepository(
+        games = repository,
+        puzzleDao = puzzleDao,
+        dailyPuzzleDao = dailyPuzzleDao,
+        savedGameDao = savedGameDao,
+        historyDao = historyDao,
+        generator = SudokuGenerator(),
+        computationDispatcher = Dispatchers.Unconfined,
+    )
+    private val statisticsRepository = StatisticsRepository(historyDao, savedGameDao)
 
     @Test
     fun `starting a game stores the board, opens a history row and writes a save`() = runTest {
@@ -136,7 +149,7 @@ class GameRepositoryTest {
         assertEquals(1, historyDao.all.size)
         assertEquals(false, historyDao.all.single().completed)
 
-        val statistics = repository.statistics.first()
+        val statistics = statisticsRepository.statistics.first()
         assertEquals(1, statistics.startedCount)
         assertEquals(0, statistics.completedCount)
     }
@@ -165,7 +178,7 @@ class GameRepositoryTest {
         repository.finishGame(secondEasy.copy(elapsedMillis = 60_000), completed = true)
         repository.finishGame(hard.copy(elapsedMillis = 300_000), completed = false)
 
-        val statistics = repository.statistics.first()
+        val statistics = statisticsRepository.statistics.first()
         assertEquals(3, statistics.startedCount)
         assertEquals(2, statistics.completedCount)
         assertEquals(2f / 3f, statistics.completionRate, 0.0001f)
@@ -187,7 +200,7 @@ class GameRepositoryTest {
 
     @Test
     fun `every level is listed in the statistics even before it is played`() = runTest {
-        val statistics = repository.statistics.first()
+        val statistics = statisticsRepository.statistics.first()
         assertEquals(Difficulty.entries.toList(), statistics.perDifficulty.map { it.difficulty })
         assertEquals(0f, statistics.completionRate, 0f)
         assertNull(statistics.averageMistakes)
@@ -213,9 +226,9 @@ class GameRepositoryTest {
         repository.finishGame(first.copy(elapsedMillis = 60_000), completed = true)
 
         // `second` is still on the board — the case that used to leave the counters standing.
-        repository.resetStatistics()
+        statisticsRepository.resetStatistics()
 
-        val statistics = repository.statistics.first()
+        val statistics = statisticsRepository.statistics.first()
         assertEquals(0, statistics.startedCount)
         assertEquals(0, statistics.completedCount)
         assertEquals(0, statistics.totalMistakes)
@@ -226,7 +239,7 @@ class GameRepositoryTest {
     @Test
     fun `a game finished after a reset is recorded against the fresh record`() = runTest {
         val game = repository.startNewGame(Difficulty.MASTER)
-        repository.resetStatistics()
+        statisticsRepository.resetStatistics()
 
         val reloaded = requireNotNull(repository.loadGame(game.state.puzzle.id))
         assertEquals(NO_HISTORY_ROW, reloaded.historyId)
@@ -234,7 +247,7 @@ class GameRepositoryTest {
         now = 9_000
         repository.finishGame(reloaded.copy(elapsedMillis = 45_000), completed = true)
 
-        val statistics = repository.statistics.first()
+        val statistics = statisticsRepository.statistics.first()
         assertEquals("started and finished at once, as far as the record is concerned", 1, statistics.startedCount)
         assertEquals(1, statistics.completedCount)
         assertEquals(
@@ -245,8 +258,8 @@ class GameRepositoryTest {
 
     @Test
     fun `resetting an empty record is harmless`() = runTest {
-        repository.resetStatistics()
-        assertEquals(0, repository.statistics.first().startedCount)
+        statisticsRepository.resetStatistics()
+        assertEquals(0, statisticsRepository.statistics.first().startedCount)
     }
 
     @Test
@@ -255,7 +268,7 @@ class GameRepositoryTest {
         val game = repository.startNewGame(Difficulty.HARD)
         repository.finishGame(game.copy(elapsedMillis = 60_000), completed = true)
 
-        val progress = repository.statistics.first().progress
+        val progress = statisticsRepository.statistics.first().progress
         assertEquals(PlayerProgress.xpForCompleting(Difficulty.HARD).toLong(), progress.totalXp)
     }
 
@@ -264,7 +277,7 @@ class GameRepositoryTest {
         val game = repository.startNewGame(Difficulty.MASTER)
         repository.finishGame(game, completed = false)
 
-        assertEquals(0L, repository.statistics.first().progress.totalXp)
+        assertEquals(0L, statisticsRepository.statistics.first().progress.totalXp)
     }
 
     @Test
@@ -273,7 +286,7 @@ class GameRepositoryTest {
         // (project.md section 29), not here.
         val clean = repository.startNewGame(Difficulty.NORMAL)
         repository.finishGame(clean, completed = true)
-        val afterClean = repository.statistics.first().progress.totalXp
+        val afterClean = statisticsRepository.statistics.first().progress.totalXp
 
         now = 2_000
         val messy = repository.startNewGame(Difficulty.NORMAL)
@@ -290,7 +303,7 @@ class GameRepositoryTest {
         repository.finishGame(messy.copy(state = state), completed = true)
 
         assertEquals(4, state.mistakeCount)
-        assertEquals(afterClean * 2, repository.statistics.first().progress.totalXp)
+        assertEquals(afterClean * 2, statisticsRepository.statistics.first().progress.totalXp)
     }
 
     @Test
@@ -299,7 +312,7 @@ class GameRepositoryTest {
         val game = repository.startNewGame(Difficulty.MASTER)
         repository.finishGame(game, completed = true)
 
-        val progress = repository.statistics.first().progress
+        val progress = statisticsRepository.statistics.first().progress
         assertEquals(120L, progress.totalXp)
         assertEquals(2, progress.level)
         assertEquals(20L, progress.xpIntoLevel)
@@ -311,10 +324,10 @@ class GameRepositoryTest {
         // dialog says so.
         val game = repository.startNewGame(Difficulty.EXPERT)
         repository.finishGame(game, completed = true)
-        assertTrue(repository.statistics.first().progress.totalXp > 0)
+        assertTrue(statisticsRepository.statistics.first().progress.totalXp > 0)
 
-        repository.resetStatistics()
-        assertEquals(Progress.NONE, repository.statistics.first().progress)
+        statisticsRepository.resetStatistics()
+        assertEquals(Progress.NONE, statisticsRepository.statistics.first().progress)
     }
 
     @Test
@@ -418,10 +431,11 @@ class GameRepositoryTest {
         repository.importSharedBoard(BoardCode.encode(SudokuBoard.EMPTY, 1))
 
         assertTrue(repository.savedGames.first().isEmpty())
-        assertEquals(0, repository.statistics.first().startedCount)
+        assertEquals(0, statisticsRepository.statistics.first().startedCount)
     }
 
     /** A second repository over its own empty tables, standing in for another device. */
+    /** A second device: its own database, its own repositories. */
     private fun freshRepository(): GameRepository {
         val puzzles = FakePuzzleDao()
         val saves = FakeSavedGameDao(puzzles)
@@ -436,9 +450,34 @@ class GameRepositoryTest {
         )
     }
 
+    /** The same second device, asked about the Daily calendar rather than about a game. */
+    private fun freshDailyRepository(): DailyRepository {
+        val puzzles = FakePuzzleDao()
+        val saves = FakeSavedGameDao(puzzles)
+        val history = FakeGameHistoryDao(saves)
+        val dailyPuzzles = FakeDailyPuzzleDao()
+        return DailyRepository(
+            games = GameRepository(
+                puzzleDao = puzzles,
+                dailyPuzzleDao = dailyPuzzles,
+                savedGameDao = saves,
+                historyDao = history,
+                generator = SudokuGenerator(),
+                computationDispatcher = UnconfinedTestDispatcher(),
+                clock = { now },
+            ),
+            puzzleDao = puzzles,
+            dailyPuzzleDao = dailyPuzzles,
+            savedGameDao = saves,
+            historyDao = history,
+            generator = SudokuGenerator(),
+            computationDispatcher = UnconfinedTestDispatcher(),
+        )
+    }
+
     @Test
     fun `a day offers three untouched boards the first time it is asked for`() = runTest {
-        val entries = repository.dailySet(DAY)
+        val entries = dailyRepository.dailySet(DAY)
 
         assertEquals(DailyPuzzles.DIFFICULTIES, entries.map { it.difficulty })
         assertTrue(entries.all { it.status == DailyStatus.NOT_STARTED })
@@ -448,8 +487,8 @@ class GameRepositoryTest {
     @Test
     fun `asking twice returns the same boards, not new ones`() = runTest {
         // The whole point of storing them: a board the player has met must not be swapped out.
-        val first = repository.dailySet(DAY).map { it.puzzleId }
-        val second = repository.dailySet(DAY).map { it.puzzleId }
+        val first = dailyRepository.dailySet(DAY).map { it.puzzleId }
+        val second = dailyRepository.dailySet(DAY).map { it.puzzleId }
 
         assertEquals(first, second)
     }
@@ -457,28 +496,28 @@ class GameRepositoryTest {
     @Test
     fun `two devices see the same boards on the same day`() = runTest {
         // project.md section 26, reached without a server.
-        val here = repository.dailySet(DAY).map { it.puzzleId }
-        val there = freshRepository().dailySet(DAY).map { it.puzzleId }
+        val here = dailyRepository.dailySet(DAY).map { it.puzzleId }
+        val there = freshDailyRepository().dailySet(DAY).map { it.puzzleId }
 
         assertEquals(here, there)
     }
 
     @Test
     fun `starting a daily marks it in progress and eligible for the ranking`() = runTest {
-        repository.dailySet(DAY)
-        val game = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        dailyRepository.dailySet(DAY)
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
 
         assertTrue("project.md section 28: a Daily starts eligible", game.rankedEligible)
         assertEquals(GameType.DAILY, game.state.puzzle.gameType)
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
         assertEquals(DailyStatus.IN_PROGRESS, entry.status)
     }
 
     @Test
     fun `opening a daily already under way returns that game rather than restarting it`() = runTest {
-        repository.dailySet(DAY)
-        val started = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        dailyRepository.dailySet(DAY)
+        val started = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
         val cell = (0 until Sudoku.CELL_COUNT).first { started.state.board.isEmpty(it) }
         val played = GameEngine.enterDigit(
             started.state,
@@ -488,7 +527,7 @@ class GameRepositoryTest {
         )
         repository.save(started.copy(state = played, elapsedMillis = 30_000))
 
-        val again = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        val again = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
 
         assertEquals(played.board, again.state.board)
         assertEquals(30_000L, again.elapsedMillis)
@@ -500,14 +539,23 @@ class GameRepositoryTest {
         val racingPuzzles = RacingPuzzleDao()
         val racingSaves = FakeSavedGameDao(racingPuzzles)
         val racingHistory = FakeGameHistoryDao(racingSaves)
-        val racingRepository = GameRepository(
+        val racingDailyPuzzles = FakeDailyPuzzleDao()
+        val racingRepository = DailyRepository(
+            games = GameRepository(
+                puzzleDao = racingPuzzles,
+                dailyPuzzleDao = racingDailyPuzzles,
+                savedGameDao = racingSaves,
+                historyDao = racingHistory,
+                generator = SudokuGenerator(),
+                computationDispatcher = Dispatchers.Default,
+                clock = { now },
+            ),
             puzzleDao = racingPuzzles,
-            dailyPuzzleDao = FakeDailyPuzzleDao(),
+            dailyPuzzleDao = racingDailyPuzzles,
             savedGameDao = racingSaves,
             historyDao = racingHistory,
             generator = SudokuGenerator(),
             computationDispatcher = Dispatchers.Default,
-            clock = { now },
         )
         racingRepository.dailySet(DAY)
         racingPuzzles.armRace()
@@ -532,19 +580,19 @@ class GameRepositoryTest {
 
     @Test
     fun `a finished daily is reported as completed with its time and mistakes`() = runTest {
-        repository.dailySet(DAY)
-        val game = requireNotNull(repository.startDaily(DAY, Difficulty.MASTER))
+        dailyRepository.dailySet(DAY)
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.MASTER))
         repository.finishGame(game.copy(elapsedMillis = 240_000), completed = true)
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
         assertEquals(DailyStatus.COMPLETED, entry.status)
         assertEquals(240_000L, entry.elapsedMillis)
     }
 
     @Test
     fun `each day is a different set of boards`() = runTest {
-        val today = repository.dailySet(DAY).map { it.puzzleId }.toSet()
-        val tomorrow = repository.dailySet(DAY.plusDays(1)).map { it.puzzleId }.toSet()
+        val today = dailyRepository.dailySet(DAY).map { it.puzzleId }.toSet()
+        val tomorrow = dailyRepository.dailySet(DAY.plusDays(1)).map { it.puzzleId }.toSet()
 
         assertTrue("no board may repeat the next day", (today intersect tomorrow).isEmpty())
     }
@@ -552,11 +600,11 @@ class GameRepositoryTest {
     @Test
     fun `a daily counts towards statistics and XP like any other game`() = runTest {
         // project.md section 28: a Daily that lost its ranking still feeds the personal record.
-        repository.dailySet(DAY)
-        val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        dailyRepository.dailySet(DAY)
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
         repository.finishGame(game.copy(elapsedMillis = 60_000), completed = true)
 
-        val statistics = repository.statistics.first()
+        val statistics = statisticsRepository.statistics.first()
         assertEquals(1, statistics.completedCount)
         assertTrue(statistics.progress.totalXp > 0)
 
@@ -577,12 +625,12 @@ class GameRepositoryTest {
     fun `a solved daily cannot be played again`() = runTest {
         // Otherwise anybody could grind the same board until the time looked good, and the day's
         // result would mean nothing.
-        repository.dailySet(DAY)
-        val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        dailyRepository.dailySet(DAY)
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
         repository.finishGame(game.copy(elapsedMillis = 90_000), completed = true)
 
-        assertNull("a finished Daily is finished", repository.startDaily(DAY, Difficulty.EASY))
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        assertNull("a finished Daily is finished", dailyRepository.startDaily(DAY, Difficulty.EASY))
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
         assertEquals(90_000L, entry.elapsedMillis)
     }
 
@@ -591,12 +639,12 @@ class GameRepositoryTest {
         // The hole this closes: abandon, restart, and the board is new again. project.md section 28
         // counts an interrupted game as having lost its place, and deleting the save is as thorough
         // an interruption as there is.
-        repository.dailySet(DAY)
-        val first = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        dailyRepository.dailySet(DAY)
+        val first = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
         assertTrue(first.rankedEligible)
 
         repository.deleteSave(first.state.puzzle.id)
-        val second = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        val second = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
 
         assertFalse("a second attempt is practice, not a ranked run", second.rankedEligible)
         assertEquals("the same board, not a new one", first.state.puzzle.id, second.state.puzzle.id)
@@ -607,22 +655,22 @@ class GameRepositoryTest {
         // The bug this replaces reported every finished Daily as out of the ranking, because it
         // read publiclyRanked — which asks whether a leaderboard saw the result, not whether the
         // game counted.
-        repository.dailySet(DAY)
-        val game = requireNotNull(repository.startDaily(DAY, Difficulty.MASTER))
+        dailyRepository.dailySet(DAY)
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.MASTER))
         repository.finishGame(game.copy(elapsedMillis = 120_000), completed = true)
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
         assertEquals(DailyStatus.COMPLETED, entry.status)
         assertTrue("it was played straight through, so it counted", entry.rankedEligible)
     }
 
     @Test
     fun `a daily finished after losing eligibility is recorded as not having counted`() = runTest {
-        repository.dailySet(DAY)
-        val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        dailyRepository.dailySet(DAY)
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
         repository.finishGame(game.copy(rankedEligible = false, elapsedMillis = 60_000), completed = true)
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
         assertFalse(entry.rankedEligible)
     }
 
@@ -631,34 +679,34 @@ class GameRepositoryTest {
         // The card and the start button used to answer this differently: with the save gone and
         // nothing completed, the board looked untouched, so the card promised a ranked run that
         // starting it would not have given.
-        repository.dailySet(DAY)
-        val first = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        dailyRepository.dailySet(DAY)
+        val first = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
         repository.deleteSave(first.state.puzzle.id)
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
         assertEquals(DailyStatus.NOT_STARTED, entry.status)
         assertFalse("the card must not promise what starting would refuse", entry.rankedEligible)
 
-        val second = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        val second = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
         assertEquals("and the two must agree", entry.rankedEligible, second.rankedEligible)
     }
 
     @Test
     fun `abandoning repeatedly never restores eligibility`() = runTest {
-        repository.dailySet(DAY)
+        dailyRepository.dailySet(DAY)
         repeat(3) {
-            val game = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+            val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
             repository.deleteSave(game.state.puzzle.id)
         }
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
         assertFalse(entry.rankedEligible)
-        assertFalse(requireNotNull(repository.startDaily(DAY, Difficulty.EASY)).rankedEligible)
+        assertFalse(requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY)).rankedEligible)
     }
 
     @Test
     fun `an untouched board still reports itself as ranked`() = runTest {
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
 
         assertEquals(DailyStatus.NOT_STARTED, entry.status)
         assertTrue(entry.rankedEligible)
@@ -668,14 +716,14 @@ class GameRepositoryTest {
     fun `a finished daily is scored and a solo game is not`() = runTest {
         // project.md section 29 scores a Daily against a shared board. A solo game has nothing to be
         // compared against, so it has no score — which is not the same as a score of zero.
-        repository.dailySet(DAY)
-        val daily = requireNotNull(repository.startDaily(DAY, Difficulty.HARD))
+        dailyRepository.dailySet(DAY)
+        val daily = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
         // Asked for through DailyScore rather than written out, so tuning the targets does not turn
         // this into a test of last month's numbers.
         val target = DailyScore.targetMinutesFor(Difficulty.HARD) * 60_000L
         repository.finishGame(daily.copy(elapsedMillis = target), completed = true)
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
         assertEquals(
             "hitting the target is worth the level's base",
             DailyScore.baseFor(Difficulty.HARD),
@@ -689,17 +737,17 @@ class GameRepositoryTest {
 
     @Test
     fun `an unfinished daily has no score rather than a zero`() = runTest {
-        repository.dailySet(DAY)
-        val daily = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        dailyRepository.dailySet(DAY)
+        val daily = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
         repository.finishGame(daily.copy(elapsedMillis = 60_000), completed = false)
 
-        assertNull(repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }.score)
+        assertNull(dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }.score)
     }
 
     @Test
     fun `mistakes on a daily cost score, exactly as section 29 says`() = runTest {
-        repository.dailySet(DAY)
-        val daily = requireNotNull(repository.startDaily(DAY, Difficulty.EASY))
+        dailyRepository.dailySet(DAY)
+        val daily = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
         var state = daily.state
         val cells = (0 until Sudoku.CELL_COUNT).filter { state.board.isEmpty(it) }.take(2)
         for (cell in cells) {
@@ -716,7 +764,7 @@ class GameRepositoryTest {
             completed = true,
         )
 
-        val entry = repository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EASY }
         assertEquals(2, entry.mistakeCount)
         assertEquals(
             "the base, less section 29's penalty for two mistakes",

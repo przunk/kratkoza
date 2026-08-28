@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.ranking.Leaderboard
@@ -39,9 +40,19 @@ class DailyViewModelTest {
     private val puzzleDao = FakePuzzleDao()
     private val savedGameDao = FakeSavedGameDao(puzzleDao)
     private val historyDao = FakeGameHistoryDao(savedGameDao)
+    private val dailyPuzzleDao = FakeDailyPuzzleDao()
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
-        dailyPuzzleDao = FakeDailyPuzzleDao(),
+        dailyPuzzleDao = dailyPuzzleDao,
+        savedGameDao = savedGameDao,
+        historyDao = historyDao,
+        generator = SudokuGenerator(),
+        computationDispatcher = Dispatchers.Unconfined,
+    )
+    private val dailyRepository = DailyRepository(
+        games = repository,
+        puzzleDao = puzzleDao,
+        dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
@@ -70,7 +81,7 @@ class DailyViewModelTest {
     }
 
     private fun viewModelWith(ranking: Ranking): DailyViewModel {
-        val viewModel = DailyViewModel(repository, ranking) { noon }
+        val viewModel = DailyViewModel(dailyRepository, ranking) { noon }
         store.put("daily", viewModel)
         return viewModel
     }

@@ -311,21 +311,22 @@ Do rozstrzygnięcia przy okazji: czy `RankingLog` znika razem z nią, czy przeno
 natrętne miejsce (Ustawienia, obok numeru wersji). Sam log jest tani i przydał się bardziej niż
 Toasty; natrętna jest karta, nie zapis.
 
-### Rozciąć `GameRepository` — osobny etap
+### ~~Rozciąć `GameRepository`~~ — zrobione 2026-08-28
 
-**Zdecydowane 2026-08-28.** Jako oddzielne zadanie architektoniczne, nie przy okazji czegoś innego.
+571 linii rozcięte na trzy: `GameRepository` (368) trzyma cykl życia gry i udostępnianie planszy,
+`DailyRepository` (182) kalendarz i podejścia Daily, `StatisticsRepository` (97) rekord gracza.
+Otwieranie i wczytywanie gry zostało w pierwszym; pozostałe dwa proszą go o to i mają tylko swoje.
 
-571 linii, największy plik w projekcie — i **dokładnie ten, o który za każdym razem negocjujemy
-granice przy pracy równoległej**. Przy dwóch ostatnich zadaniach jedna strona musiała projektować
-zmianę tak, żeby go nie dotknąć.
+**Zagrożenie, które zapisałem tu wcześniej, zostało sprawdzone, a nie założone.** Mutex chroniący
+regułę „jedno podejście dziennie" przeniósł się do `DailyRepository`. Żeby potwierdzić, że dalej
+czegokolwiek broni, zamieniłem go tymczasowo na mutex tworzony przy każdym wywołaniu — czyli
+dokładnie na opisany tu przypadek „rozmnożony na dwie instancje". Test wyścigu wykrył to
+natychmiast, tym samym błędem co pierwotna usterka: `expected:<1> but was:<2>`.
 
-Ma w sobie naturalne szwy: plansze i zapisy, Daily, statystyki, udostępnianie. Rozcięcie wzdłuż nich
-nie jest kosmetyką — to różnica między „dwie osoby pracują równolegle" a „dwie osoby uzgadniają, kto
-trzyma plik".
+Liczba testów po rozcięciu bez zmian (344), więc nic nie zginęło po drodze.
 
-**Na co uważać:** `startDaily` trzyma teraz mutex, który jest regułą domeny, a nie szczegółem —
-patrz „Znane usterki". Rozcięcie nie może go zgubić ani rozmnożyć na dwie instancje, bo wtedy
-przestaje cokolwiek chronić.
+**Czego nie ruszyłem:** `importSharedBoard` zostało w `GameRepository`. Jest małe i stabilne, a
+osobna klasa na jedną metodę dołożyłaby plik, nie zmniejszając pola konfliktów.
 
 ### Generowanie zrzutów ekranu z testów Compose
 

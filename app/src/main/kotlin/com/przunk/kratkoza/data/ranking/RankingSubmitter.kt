@@ -1,5 +1,6 @@
 package com.przunk.kratkoza.data.ranking
 
+import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.model.GameType
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
  */
 class RankingSubmitter(
     private val repository: GameRepository,
+    private val daily: DailyRepository,
     private val ranking: Ranking,
     private val log: RankingLog,
     private val scope: CoroutineScope,
@@ -62,7 +64,7 @@ class RankingSubmitter(
         // Not a reason to stop. Without the totals the two sum boards have nothing to hear, but
         // the level board carries this game's own score and is unaffected — and it is the one whose
         // acceptance decides publiclyRanked.
-        val totals = repository.dailyTotals(puzzleId)
+        val totals = daily.dailyTotals(puzzleId)
         if (totals == null) log.add("ranking: no totals for $puzzleId — sending the level only")
 
         // Every board is asked what it wants from this result, rather than the sending order being
