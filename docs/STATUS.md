@@ -93,6 +93,25 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
+### Dwa kliknięcia „wstecz" w Ustawieniach zostawiają pusty ekran
+
+**Zgłoszone:** 2026-08-28 z urządzenia, **100% powtarzalności**. Aplikacja wraca na ekran główny,
+natychmiast go opuszcza i zostaje pusta karta, z której nie da się nic zrobić.
+
+**Trop.** Ekran główny nie ma strzałki wstecz, Ustawienia mają — i wołają `navController::popBackStack`
+bez żadnego zabezpieczenia (`KratkozaNavHost`, wszystkie ekrany podrzędne robią to tak samo). Dwa
+szybkie kliknięcia to dwa wywołania: pierwsze zdejmuje Ustawienia, drugie zdejmuje **ekran główny**,
+bo nikt nie sprawdza, czy jest jeszcze co zdejmować. Zostaje `NavHost` z pustym stosem — nie ma czego
+narysować, a Activity się nie kończy, więc nie ma też wyjścia.
+
+**To ta sama klasa błędu co podwójny „Start" w Daily**: dwa zdarzenia wchodzą, zanim pierwsze zdąży
+zmienić stan. Tamto rozwiązanie — blokada w warstwie, która naprawdę pilnuje reguły — jest tu
+wskazówką, ale nie da się przepisać wprost: to nawigacja, nie baza.
+
+**Do rozstrzygnięcia przy naprawie.** Czy zabezpieczyć każde wywołanie osobno, czy raz, w jednym
+miejscu, przez które przechodzą wszystkie powroty. Drugie jest lepsze: dziś sześć ekranów powtarza
+`navController::popBackStack` i każdy nowy ekran odziedziczy tę usterkę razem z wzorcem.
+
 ### ~~Podwójne kliknięcie „Start" otwiera dwie plansze Daily~~ — naprawione 2026-08-28
 
 **Potwierdzone na urządzeniu 2026-08-28** przez zgłaszającego.
