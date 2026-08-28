@@ -3,6 +3,7 @@ package com.przunk.kratkoza.ui.home
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
 
 /**
@@ -13,9 +14,14 @@ import androidx.compose.ui.graphics.PathOperation
  * moving scene a wordmark that reflows is a wordmark that breaks the composition. The letters are
  * original geometric capitals: flat terminals, one stroke weight, counters cut rather than drawn.
  *
- * Each glyph is described on a box one unit tall and its own width wide, as solids that are unioned
- * and holes that are then subtracted. Two lists rather than one even-odd path, because K, A and R
- * overlap their own strokes and even-odd would punch those overlaps into gaps.
+ * Each glyph is described on a box one unit tall and its own width wide, as pieces that are unioned
+ * and holes that are then subtracted.
+ *
+ * The pieces are combined with an explicit union rather than added to one path. Compose fills with
+ * the non-zero rule, which cancels where two shapes wind in opposite directions — and a diagonal
+ * drawn upwards winds the other way from a rectangle drawn downwards. That is exactly where K, A and
+ * Z overlap their own strokes, so those overlaps came out as holes: the letters looked as though
+ * they had been XOR-ed. A union does not care which way a shape was drawn.
  */
 internal object Wordmark {
 
@@ -55,14 +61,16 @@ internal object Wordmark {
 
     private fun glyph(character: Char, w: Float, cap: Float, x: Float): Path {
         val t = STROKE * cap
-        val solids = Path()
-        val holes = Path()
+        val pieces = mutableListOf<Path>()
+        val holes = mutableListOf<Path>()
+        fun solid(build: Path.() -> Unit) = pieces.add(Path().apply(build))
+        fun hole(build: Path.() -> Unit) = holes.add(Path().apply(build))
 
         when (character) {
             'K' -> {
-                solids.bar(x, 0f, x + t, cap)
-                solids.slab(x + t * 0.9f, 0.54f * cap, x + w, -0.02f * cap, t * 0.5f)
-                solids.slab(x + t * 0.9f, 0.46f * cap, x + w, 1.02f * cap, t * 0.5f)
+                solid { bar(x, 0f, x + t, cap) }
+                solid { slab(x + t * 0.9f, 0.54f * cap, x + w, -0.02f * cap, t * 0.5f) }
+                solid { slab(x + t * 0.9f, 0.46f * cap, x + w, 1.02f * cap, t * 0.5f) }
             }
 
             'R' -> {
@@ -71,12 +79,12 @@ internal object Wordmark {
                 val right = x + w - t * 0.1f
                 val bottom = 0.64f * cap
                 val waist = t * 0.82f
-                solids.bar(x, 0f, x + t, cap)
-                solids.bar(x, 0f, right, t)
-                solids.bar(x, bottom - waist, right, bottom)
-                solids.bar(right - t, 0f, right, bottom)
-                solids.slab(x + (right - x) * 0.60f, bottom - t * 0.2f, x + w, 1.02f * cap, t * 0.5f)
-                holes.bar(x + t, t, right - t, bottom - waist)
+                solid { bar(x, 0f, x + t, cap) }
+                solid { bar(x, 0f, right, t) }
+                solid { bar(x, bottom - waist, right, bottom) }
+                solid { bar(right - t, 0f, right, bottom) }
+                solid { slab(x + (right - x) * 0.60f, bottom - t * 0.2f, x + w, 1.02f * cap, t * 0.5f) }
+                hole { bar(x + t, t, right - t, bottom - waist) }
             }
 
             'A' -> {
@@ -84,31 +92,41 @@ internal object Wordmark {
                 // closes the counter until halfway down the letter.
                 val apex = t * 1.15f
                 val cross = 0.64f * cap
-                solids.slab(x + w / 2 - apex / 2, 0f, x + t * 0.5f, cap, t * 0.5f)
-                solids.slab(x + w / 2 + apex / 2, 0f, x + w - t * 0.5f, cap, t * 0.5f)
-                solids.bar(x + t * 0.62f, cross, x + w - t * 0.62f, cross + t * 0.70f)
+                solid { slab(x + w / 2 - apex / 2, 0f, x + t * 0.5f, cap, t * 0.5f) }
+                solid { slab(x + w / 2 + apex / 2, 0f, x + w - t * 0.5f, cap, t * 0.5f) }
+                solid { bar(x + t * 0.62f, cross, x + w - t * 0.62f, cross + t * 0.70f) }
             }
 
             'T' -> {
-                solids.bar(x, 0f, x + w, t)
-                solids.bar(x + w / 2 - t / 2, 0f, x + w / 2 + t / 2, cap)
+                solid { bar(x, 0f, x + w, t) }
+                solid { bar(x + w / 2 - t / 2, 0f, x + w / 2 + t / 2, cap) }
             }
 
             'O' -> {
-                solids.addOval(Rect(x, 0f, x + w, cap))
-                holes.addOval(Rect(x + t, t, x + w - t, cap - t))
+                // A ring has no self-overlap, so even-odd states it directly and needs no union or
+                // difference to go wrong.
+                return Path().apply {
+                    fillType = PathFillType.EvenOdd
+                    addOval(Rect(x, 0f, x + w, cap))
+                    addOval(Rect(x + t, t, x + w - t, cap - t))
+                }
             }
 
             'Z' -> {
-                solids.bar(x, 0f, x + w, t)
-                solids.bar(x, cap - t, x + w, cap)
-                solids.slab(x + w - t * 0.55f, t * 0.85f, x + t * 0.55f, cap - t * 0.85f, t * 0.6f)
+                solid { bar(x, 0f, x + w, t) }
+                solid { bar(x, cap - t, x + w, cap) }
+                solid { slab(x + w - t * 0.55f, t * 0.85f, x + t * 0.55f, cap - t * 0.85f, t * 0.6f) }
             }
 
             else -> error("The wordmark has no glyph for '$character'")
         }
 
-        return if (holes.isEmpty) solids else Path().apply { op(solids, holes, PathOperation.Difference) }
+        val filled = pieces.reduce { whole, piece ->
+            Path().apply { op(whole, piece, PathOperation.Union) }
+        }
+        return holes.fold(filled) { whole, cut ->
+            Path().apply { op(whole, cut, PathOperation.Difference) }
+        }
     }
 
     private fun Path.bar(x0: Float, y0: Float, x1: Float, y1: Float) {

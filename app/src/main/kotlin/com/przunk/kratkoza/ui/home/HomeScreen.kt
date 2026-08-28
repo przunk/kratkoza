@@ -59,7 +59,10 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.systemBars)
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                // Room above the artwork. Without a title bar the scene otherwise begins at the
+                // very edge of the usable area, which reads as cramped rather than as full-bleed.
+                .padding(top = TOP_MARGIN_DP.dp),
             verticalArrangement = Arrangement.spacedBy(MENU_GAP_DP.dp),
         ) {
             // The artwork sits in the space above the menu and hangs from the top of it, so it
@@ -184,6 +187,9 @@ private const val BUTTON_HEIGHT_DP = 60
 private const val CONTINUE_HEIGHT_DP = 76
 
 private const val MENU_GAP_DP = 12
+
+/** Breathing room under the status bar, in place of the title bar that used to provide it. */
+private const val TOP_MARGIN_DP = 20
 
 /** Leaves a little more breathing room for the artwork and nudges the menu gently downwards. */
 private const val SPACE_ABOVE_MENU = 1.45f
