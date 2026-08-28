@@ -148,7 +148,35 @@ enableSplit = false } }` to wyłącza. Dwa języki stringów kosztują kilka kil
   §8 prosi o respektowanie powiększonej czcionki „tam, gdzie nie niszczy geometrii planszy" —
   wewnątrz 1/9 szerokości ekranu niszczy.
 
-## 9. Czego jeszcze nie ma
+## 9. Cisza jest błędem, jeśli ktoś nacisnął przycisk
+
+Reguła spisana 2026-08-28, po czterech usterkach o tym samym kształcie.
+
+Znikające linie siatki pod podświetleniem, reset statystyk nierobiący nic widocznego, przycisk
+tablicy wyników połykający naciśnięcie, wysyłki wyników anulowane przy wyjściu z ekranu — za każdym
+razem objawem był **brak objawu**, i za każdym razem trzeba było najpierw zbudować narzędzie, żeby
+w ogóle zobaczyć, co się dzieje. Sam przycisk tablicy kosztował cztery rundy z urządzeniem, bo
+„nic się nie stało" pasowało jednocześnie do „naciśnięcie nie doszło", „korutyna dalej wisi"
+i „intent otworzył się na nic".
+
+**Reguła:** akcja zainicjowana przez użytkownika nigdy nie kończy się ciszą. Albo widać skutek,
+albo widać powód.
+
+**Czego reguła nie mówi.** Że wszystko ma krzyczeć. Wysyłka wyniku po ukończeniu Daily jest cicha
+celowo i tak zostaje: dzieje się sama, plansza jest już zapisana, a gracz nie ma z nieudaną wysyłką
+nic do zrobienia. Rozróżnienie przebiega dokładnie tam — **czy ktoś o to poprosił**. Zdarzenie
+w tle może milczeć; naciśnięty przycisk nie.
+
+**Jak to wygląda w kodzie.** Wcześnie wychodzące `return` w obsłudze naciśnięcia to miejsce, gdzie ta
+reguła zwykle pęka. Jeśli funkcja ma kilka wyjść, każde ma powiedzieć, którym było — patrz
+`RankingSubmitter.send` i `DailyViewModel.showLeaderboard`, gdzie kilka cichych `return` zostało
+rozdzielonych na osobne, nazwane przypadki. Dla wyjść, które ma zobaczyć tylko developer, jest
+`RankingLog`; dla tych, które ma zobaczyć gracz — komunikat.
+
+**Dlaczego to jest w architekturze, a nie na liście zadań.** Bo to nie jest coś do zrobienia raz.
+Każdy nowy przycisk jest okazją, żeby złamać tę regułę, i żadne narzędzie tego nie wykryje.
+
+## 10. Czego jeszcze nie ma
 
 Zgodnie z zakresem pierwszego etapu: Daily, publiczny ranking, Challenge, backend, XP, score,
 podpowiedź 8/9, palety kolorystyczne, tryb wysokiego kontrastu, radial menu.

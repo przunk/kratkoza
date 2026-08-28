@@ -299,6 +299,63 @@ procedura jest opisana w nagłówku tego pliku.
 **Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk —
 przeniesione do [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
+### Usunąć kartę „Ranking (debug)" z ekranu Daily
+
+**Zdecydowane 2026-08-28.** Do usunięcia, nie do zachowania.
+
+Powstała reaktywnie, pod jedno śledztwo nad wysyłką wyników, i spełniła zadanie. Została na stałe na
+ekranie Daily w buildach debug — gdzie wygląda jak część interfejsu, a jest narzędziem do jednej
+sprawy. Przy następnej sesji testowej będzie mylić.
+
+Do rozstrzygnięcia przy okazji: czy `RankingLog` znika razem z nią, czy przenosi się w mniej
+natrętne miejsce (Ustawienia, obok numeru wersji). Sam log jest tani i przydał się bardziej niż
+Toasty; natrętna jest karta, nie zapis.
+
+### Rozciąć `GameRepository` — osobny etap
+
+**Zdecydowane 2026-08-28.** Jako oddzielne zadanie architektoniczne, nie przy okazji czegoś innego.
+
+571 linii, największy plik w projekcie — i **dokładnie ten, o który za każdym razem negocjujemy
+granice przy pracy równoległej**. Przy dwóch ostatnich zadaniach jedna strona musiała projektować
+zmianę tak, żeby go nie dotknąć.
+
+Ma w sobie naturalne szwy: plansze i zapisy, Daily, statystyki, udostępnianie. Rozcięcie wzdłuż nich
+nie jest kosmetyką — to różnica między „dwie osoby pracują równolegle" a „dwie osoby uzgadniają, kto
+trzyma plik".
+
+**Na co uważać:** `startDaily` trzyma teraz mutex, który jest regułą domeny, a nie szczegółem —
+patrz „Znane usterki". Rozcięcie nie może go zgubić ani rozmnożyć na dwie instancje, bo wtedy
+przestaje cokolwiek chronić.
+
+### Generowanie zrzutów ekranu z testów Compose
+
+**Zapisane 2026-08-28 jako pomysł wart sprawdzenia.**
+
+Powiedziałem wcześniej, że zrzuty do sklepu muszą pochodzić z działającej aplikacji na urządzeniu.
+To prawdopodobnie nieprawda: Robolectric w trybie natywnej grafiki renderuje realne piksele Compose,
+a infrastruktura testów Compose już stoi. Dałoby to zrzuty planszy, Daily i statystyk — w obu
+motywach, odtwarzalne po każdej zmianie UI.
+
+**Ciekawsze zastosowanie niż sklep:** animacja nad menu (`RotatingBoardArt`). Chodzi na
+`rememberInfiniteTransition`, czyli na zegarze Compose, który w teście da się zatrzymać
+(`mainClock.autoAdvance = false`) i przesuwać o dokładne milisekundy. Zamiast jednego szczęśliwego
+kadru z telefonu można wyrenderować **taśmę klatek przez cały cykl** i zobaczyć, czy plansza
+w którejś fazie się nie spłaszcza, nie ucieka poza kadr albo nie gubi kontrastu. Telefonem tego nie
+złapiesz, bo nie zatrzymasz animacji w wybranej fazie.
+
+**Czego nie wiadomo, a trzeba sprawdzić najpierw.** Obrót robi `graphicsLayer { rotationX; rotationY;
+cameraDistance }` — transformacja RenderNode, nie rysowanie po Canvasie. Rysowanie 2D (siatka, iskry)
+narysuje się na pewno; czy Robolectric honoruje kamerę i obrót w trzech osiach — nie wiadomo. Jeśli
+nie honoruje, plansza wyjdzie **płaska**, co wygląda jak zepsuta animacja i może sprowokować
+„naprawianie" czegoś, co działa. **Pierwszym krokiem jest jedna klatka porównana z telefonem.**
+Reszta jest warta tyle, ile ta weryfikacja.
+
+**Dwie pułapki.** Zawartość animacji jest zasiewana z `System.nanoTime()`, więc każdy przebieg da
+inny obrazek — do oceny „czy ładnie" bez znaczenia, do porównań przed/po bezużyteczne; ziarno
+musiałoby być wstrzykiwalne. I `waitForIdle()` przy nieskończonej animacji **nigdy nie wraca** —
+`autoAdvance` trzeba wyłączyć przed pierwszą kompozycją. Ta sama klasa zawieszenia, którą suite
+złapał już dwa razy.
+
 ## Wymaga decyzji
 
 Siedem rzeczy, których `project.md` świadomie nie rozstrzyga. Pełny opis wariantów w
