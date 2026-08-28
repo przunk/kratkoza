@@ -35,7 +35,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.R
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
@@ -175,36 +174,6 @@ fun DailyScreen(
                 item { SignInCard(onSignIn = viewModel::signIn) }
             }
 
-            // Debug builds only. A Toast is gone before it can be read and its absence looks
-            // exactly like code that never ran; this stays put and can be photographed.
-            if (BuildConfig.DEBUG) {
-                item { RankingDiagnostics(entries = state.diagnostics) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RankingDiagnostics(entries: List<String>) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(text = "Ranking (debug)", style = MaterialTheme.typography.titleSmall)
-            if (entries.isEmpty()) {
-                Text(
-                    text = "nothing yet",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            for (entry in entries) {
-                Text(
-                    text = entry,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
         }
     }
 }

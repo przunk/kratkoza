@@ -47,6 +47,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val diagnostics by viewModel.rankingDiagnostics.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     KratkozaScaffold(
@@ -176,6 +177,35 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            // Debug builds only, and last on the screen. Play Games fails quietly by nature, so
+            // this is the record of what it did; Settings is where somebody looks when something
+            // is wrong, which is where it belongs once an investigation is over rather than on the
+            // screen people play on.
+            if (BuildConfig.DEBUG) {
+                item { RankingDiagnostics(entries = diagnostics) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RankingDiagnostics(entries: List<String>) {
+    SettingsSection("Ranking (debug)") {
+        if (entries.isEmpty()) {
+            Text(
+                text = "nothing yet",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        for (entry in entries) {
+            Text(
+                text = entry,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

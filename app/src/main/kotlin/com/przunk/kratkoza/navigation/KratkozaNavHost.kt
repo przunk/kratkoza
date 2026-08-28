@@ -126,7 +126,7 @@ fun KratkozaNavHost(
 
         composable(Destinations.SETTINGS) {
             SettingsScreen(
-                viewModel = viewModel(factory = factory { SettingsViewModel(container.settingsRepository) }),
+                viewModel = viewModel(factory = factory { SettingsViewModel(container.settingsRepository, container.rankingLog) }),
                 onNavigateBack = navController::popBackStack,
             )
         }
