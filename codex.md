@@ -1,61 +1,69 @@
-# Zadanie: dopracowanie głębi i ruchu grafiki tytułowej
+# Task: the palettes look low-contrast
 
-> Zasady współpracy — worktree, gałęzie, konwencje i scalanie — są w
-> `codex_instructions.md`. Prace wykonujemy na `feature/home-board-parallax` w osobnym worktree.
+> The rules of collaboration — worktree, branches, conventions, who merges — are in
+> `codex_instructions.md`. Read that first. This file describes only the current task.
+>
+> Note the rule that changed on 2026-08-28: **code and git are written in English now**, commit
+> messages included. Documents under `docs/` stay Polish.
 
-## Cel
+**Branch:** `fix/palette-contrast` from `develop`.
 
-Grafika 3×3 nad menu ma wyglądać jak spójna część ekranu, z czytelną głębią i płynnym ruchem w
-stylu efektów demonstracyjnych Atari/Amiga. Nie jest to obrót planszy dookoła osi, lecz ciągły,
-łagodny wobble wynikający z kilku złożonych fal.
+**Files this task covers:**
+- `ui/theme/Palettes.kt`, `ui/theme/Color.kt`, `ui/theme/BoardColors.kt`, `ui/theme/Theme.kt`
+- `app/src/test/kotlin/.../ui/theme/PalettesTest.kt`
 
-## Zakres
+I am working on the navigation back-stack defect at the same time — `navigation/` and the screens'
+back handling. **Stay out of those.** Our areas do not otherwise touch.
 
-### 1. Miejsce na grafikę
+---
 
-- Lekko przesunąć menu w dół, bez spychania go pod dolną krawędź na małych ekranach.
-- Wycentrować planszę w dostępnym obszarze nad menu.
-- Rozmiar planszy musi uwzględniać pionowy margines bezpieczeństwa i maksymalne wychylenie, aby
-  grafika nie była przycinana od góry ani od boków.
+## The report
 
-### 2. Tło sceny
+From the owner, on a device: the colours themselves are fine. **The contrast looks bad.**
 
-- Nie rysować osobnego, ciemniejszego prostokąta pod animacją.
-- Tło obszaru grafiki ma być przezroczyste i pokazywać dokładnie tło ekranu z `MaterialTheme`.
-- Sama plansza pozostaje w pełni nieprzezroczysta i wyraźnie oddzielona tonalnie od ekranu.
+That is worth reading carefully, because it rules out the obvious answer. This is not a request for
+different hues. It is that the board does not separate into legible layers when you look at it.
 
-### 3. Czytelna fizyczna głębia
+## Where the rule is already written down, and where it is too weak
 
-- Zachować kolejność: tło ekranu → plansza → cyfry.
-- Cyfry mają być jasne i czytelne, bez efektu prześwitywania spod planszy.
-- Cień cyfr ma być osobną projekcją na płaszczyźnie planszy, a nie cieniem przyklejonym do warstwy
-  cyfr. Przy wobble lub sterowaniu palcem położenie cyfry i jej cienia ma zmieniać się względem
-  siebie zgodnie z różnicą głębokości oraz stałym kierunkiem światła.
-- Dodać subtelne oddzielenie planszy od tła bez używania `shadowElevation`, które wcześniej dawało
-  prostokątne artefakty GPU.
+`PalettesTest` holds five rules for every palette in both themes. They pass. That they pass while
+the board looks flat is the interesting part, and two gaps explain it.
 
-### 4. Wobble bez przeskoku
+**The tiers are only ordered, not spaced.** The test asserts `sameDigit > peer` and
+`selected > sameDigit` — measured as distance in CIE L\* from the surface. Ordering says nothing
+about how far apart they are. Three tiers at 5.1, 5.2 and 5.3 satisfy it completely and are
+indistinguishable to a human eye.
 
-- Przyspieszyć ruch względem dotychczasowego cyklu 42 s.
-- Złożyć przechył z kilku sinusoid o całkowitych harmonicznych, aby ruch był organiczny, ale jego
-  początek i koniec pętli miały identyczne położenie oraz prędkość.
-- Plansza nie może wykonywać pełnego obrotu. Zakres pozostaje niewielkim przechyłem w osiach X/Y.
-- Sterowanie palcem i sprężysty powrót do aktualnej pozycji idle pozostają bez zmian.
+**Only the faintest tier is checked against the surface**, and `MINIMUM_TIER_SEPARATION` is `5f` —
+five units on a scale that runs 0 to 100. Digits get `MINIMUM_DIGIT_SEPARATION = 25f`, which is a
+different order of magnitude. The tier threshold was set to be *a* floor, not a good one.
 
-### 5. Parujące cząsteczki
+So the likely shape of the defect: highlight tiers technically distinct, practically one wash.
 
-- Każda cząsteczka zaczyna przy dolnej krawędzi sceny i powoli płynie ku górze.
-- W trakcie drogi lekko dryfuje na boki, może mieć subtelny glow i zanika przed górną krawędzią.
-- Zachować trzy pasma głębokości: za planszą, między planszą i cyframi oraz przed cyframi.
-- Głębokość wpływa na rozmiar, jasność, dryf i reakcję paralaksy.
-- Odrodzenie cząsteczki na dole nie może powodować wspólnego, widocznego przeskoku całej animacji.
+## What to do
 
-## Testy i weryfikacja
+Strengthen the rules first, then move the palettes until they pass. Doing it the other way round
+produces colours tuned to a device and a mood, and the next palette repeats the same mistake.
 
-- Test jednostkowy ciągłości wobble na granicy cyklu.
-- Test profilu widoczności cząsteczki: niewidoczna na starcie, widoczna w locie, wygaszona na końcu.
-- Zachować testy mapowania dotyku, powrotu i pasm głębokości.
-- Uruchomić testy celowane dla `RotatingBoardArtTest`, pełne testy i lint skryptami projektu.
-- Po każdej ukończonej zmianie zbudować debug i release skryptami z `scripts/`.
-- Skopiować APK do `/mnt/workspace/Kratkoza/dist`.
-- Nie scalać gałęzi bez akceptacji użytkownika. Wygląd musi zostać oceniony na urządzeniu.
+At minimum the rules should gain a **minimum gap between adjacent tiers**, not only against the
+surface. Whether the surface floor of 5 is also too low is yours to judge — but if you raise it,
+raise it because you can say what the number means, not to make a specific palette pass.
+
+**Beware of the ceiling.** `project.md` §10 says same-digit highlighting must not make it harder to
+read the current cell, the row, the column, the block or mistakes. Contrast pushed too far breaks
+that from the other side, and no test will tell you — this one needs eyes.
+
+**High contrast mode has its own rule** (`high contrast never reduces separation`) and an open item
+in `docs/STATUS.md` about refining it. If your change makes the normal mode close to what high
+contrast used to give, say so in the commit; that changes what that mode is still for.
+
+## Verification
+
+```bash
+./scripts/test-kratkoza.sh
+./scripts/lint-kratkoza.sh
+```
+
+Build a debug APK and look at all three palettes in both themes before you call it done. Say in the
+commit what you could not check by machine — and expect the owner to judge the result on a device,
+because the report that started this was visual and so is the answer.
