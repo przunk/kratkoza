@@ -158,3 +158,53 @@ niej — a nie jako drugi, niezależny mechanizm, który trzeba utrzymywać w dw
 
 Decyzje funkcjonalne wokół regionu są już podjęte i opisane w [STATUS.md](STATUS.md); ta pozycja
 dotyczy wyłącznie formy wyboru.
+
+---
+
+## 8. Podświetlenie cyfry klikniętej na klawiaturze
+
+**Zgłoszone:** 2026-08-28. Pomysł użytkownika, widziany w innej aplikacji do sudoku.
+
+Zgłaszający opisał to tak: gdy zaznaczone jest pole, którego nie da się nadpisać, kliknięcie cyfry
+na klawiaturze zaznacza pierwsze jej wystąpienie od góry i podświetla wszystkie takie same na
+planszy.
+
+**Połowa tego już działa.** Podświetlanie takich samych cyfr po zaznaczeniu pola jest wymaganiem
+`project.md` §10, jest zaimplementowane i domyślnie włączone (`highlightSameDigits`). Nowa jest
+wyłącznie część o wywołaniu tego **z klawiatury**, bez zaznaczonego pola z tą cyfrą.
+
+**Dlaczego to nie jest oczywiste:**
+
+- **Ten sam gest zacząłby znaczyć dwie różne rzeczy.** Kliknięcie „5" znaczy „wstaw tu piątkę".
+  W propozycji czasem znaczy „zabierz mnie do jakiejś piątki", a decyduje o tym, czy zaznaczone pole
+  akurat jest zajęte — stan, którego gracz patrzący na planszę nie śledzi.
+- **Przesunięcie zaznaczenia jest efektem ubocznym, o który nikt nie prosił.** Zaznaczenie to miejsce
+  gracza na planszy; po przeskoku **następne** kliknięcie działa gdzie indziej, niż zakłada. Pomyłka
+  przestaje być nieszkodliwa i zaczyna się kaskadować.
+- **„Pierwsze z góry" jest arbitralne.** Gdyby gracz chciał obejrzeć konkretną piątkę, kliknąłby
+  w nią.
+- **§10 stawia warunek czytelności:** podświetlenie nie może utrudniać odczytania bieżącego pola,
+  wiersza, kolumny, bloku i błędów. Podświetlenie wywołane z klawiatury obejmuje więcej pól naraz niż
+  to z zaznaczenia, więc kontrast trzeba obejrzeć w obu motywach i w trybie wysokiego kontrastu.
+
+**Wariant proponowany zamiast oryginalnego:** kliknięcie cyfry, której **nie da się wpisać**,
+podświetla wszystkie jej wystąpienia i **nie rusza zaznaczenia**. Ta sama potrzeba („pokaż mi, gdzie
+są piątki"), efekt czysto wizualny i odwracalny.
+
+Ma dwie zalety, których wariant z przeskokiem nie ma:
+
+- **Ożywia martwy przycisk.** Dziś, gdy cyfra jest już rozdystrybuowana po całej planszy,
+  `GameViewModel.enterDigit` po prostu wychodzi i kliknięcie nie robi **nic**. Podświetlenie daje
+  temu klawiszowi sens dokładnie wtedy, gdy stracił poprzedni.
+- **Zgadza się z §19**, które przewiduje wizualne wygaszenie przycisku po wykorzystaniu wszystkich
+  dziewięciu wystąpień. Wygaszony przycisk, który dalej umie pokazać, gdzie te dziewiątki są, to
+  spójna całość, a nie wyjątek.
+
+**Czego wymaga przed realizacją:**
+
+- rozstrzygnięcia, **jak się z tego wychodzi** — kliknięcie w pole, ponowne kliknięcie tej samej
+  cyfry, czy jedno i drugie,
+- rozstrzygnięcia **pierwszeństwa**, gdy naraz jest zaznaczone pole z cyfrą i „przypięta" cyfra
+  z klawiatury; bez tego powstanie druga cicha reguła,
+- decyzji, czy to osobna opcja w ustawieniach, czy zachowanie idące za istniejącym
+  `highlightSameDigits`.
