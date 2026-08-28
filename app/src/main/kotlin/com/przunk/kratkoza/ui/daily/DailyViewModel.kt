@@ -60,11 +60,6 @@ class DailyViewModel(
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
         viewModelScope.launch { watchForChangeover() }
         viewModelScope.launch { refreshSignIn() }
-        viewModelScope.launch {
-            rankingLog.entries.collect { entries ->
-                _uiState.value = _uiState.value.copy(diagnostics = entries)
-            }
-        }
     }
 
     /**
@@ -124,11 +119,6 @@ class DailyViewModel(
         // Coming back from Play Games is one of the ways sign-in changes without this screen being
         // rebuilt, so the state is re-read rather than assumed to be still true.
         viewModelScope.launch { refreshSignIn() }
-        viewModelScope.launch {
-            rankingLog.entries.collect { entries ->
-                _uiState.value = _uiState.value.copy(diagnostics = entries)
-            }
-        }
     }
 
     /**
@@ -207,6 +197,4 @@ data class DailyUiState(
     /** Whether Play Games is configured at all; false hides every ranking control. */
     val rankingAvailable: Boolean = false,
     val signedIn: Boolean = false,
-    /** Debug builds only: what the ranking has been doing, newest first. */
-    val diagnostics: List<String> = emptyList(),
 )
