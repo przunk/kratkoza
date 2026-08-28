@@ -118,6 +118,29 @@ class PalettesTest {
     }
 
     @Test
+    fun `normal dark tiers keep extra headroom for a dim display`() {
+        val violations = BoardPalette.entries.flatMap { palette ->
+            val gaps = Palettes.boardColors(palette, dark = true, highContrast = false).tierGaps()
+            listOf(
+                "surface to peer" to
+                    (gaps.surfaceToPeer to MINIMUM_DARK_SURFACE_TO_PEER_SEPARATION),
+                "peer to same-digit" to
+                    (gaps.peerToSameDigit to MINIMUM_DARK_ADJACENT_TIER_SEPARATION),
+                "same-digit to selected" to
+                    (gaps.sameDigitToSelected to MINIMUM_DARK_ADJACENT_TIER_SEPARATION),
+            ).mapNotNull { (name, values) ->
+                if (values.first < values.second) {
+                    "$palette: dark $name gap is only ${values.first} L*, expected ${values.second}"
+                } else {
+                    null
+                }
+            }
+        }
+
+        assertTrue(violations.joinToString(separator = "\n"), violations.isEmpty())
+    }
+
+    @Test
     fun `digits separate from the surface they sit on`() {
         for (case in cases) {
             val colors = case.colors()
@@ -193,6 +216,10 @@ private const val MINIMUM_SURFACE_TO_PEER_SEPARATION = 8f
  * mode does not become a heat map merely to satisfy the test.
  */
 private const val MINIMUM_ADJACENT_TIER_SEPARATION = 6f
+
+/** Device review showed that the general floor still disappears into a dark phone display. */
+private const val MINIMUM_DARK_SURFACE_TO_PEER_SEPARATION = 10f
+private const val MINIMUM_DARK_ADJACENT_TIER_SEPARATION = 8f
 
 /** A digit closer than this to its background is not readable at board size. */
 private const val MINIMUM_DIGIT_SEPARATION = 25f

@@ -28,9 +28,9 @@ internal val HighlightLightPeer = Color(0xFFE4E7EA)
 internal val HighlightLightSameDigit = Color(0xFFCED5DB)
 internal val HighlightLightSelected = Color(0xFFA8C4DD)
 
-internal val HighlightDarkPeer = Color(0xFF2F3438)
-internal val HighlightDarkSameDigit = Color(0xFF3C4349)
-internal val HighlightDarkSelected = Color(0xFF3D5B77)
+internal val HighlightDarkPeer = Color(0xFF353A3E)
+internal val HighlightDarkSameDigit = Color(0xFF474E55)
+internal val HighlightDarkSelected = Color(0xFF4B6885)
 
 /** Player-entered digits. Saturated enough to carry across a board full of neutral givens. */
 internal val EnteredLight = Color(0xFF15599E)
