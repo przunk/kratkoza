@@ -6,8 +6,8 @@ import androidx.compose.ui.graphics.Color
  * A calm, low-saturation slate/blue palette. project.md asks for an interface that is readable but
  * does not "burn the eyes", so the accents stay muted and the board surfaces stay close to neutral.
  *
- * The full set of selectable palettes is still open in project.md section 39, so exactly one palette
- * is defined here.
+ * Shared neutrals live here alongside the slate ramp; palette-specific board fills stay in
+ * Palettes so their complete light and dark variants can be reviewed together.
  */
 
 internal val SlateBlue10 = Color(0xFF0B1620)
@@ -24,12 +24,12 @@ internal val SlateBlue95 = Color(0xFFE8F1F8)
  * blues: the board has to read as paper, and the tiers have to be told apart by *lightness* — which
  * survives a bad screen, bright sunlight and colour-blindness — not by hue.
  */
-internal val HighlightLightPeer = Color(0xFFE8EBEE)
-internal val HighlightLightSameDigit = Color(0xFFDCE3E9)
-internal val HighlightLightSelected = Color(0xFFAECBE4)
+internal val HighlightLightPeer = Color(0xFFE4E7EA)
+internal val HighlightLightSameDigit = Color(0xFFCED5DB)
+internal val HighlightLightSelected = Color(0xFFA8C4DD)
 
-internal val HighlightDarkPeer = Color(0xFF2B3034)
-internal val HighlightDarkSameDigit = Color(0xFF343B41)
+internal val HighlightDarkPeer = Color(0xFF2F3438)
+internal val HighlightDarkSameDigit = Color(0xFF3C4349)
 internal val HighlightDarkSelected = Color(0xFF3D5B77)
 
 /** Player-entered digits. Saturated enough to carry across a board full of neutral givens. */

@@ -34,11 +34,29 @@ class PalettesTest {
 
     private fun Case.colors() = Palettes.boardColors(palette, dark, highContrast)
 
+    private data class TierGaps(
+        val surfaceToPeer: Float,
+        val peerToSameDigit: Float,
+        val sameDigitToSelected: Float,
+    )
+
     /** CIE L*, from the relative luminance Compose exposes. */
     private fun Color.lightness(): Float {
         val y = luminance()
         val f = if (y > LAB_EPSILON) cbrt(y.toDouble()).toFloat() else LAB_KAPPA * y + LAB_OFFSET
         return 116f * f - 16f
+    }
+
+    private fun BoardColors.tierGaps(): TierGaps {
+        val surfaceDistance = { color: Color -> abs(color.lightness() - surface.lightness()) }
+        val peer = surfaceDistance(peerCell)
+        val sameDigit = surfaceDistance(sameDigitCell)
+        val selected = surfaceDistance(selectedCell)
+        return TierGaps(
+            surfaceToPeer = peer,
+            peerToSameDigit = sameDigit - peer,
+            sameDigitToSelected = selected - sameDigit,
+        )
     }
 
     @Test
@@ -59,13 +77,44 @@ class PalettesTest {
 
     @Test
     fun `every tier is actually visible against the surface`() {
-        for (case in cases) {
+        val violations = cases.mapNotNull { case ->
             val colors = case.colors()
             val surface = colors.surface.lightness()
             val faintest = abs(colors.peerCell.lightness() - surface)
 
-            assertTrue("$case: the peer tier is invisible", faintest > MINIMUM_TIER_SEPARATION)
+            if (faintest < MINIMUM_SURFACE_TO_PEER_SEPARATION) {
+                "$case: peer is only $faintest L* away from the surface"
+            } else {
+                null
+            }
         }
+
+        assertTrue(violations.joinToString(separator = "\n"), violations.isEmpty())
+    }
+
+    @Test
+    fun `adjacent highlight tiers stay visibly apart`() {
+        val violations = cases.flatMap { case ->
+            val colors = case.colors()
+            val surface = colors.surface.lightness()
+            val peer = abs(colors.peerCell.lightness() - surface)
+            val sameDigit = abs(colors.sameDigitCell.lightness() - surface)
+            val selected = abs(colors.selectedCell.lightness() - surface)
+
+            listOf(
+                "peer to same-digit" to sameDigit - peer,
+                "same-digit to selected" to selected - sameDigit,
+            ).mapNotNull { (name, gap) ->
+                if (gap < MINIMUM_ADJACENT_TIER_SEPARATION) {
+                    "$case: $name gap is only $gap L* " +
+                        "(surface distances: peer=$peer, same-digit=$sameDigit, selected=$selected)"
+                } else {
+                    null
+                }
+            }
+        }
+
+        assertTrue(violations.joinToString(separator = "\n"), violations.isEmpty())
     }
 
     @Test
@@ -95,14 +144,22 @@ class PalettesTest {
             for (dark in listOf(true, false)) {
                 val plain = Palettes.boardColors(palette, dark, highContrast = false)
                 val strong = Palettes.boardColors(palette, dark, highContrast = true)
+                val plainGaps = plain.tierGaps()
+                val strongGaps = strong.tierGaps()
 
-                val plainSpread = abs(plain.selectedCell.lightness() - plain.surface.lightness())
-                val strongSpread = abs(strong.selectedCell.lightness() - strong.surface.lightness())
-
-                assertTrue(
-                    "$palette dark=$dark: high contrast flattened the board",
-                    strongSpread >= plainSpread,
-                )
+                for ((name, gaps) in listOf(
+                    "surface to peer" to (plainGaps.surfaceToPeer to strongGaps.surfaceToPeer),
+                    "peer to same-digit" to
+                        (plainGaps.peerToSameDigit to strongGaps.peerToSameDigit),
+                    "same-digit to selected" to
+                        (plainGaps.sameDigitToSelected to strongGaps.sameDigitToSelected),
+                )) {
+                    assertTrue(
+                        "$palette dark=$dark: high contrast reduced $name from " +
+                            "${gaps.first} to ${gaps.second} L*",
+                        gaps.second >= gaps.first,
+                    )
+                }
             }
         }
     }
@@ -125,10 +182,17 @@ class PalettesTest {
 }
 
 /**
- * Below this a tier is a rounding error rather than a highlight. Five points of L* is roughly where
- * a large block of colour stops being reliably distinguishable from its neighbour.
+ * A large area becomes noticeable at roughly five points of L*. Eight leaves enough headroom for
+ * a dim phone, glare and the fact that the highlight is seen between dark grid lines.
  */
-private const val MINIMUM_TIER_SEPARATION = 5f
+private const val MINIMUM_SURFACE_TO_PEER_SEPARATION = 8f
+
+/**
+ * Adjacent fills need more than a just-noticeable difference to remain distinct at cell size. Six
+ * points also keep the minimum selected spread around 20 L*, below the digit threshold, so normal
+ * mode does not become a heat map merely to satisfy the test.
+ */
+private const val MINIMUM_ADJACENT_TIER_SEPARATION = 6f
 
 /** A digit closer than this to its background is not readable at board size. */
 private const val MINIMUM_DIGIT_SEPARATION = 25f

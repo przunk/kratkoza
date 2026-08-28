@@ -11,9 +11,9 @@ import com.przunk.kratkoza.domain.settings.BoardPalette
  * looked at for a long time, and a generated ramp lands on muddy greens and bruised purples often
  * enough that hand-picking is worth the extra lines.
  *
- * Hand-picked, but not by eye alone. `PalettesTest` measures every tier in CIE L*, and the sepia and
- * forest light tiers were corrected after it caught them sitting roughly half as far from their
- * surface as slate's — a gap that looks fine in a colour picker and turns the board flat on a phone.
+ * Hand-picked, but not by eye alone. `PalettesTest` measures every tier in CIE L*: the peer fill
+ * needs a deliberate step from the surface, and every adjacent highlight needs another visible
+ * step. Checking both matters because correctly ordered colours can still collapse into one wash.
  *
  * High contrast is the opposite — it is *computed*, and deliberately so. See [withHigherContrast].
  */
@@ -56,9 +56,9 @@ internal object Palettes {
             surface = Color(0xFFFBF7F0),
             gridLine = Color(0xFFD8CDB8),
             blockLine = Color(0xFF7A6B52),
-            selectedCell = Color(0xFFD0BD9A),
-            peerCell = Color(0xFFEBE4D6),
-            sameDigitCell = Color(0xFFDFD6C1),
+            selectedCell = Color(0xFFCAB895),
+            peerCell = Color(0xFFE6DFD1),
+            sameDigitCell = Color(0xFFD5CCB8),
             errorCell = Error90,
             givenDigit = Color(0xFF4A4034),
             enteredDigit = SepiaAccentLight,
@@ -71,9 +71,9 @@ internal object Palettes {
             surface = Color(0xFFF8FBF8),
             gridLine = Color(0xFFC6D5C8),
             blockLine = Color(0xFF445747),
-            selectedCell = Color(0xFFABC9B2),
-            peerCell = Color(0xFFE2E9E3),
-            sameDigitCell = Color(0xFFD0DDD2),
+            selectedCell = Color(0xFFA6C4AD),
+            peerCell = Color(0xFFDDE4DE),
+            sameDigitCell = Color(0xFFC6D3C8),
             errorCell = Error90,
             givenDigit = Color(0xFF2C3830),
             enteredDigit = ForestAccentLight,
@@ -86,9 +86,9 @@ internal object Palettes {
             surface = Neutral100,
             gridLine = Color(0xFFCBCBCB),
             blockLine = Color(0xFF3A3A3A),
-            selectedCell = Color(0xFFC2C2C2),
-            peerCell = Color(0xFFEDEDED),
-            sameDigitCell = Color(0xFFDCDCDC),
+            selectedCell = Color(0xFFC1C1C1),
+            peerCell = Color(0xFFE7E7E7),
+            sameDigitCell = Color(0xFFD4D4D4),
             errorCell = Error90,
             givenDigit = Color(0xFF5A5A5A),
             // In a palette with no hue, the given/entered difference has to be lightness. The
@@ -120,9 +120,9 @@ internal object Palettes {
             surface = Color(0xFF17130E),
             gridLine = Color(0xFF3A3226),
             blockLine = Color(0xFF7C6F58),
-            selectedCell = Color(0xFF4E3F27),
-            peerCell = Color(0xFF261F17),
-            sameDigitCell = Color(0xFF32291D),
+            selectedCell = Color(0xFF4F4028),
+            peerCell = Color(0xFF2B241C),
+            sameDigitCell = Color(0xFF3B3125),
             errorCell = Error20,
             givenDigit = Color(0xFFD9CFBE),
             enteredDigit = SepiaAccentDark,
@@ -136,8 +136,8 @@ internal object Palettes {
             gridLine = Color(0xFF2A342C),
             blockLine = Color(0xFF6A7D6E),
             selectedCell = Color(0xFF31573F),
-            peerCell = Color(0xFF1D251F),
-            sameDigitCell = Color(0xFF273128),
+            peerCell = Color(0xFF1F2721),
+            sameDigitCell = Color(0xFF2B362C),
             errorCell = Error20,
             givenDigit = Color(0xFFD3DED5),
             enteredDigit = ForestAccentDark,
@@ -151,8 +151,8 @@ internal object Palettes {
             gridLine = Color(0xFF2E2E2E),
             blockLine = Color(0xFF7A7A7A),
             selectedCell = Color(0xFF4A4A4A),
-            peerCell = Color(0xFF1F1F1F),
-            sameDigitCell = Color(0xFF2B2B2B),
+            peerCell = Color(0xFF222222),
+            sameDigitCell = Color(0xFF303030),
             errorCell = Error20,
             givenDigit = Color(0xFF9E9E9E),
             enteredDigit = Color(0xFFF4F4F4),
@@ -167,10 +167,10 @@ internal object Palettes {
  * A stronger version of a palette (project.md sections 9 and 35).
  *
  * The highlight tiers are *rebuilt* here rather than nudged. The rule the board is meant to obey is
- * that its tiers separate by lightness in even steps — selected darker than matching, matching
- * darker than peers — and hand-tuned colours drift away from even the moment anything is adjusted.
- * Recomputing them as fixed fractions between the surface and the ink guarantees the spacing, in
- * every palette, in both themes.
+ * that its tiers separate by lightness in deliberate steps — selected darker than matching,
+ * matching darker than peers — and hand-tuned colours drift the moment anything is adjusted.
+ * Recomputing them as fixed fractions between the surface and the ink guarantees wider spacing in
+ * every palette and both themes. Tests additionally ensure no individual gap shrinks.
  *
  * "Higher contrast, still elegant" is what section 9 asks for, so the surface stops short of pure
  * white or pure black: paper-white behind nine black digits glares under a lamp, and the difference
