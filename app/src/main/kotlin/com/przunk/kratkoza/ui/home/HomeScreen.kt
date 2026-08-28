@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
-import com.przunk.kratkoza.ui.common.KratkozaScaffold
 import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.util.formatDuration
 
@@ -48,11 +51,14 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    KratkozaScaffold(title = stringResource(R.string.home_title), modifier = modifier) { padding ->
+    // No title bar here, unlike every other screen: the artwork draws the name itself, and a bar
+    // above it would repeat the word and cut the scene short. Without a bar nothing reserves the
+    // status bar, so the inset is taken directly.
+    Surface(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .windowInsetsPadding(WindowInsets.systemBars)
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(MENU_GAP_DP.dp),
         ) {
@@ -63,7 +69,10 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth().weight(SPACE_ABOVE_MENU),
                 contentAlignment = Alignment.Center,
             ) {
-                RotatingBoardArt(modifier = Modifier.fillMaxSize())
+                RotatingBoardArt(
+                    modifier = Modifier.fillMaxSize(),
+                    contentDescription = stringResource(R.string.home_title),
+                )
             }
 
             val mostRecent = state.mostRecent
