@@ -90,6 +90,25 @@ class RotatingBoardArtTest {
     }
 
     @Test
+    fun `a spark loses most of its width while it is still bright`() {
+        // The reason the curve is eased. Brightness falls away quadratically, so a shrink spread
+        // evenly over the climb finishes where nobody can see it: at half-life the particle used to
+        // be at 70 per cent of its width and already down to 41 per cent of its light.
+        val halfway = sparkBurn(0.5f)
+        val spent = sparkBurn(1f)
+
+        val lostByHalfway = 1f - halfway
+        val lostInTotal = 1f - spent
+        assertTrue(
+            "over half the shrinking must happen in the visible first half",
+            lostByHalfway > lostInTotal / 2f,
+        )
+        // And it is a shrink, not a disappearance: something is always left to fade out.
+        assertTrue(spent > 0f)
+        assertEquals(1f, sparkBurn(0f), 0.0001f)
+    }
+
+    @Test
     fun `spark ignites at bottom and evaporates towards top`() {
         assertEquals(0f, sparkVisibility(0f), 0f)
         assertTrue(sparkVisibility(0.12f) > sparkVisibility(0.65f))

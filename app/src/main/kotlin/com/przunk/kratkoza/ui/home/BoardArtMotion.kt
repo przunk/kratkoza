@@ -3,6 +3,7 @@ package com.przunk.kratkoza.ui.home
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.floor
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /*
  * The motion behind the title artwork, with no Compose state and nothing drawn.
@@ -26,6 +27,9 @@ internal const val DIGIT_SHADOW_BASE_X_DP = 1.4f
 internal const val DIGIT_SHADOW_BASE_Y_DP = 2.2f
 internal const val DIGIT_SHADOW_TILT_X_DP = 1.8f
 internal const val DIGIT_SHADOW_TILT_Y_DP = 1.4f
+/** How much of its width a spark loses by the time it is spent. */
+internal const val SPARK_SHRINK = 0.60f
+
 internal const val SPARK_FADE_IN_FRACTION = 0.10f
 internal const val SPARK_EVAPORATION_START = 0.22f
 
@@ -99,6 +103,17 @@ internal fun sparkLife(phase: Float, cycles: Int, offset: Float): Float {
     val progress = phase * cycles + offset
     return progress - floor(progress)
 }
+
+/**
+ * How much of its size a spark still has, given how far it is through its life.
+ *
+ * Eased rather than linear, because brightness falls away quadratically while size fell away
+ * linearly: by the middle of the climb a spark had lost only a third of its width but was already
+ * down to two-fifths of its light, so most of the shrinking happened where nobody could see it.
+ * Taking the square root front-loads the loss into the part of the journey that is still bright.
+ */
+internal fun sparkBurn(life: Float): Float =
+    1f - SPARK_SHRINK * sqrt(life.coerceIn(0f, 1f))
 
 /** Quick ignition at the bottom followed by a long evaporation towards the top. */
 internal fun sparkVisibility(life: Float): Float {

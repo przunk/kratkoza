@@ -303,17 +303,23 @@ private fun SparkField(
                     )
                     val alpha = visibility * SPARK_MAX_ALPHA * depthAlpha
 
+                    // Burning out is a loss of size as well as of light, so the halo shrinks with
+                    // the core rather than holding the particle at full width while only the middle
+                    // fades. Applied to both radii: the halo is nearly three times the core, so it
+                    // is what the eye reads as the size of the spark.
+                    val burn = sparkBurn(life)
+
                     // A wide, faint halo reads as emitted light; the compact core keeps the
-                    // particle crisp. Both evaporate together as the spark approaches the top.
+                    // particle crisp.
                     drawCircle(
                         color = color,
-                        radius = radius * SPARK_GLOW_RADIUS,
+                        radius = radius * burn * SPARK_GLOW_RADIUS,
                         center = centre,
                         alpha = alpha * SPARK_GLOW_ALPHA,
                     )
                     drawCircle(
                         color = color,
-                        radius = radius * (1f - life * SPARK_SHRINK),
+                        radius = radius * burn,
                         center = centre,
                         alpha = alpha,
                     )
@@ -548,7 +554,6 @@ private const val SPARK_RADIUS_RANGE = 0.008f
 private const val SPARK_MIN_CYCLES = 1
 private const val SPARK_MAX_CYCLES = 2
 private const val SPARK_SWAY = 0.075f
-private const val SPARK_SHRINK = 0.60f
 private const val SPARK_MAX_ALPHA = 0.64f
 private const val SPARK_GLOW_RADIUS = 2.6f
 private const val SPARK_GLOW_ALPHA = 0.20f
