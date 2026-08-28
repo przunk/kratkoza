@@ -76,21 +76,25 @@ import kotlinx.coroutines.launch
 fun RotatingBoardArt(
     modifier: Modifier = Modifier,
     /**
-     * Chooses the digits and the particles.
+     * Chooses the digits and the particles, or `null` to pick one per composition.
      *
-     * Injectable so a test can render the same frame twice and get the same picture. Left to the
-     * clock in the app, where an artwork that differs between launches is the point rather than a
-     * problem.
+     * Nullable rather than defaulted to the clock. A default argument is an expression evaluated on
+     * every call, and this composable is called on every animation frame — so `System.nanoTime()`
+     * as a default handed it a new seed sixty times a second and regenerated the whole scene with
+     * it. Passing null and resolving once is the same convenience without that trap.
      */
-    seed: Long = System.nanoTime(),
+    seed: Long? = null,
 ) {
     val colors = LocalBoardColors.current
     val density = LocalDensity.current
 
+    // Resolved once for the life of the composition, not once per frame.
+    val artSeed = remember(seed) { seed ?: System.nanoTime() }
+
     // A fixed order per composition, so the digits are unpredictable but never flicker into a new
     // value mid-fade.
-    val sequences = remember(seed) {
-        val random = Random(seed)
+    val sequences = remember(artSeed) {
+        val random = Random(artSeed)
         List(CELLS) { (1..Sudoku.SIZE).shuffled(random) }
     }
 
@@ -114,8 +118,8 @@ fun RotatingBoardArt(
         label = "content-phase",
     )
 
-    val sparks = remember(seed) {
-        val random = Random(seed + 1)
+    val sparks = remember(artSeed) {
+        val random = Random(artSeed + 1)
         List(SPARK_COUNT) {
             Spark(
                 x = random.nextFloat(),
