@@ -74,4 +74,38 @@ class GameStateTest {
         assertTrue(target in state.conflictingCells)
         assertTrue(given in state.conflictingCells)
     }
+
+    @Test
+    fun `a wrong digit does not count towards its nine`() {
+        // project.md section 19 counts *correct* occurrences. Counting a wrong copy would call the
+        // digit finished while a cell still needed it.
+        var state = GameFixtures.newGame()
+        val cell = (0 until Sudoku.CELL_COUNT).first { state.board.isEmpty(it) }
+        val correct = state.puzzle.solution[cell]
+        val wrongPlace = (0 until Sudoku.CELL_COUNT).first {
+            state.board.isEmpty(it) && state.puzzle.solution[it] != correct
+        }
+        val before = state.remainingCountOf(correct)
+
+        state = GameEngine.enterDigit(state, wrongPlace, correct, autoRemoveCandidates = false)
+
+        assertEquals(before, state.remainingCountOf(correct))
+        assertFalse(state.isDigitComplete(correct))
+    }
+
+    @Test
+    fun `a digit is complete only when all nine are correctly placed`() {
+        var state = GameFixtures.newGame()
+        val digit = 5
+        assertFalse(state.isDigitComplete(digit))
+
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (state.board.isEmpty(cell) && state.puzzle.solution[cell] == digit) {
+                state = GameEngine.enterDigit(state, cell, digit, autoRemoveCandidates = false)
+            }
+        }
+
+        assertTrue(state.isDigitComplete(digit))
+        assertEquals(0, state.remainingCountOf(digit))
+    }
 }

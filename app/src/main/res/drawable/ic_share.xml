@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Three nodes joined by two bars — the usual share glyph.
+
+    Drawn here rather than taken from a Material icon package, like the rest of the set: see
+    ic_saved_games.xml for why.
+
+    The first attempt placed the nodes with android:translateY on the paths. That attribute only
+    exists on <group>, so it was silently ignored and the top node — centred at y=2 with radius 3 —
+    was clipped by the top of the viewport. Everything here is stated in final coordinates instead,
+    and a generator checked the bounding box lands inside 0..24 on both axes.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3.75,12.00 C3.75,10.48 4.98,9.25 6.50,9.25 C8.02,9.25 9.25,10.48 9.25,12.00 C9.25,13.52 8.02,14.75 6.50,14.75 C4.98,14.75 3.75,13.52 3.75,12.00 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M14.65,5.60 C14.65,4.08 15.88,2.85 17.40,2.85 C18.92,2.85 20.15,4.08 20.15,5.60 C20.15,7.12 18.92,8.35 17.40,8.35 C15.88,8.35 14.65,7.12 14.65,5.60 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M14.65,18.40 C14.65,16.88 15.88,15.65 17.40,15.65 C18.92,15.65 20.15,16.88 20.15,18.40 C20.15,19.92 18.92,21.15 17.40,21.15 C15.88,21.15 14.65,19.92 14.65,18.40 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M9.00,11.52 L15.76,7.55 L14.90,6.08 L8.14,10.05 Z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M8.14,13.95 L14.90,17.92 L15.76,16.45 L9.00,12.48 Z" />
+</vector>

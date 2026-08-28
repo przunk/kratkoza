@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGameSummary
+import com.przunk.kratkoza.domain.share.BoardCode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -21,6 +22,10 @@ class SavedGamesViewModel(private val gameRepository: GameRepository) : ViewMode
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
             initialValue = SavedGamesUiState(),
         )
+
+    /** The code to hand somebody so they can play this exact board. */
+    fun shareCodeFor(save: SavedGameSummary): String =
+        BoardCode.encode(save.givens, save.generatorVersion)
 
     /**
      * Drops a save. The game's history row stays, so an abandoned game still counts as started but

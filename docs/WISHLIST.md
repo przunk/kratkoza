@@ -10,6 +10,9 @@ czego w specyfikacji w ogóle nie ma.
 
 ## 1. Grafika albo powolna animacja nad menu
 
+**Zrobione 2026-08-26 — wariant B.** Obracający się w przestrzeni kwadrat 3×3 z cyframi,
+które pojawiają się i znikają. Zostaje niżej jako zapis rozważanych wariantów.
+
 **Zgłoszone:** 2026-08-25.
 
 Ekran główny jest czysty, ale pusty nad przyciskami. Pomysł: wstawić tam grafikę albo
@@ -40,6 +43,8 @@ nie jest widoczny. **A**, jeśli priorytetem jest spokój.
 
 ## 2. Subtelne potrząśnięcie planszą przy błędzie
 
+**Zrobione 2026-08-26 — wariant A.** Drgnięcie samej komórki, nie całej planszy.
+
 **Zgłoszone:** 2026-08-25.
 
 Dziś błędnie wpisana cyfra rozświetla na czerwono swój wiersz, kolumnę i blok. Pomysł: dołożyć do
@@ -66,3 +71,90 @@ wprost na pole.
 
 Rekomendacja: **A albo C.** Potrząśnięcie całą planszą wygląda efektownie na filmiku i męczy przy
 setnej pomyłce.
+
+---
+
+## 3. Kandydaci ograniczeni do cyfr dozwolonych w polu
+
+**Zgłoszone:** 2026-08-26.
+
+W trybie kandydatów pozwalać dodać tylko cyfrę, która nie występuje już w wierszu, kolumnie ani
+bloku 3×3 wybranego pola. Panel cyfr powinien od razu pokazywać, których kandydatów nie można
+dodać, zamiast przyjmować notatkę sprzeczną z aktualnym stanem planszy.
+
+Do decyzji pozostaje zachowanie istniejących kandydatów po późniejszym wpisaniu błędnej cyfry;
+auto-usuwanie po cyfrze poprawnej jest opisane osobno poniżej i w `project.md` §15.
+
+**Pułapka, którą trzeba tu rozstrzygnąć.** „Dozwolona" liczy się względem **aktualnej** planszy,
+a ta może zawierać błędną cyfrę gracza. Wtedy aplikacja zabroniłaby zanotować kandydata, który
+w rzeczywistości jest poprawny — i to dokładnie wtedy, gdy gracz próbuje rozplątać własną pomyłkę.
+To ten sam wzorzec, na który wpadliśmy przy blokadzie klawiszy panelu: licznik liczył wszystkie
+wystąpienia cyfry zamiast poprawnych, więc jedna pomyłka odcinała gracza od cyfry, której plansza
+wciąż potrzebowała.
+
+Bezpieczny wariant: liczyć dostępność wyłącznie względem cyfr startowych i cyfr poprawnych, albo
+w ogóle nie blokować, tylko wyszarzać — kandydaci są narzędziem rozumowania gracza (§14), a nie
+odpowiedzią, więc aplikacja nie musi mieć w tej sprawie ostatniego słowa.
+
+---
+
+## 4. Usuwanie kandydatów, które przestały być możliwe
+
+**Zgłoszone:** 2026-08-26.
+
+Po wpisaniu przez gracza poprawnej cyfry automatycznie usuwać tę cyfrę z kandydatów wszystkich pól
+w tym samym wierszu, kolumnie i bloku 3×3.
+
+To zachowanie jest już wymagane przez `project.md` §15 i deklarowane jako zaimplementowane. Wpis
+pozostaje jako punkt do świadomej weryfikacji na urządzeniu oraz ochrony testem regresyjnym.
+
+---
+
+## 5. Czyszczenie wszystkich kandydatów
+
+**Zgłoszone:** 2026-08-26.
+
+Dodać dostępną z ekranu gry akcję usuwającą wszystkich kandydatów z całej planszy. Operacja powinna
+wymagać potwierdzenia i dać się cofnąć jako jedna akcja Undo, żeby przypadkowe dotknięcie nie niszczyło
+notatek gracza.
+
+---
+
+## 6. Udostępnianie planszy innemu graczowi
+
+**Zrobione 2026-08-26.** Kod niesie układ planszy, nie ziarno; poziom trudności jest przeliczany po
+stronie odbiorcy. Uzasadnienie obu decyzji w `BoardCode`. Udostępnianie z listy zapisanych gier,
+wczytywanie z ekranu nowej gry.
+
+Udostępnianie jest w dwóch miejscach: w pasku ekranu gry, gdzie gracz najpierw sięgnie, i na
+liście zapisanych gier — dla plansz, których akurat nie ma otwartych.
+
+**Zgłoszone:** 2026-08-26.
+
+Umożliwić przekazanie kodu planszy, aby inny gracz mógł rozegrać dokładnie ten sam układ. Kod może
+opierać się na `puzzleId`/GUID, ale musi jednoznacznie wskazywać także dane potrzebne do odtworzenia
+planszy — np. wersję generatora i seed — albo zawierać zakodowany układ. Sam losowy GUID bez wspólnej
+bazy lub deterministycznego mapowania nie wystarczy do wygenerowania tej samej planszy.
+
+Do ustalenia: format kodu, udostępnianie offline lub przez backend oraz zachowanie po zmianie wersji
+generatora.
+
+---
+
+## 7. Wybór regionu z mapki zamiast z listy
+
+**Zgłoszone:** 2026-08-26.
+
+Zamiast wybierać województwo z listy — tapnąć je na mapce Polski.
+
+**Dlaczego to dodatek, a nie zamiennik.** `project.md` §27 przewiduje zakresy globalny, krajowy
+i regionalny, a aplikacja jest po polsku i angielsku, więc trafi też poza Polskę — mapa województw
+nie ma wtedy czego pokazać. Do tego mapa dotykowa jest trudna dla TalkBacka: szesnaście obszarów
+o nieregularnych kształtach, bez tekstu. Lista musi więc istnieć tak czy inaczej, jako ścieżka
+dostępności i jako rozwiązanie dla innych krajów.
+
+Mapa ma sens jako **efektowna skrótka do tego samego wyboru**, wywoływana z listy i wracająca do
+niej — a nie jako drugi, niezależny mechanizm, który trzeba utrzymywać w dwóch wersjach.
+
+Decyzje funkcjonalne wokół regionu są już podjęte i opisane w [STATUS.md](STATUS.md); ta pozycja
+dotyczy wyłącznie formy wyboru.

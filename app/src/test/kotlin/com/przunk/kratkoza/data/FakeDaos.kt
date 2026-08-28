@@ -1,14 +1,20 @@
 package com.przunk.kratkoza.data
 
 import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyDifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyPuzzleDao
+import com.przunk.kratkoza.data.local.DailyPuzzleEntity
 import com.przunk.kratkoza.data.local.GameHistoryDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
+import com.przunk.kratkoza.data.local.DailyStatisticsSummaryRow
 import com.przunk.kratkoza.data.local.PuzzleDao
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
+import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
+import com.przunk.kratkoza.domain.model.GameType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -35,6 +41,22 @@ class FakePuzzleDao : PuzzleDao {
     override suspend fun byId(puzzleId: String): PuzzleEntity? = puzzles[puzzleId]
 }
 
+/** In-memory stand-in for the Daily calendar. */
+class FakeDailyPuzzleDao : DailyPuzzleDao {
+    private val rows = mutableMapOf<Pair<String, String>, DailyPuzzleEntity>()
+
+    override suspend fun insert(entries: List<DailyPuzzleEntity>) {
+        for (entry in entries) rows.putIfAbsent(entry.date to entry.difficulty, entry)
+    }
+
+    override suspend fun forDate(date: String, rulesetVersion: Int): List<DailyPuzzleEntity> =
+        rows.values.filter { it.date == date && it.rulesetVersion == rulesetVersion }
+
+    override suspend fun dateOf(puzzleId: String, rulesetVersion: Int): String? =
+        rows.values.firstOrNull { it.puzzleId == puzzleId && it.rulesetVersion == rulesetVersion }?.date
+
+}
+
 class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
     private val saves = MutableStateFlow<Map<String, SavedGameEntity>>(emptyMap())
 
@@ -51,6 +73,14 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
 
     override suspend fun delete(puzzleId: String) {
         saves.value = saves.value - puzzleId
+    }
+
+    override fun observeInProgressByDifficulty(): Flow<List<InProgressCountRow>> = saves.map { current ->
+        current.values
+            .mapNotNull { puzzleDao.puzzles[it.puzzleId]?.difficulty }
+            .groupingBy { it }
+            .eachCount()
+            .map { (difficulty, count) -> InProgressCountRow(difficulty, count) }
     }
 
     /** Stands in for the `UPDATE saved_games SET historyId = 0` of the reset transaction. */
@@ -73,6 +103,8 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
                     difficulty = puzzle.difficulty,
                     gameType = puzzle.gameType,
                     givens = puzzle.givens,
+                    solution = puzzle.solution,
+                    generatorVersion = puzzle.generatorVersion,
                 )
             }
     }
@@ -115,6 +147,9 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
         elapsedMillis: Long,
         mistakeCount: Int,
         completed: Boolean,
+        xpEarned: Int,
+        rankedEligible: Boolean,
+        score: Int?,
     ) {
         entries.value = entries.value.map { entry ->
             if (entry.id != id) {
@@ -125,10 +160,16 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
                     elapsedMillis = elapsedMillis,
                     mistakeCount = mistakeCount,
                     completed = completed,
+                    xpEarned = xpEarned,
+                    rankedEligible = rankedEligible,
+                    score = score,
                 )
             }
         }
     }
+
+    override suspend fun attemptsOn(puzzleIds: List<String>): List<GameHistoryEntity> =
+        entries.value.filter { it.puzzleId in puzzleIds }
 
     override fun observeStartedCount(): Flow<Int> = entries.map { it.size }
 
@@ -136,6 +177,9 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
 
     override fun observeTotalMistakes(): Flow<Int> =
         entries.map { list -> list.filter { it.completed }.sumOf { it.mistakeCount } }
+
+    override fun observeTotalXp(): Flow<Long> =
+        entries.map { list -> list.sumOf { it.xpEarned.toLong() } }
 
     override fun observeByDifficulty(): Flow<List<DifficultyStatisticsRow>> = entries.map { list ->
         list.groupBy { it.difficulty }.map { (difficulty, rows) ->
@@ -150,6 +194,46 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
             )
         }
     }
+
+    override suspend fun dailyScoreSum(puzzleIds: List<String>): Long? =
+        entries.value
+            .filter { it.gameType == GameType.DAILY.name && it.completed && it.puzzleId in puzzleIds }
+            .mapNotNull { it.score }
+            .takeIf { it.isNotEmpty() }
+            ?.sumOf { it.toLong() }
+
+    override suspend fun allTimeDailyScoreSum(): Long? =
+        entries.value
+            .filter { it.gameType == GameType.DAILY.name && it.completed }
+            .mapNotNull { it.score }
+            .takeIf { it.isNotEmpty() }
+            ?.sumOf { it.toLong() }
+
+    override suspend fun markPubliclyRanked(id: Long) {
+        entries.value = entries.value.map { if (it.id == id) it.copy(publiclyRanked = true) else it }
+    }
+
+    override fun observeDailySummary(): Flow<DailyStatisticsSummaryRow> = entries.map { list ->
+        val completed = list.filter { it.gameType == GameType.DAILY.name && it.completed }
+        val scores = completed.mapNotNull { it.score }
+        DailyStatisticsSummaryRow(
+            completedCount = completed.size,
+            totalScore = scores.takeIf { it.isNotEmpty() }?.sumOf { it.toLong() },
+            bestScore = scores.maxOrNull(),
+            averageScore = scores.averageOrNull(),
+            rankedEligibleCount = completed.count { it.rankedEligible },
+        )
+    }
+
+    override fun observeDailyByDifficulty(): Flow<List<DailyDifficultyStatisticsRow>> =
+        entries.map { list ->
+            list.filter { it.gameType == GameType.DAILY.name && it.completed }
+                .groupingBy { it.difficulty }
+                .eachCount()
+                .map { (difficulty, completedCount) ->
+                    DailyDifficultyStatisticsRow(difficulty, completedCount)
+                }
+        }
 }
 
 private fun List<Number>.averageOrNull(): Double? =

@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      From API 30 an app cannot see other installed packages unless it says which ones it cares
+      about. The Play Games overlay lives in its own app, so without this the leaderboard intent
+      cannot even be resolved, let alone reported on.
+    -->
+    <queries>
+        <package android:name="com.google.android.play.games" />
+    </queries>
+
     <application
         android:name=".KratkozaApplication"
         android:allowBackup="true"
@@ -11,6 +20,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Kratkoza">
+
+        <!--
+          Play Games startuje sam, przez własny ContentProvider, jeszcze przed Application.onCreate.
+          PlayGamesSdk.initialize() woła dokładnie tę samą metodę, więc nie da się tego odroczyć ani
+          uzależnić od ustawień — jedyne, co kontrolujemy, to czy APP_ID jest wypełnione.
+        -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/play_games_app_id" />
 
         <activity
             android:name=".MainActivity"

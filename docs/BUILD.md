@@ -10,6 +10,7 @@ z `/mnt/workspace/.tooling`. Nie trzeba niczego eksportować ręcznie.
 | `scripts/test-kratkoza.sh` | testy jednostkowe |
 | `scripts/lint-kratkoza.sh` | Android Lint |
 | `scripts/build-kratkoza-bundle.sh` | AAB na Google Play, do `dist/` |
+| `scripts/push-kratkoza.sh` | wypchnięcie na GitHuba, token pytany za każdym razem |
 | `scripts/kratkoza-env.sh` | wspólne środowisko, tylko do `source` |
 
 Wszystkie przyjmują dodatkowe argumenty Gradle'a, np.:
@@ -136,6 +137,75 @@ Jeśli go jeszcze nie ma:
 **Kopia zapasowa keystore'a jest obowiązkowa.** Utrata pliku albo hasła oznacza, że nie da się już
 zaktualizować aplikacji pod tym samym `applicationId` — zostaje prośba do Google o reset klucza
 upload albo publikacja od nowa jako inna aplikacja.
+
+## Minifikacja (R8)
+
+Build release ma `isMinifyEnabled` i `isShrinkResources` włączone. Efekt: **25 MB → 2,3 MB**,
+z czego sam `classes.dex` spadł z 25,5 MB do 2,1 MB.
+
+`app/proguard-rules.pro` trzyma tylko to, co naprawdę musi tam być, każda reguła z powodem.
+Najważniejsza dotyczy **nazw stałych enum**: `Difficulty`, `GameType`, `ThemeMode` i `AppLanguage`
+zapisujemy do Roomu i DataStore przez `name`, więc nazwa stałej jest częścią formatu na dysku.
+R8 może swobodnie zmieniać nazwy pól, a `name()` zwraca to, jak pole ostatecznie się nazywa — bez
+tej reguły build release zapisywałby `a` tam, gdzie debug zapisał `EASY`, i wszystko zapisane
+wcześniej przestałoby się parsować. Po cichu, bo nieznana nazwa jest traktowana jako „nie ma".
+
+Że reguła działa, widać w `app/build/outputs/mapping/release/mapping.txt` — stałe mapują się na
+siebie (`EASY -> EASY`). Room jest bezpieczny dzięki własnym regułom biblioteki: `KratkozaDatabase`
+i `KratkozaDatabase_Impl` zachowują pełne nazwy, bo Room szuka implementacji przez refleksję.
+
+**Testy jednostkowe nie sprawdzają buildu release** — chodzą po kodzie niezminifikowanym. Co R8
+zepsuje, widać dopiero na urządzeniu, i zwykle jako dane, które się nie wczytują, a nie jako awaria.
+Po każdej zmianie reguł warto na telefonie przejść: nowa gra → zapis → wznowienie → ustawienia →
+zmiana języka → statystyki.
+
+Plik `mapping.txt` należy wysłać do Play razem z bundlem — bez niego raport awarii z telefonu to
+lista ponumerowanych metod w klasie `a`.
+
+## Wersjonowanie
+
+`versionCode` i `versionName` podbija **jedna osoba, scalając do `develop`** — nigdy nie robi się
+tego na gałęzi zadaniowej, bo dwie gałęzie zgłosiłyby ten sam numer dla różnego kodu.
+
+Żeby build z gałęzi dało się mimo to rozpoznać, `app/build.gradle.kts` dokleja do `versionName`
+nazwę gałęzi, gdy nie jest to `develop` ani `master`:
+
+| Skąd build | Wersja w Ustawieniach |
+|---|---|
+| `develop` / `master` | `0.6.0 (12)` |
+| gałąź zadaniowa | `0.6.0+fix/game-screen-readability (12)` |
+
+Wydania na Play pochodzą z gałęzi integracyjnych, więc nie niosą przyrostka.
+
+Ten sam `versionCode` **nie przeszkadza w instalacji** na urządzeniu — Android blokuje tylko wersję
+niższą od zainstalowanej. Play jest inne: tam każdy wysłany `versionCode` musi być nowy, i o to
+dba `build-kratkoza-bundle.sh`.
+
+## Repozytorium
+
+`master` jest bazą, praca idzie na `develop`. Wydania powstają przez scalenie `develop` w `master`.
+
+```bash
+./scripts/push-kratkoza.sh              # bieżąca gałąź
+./scripts/push-kratkoza.sh develop master
+```
+
+Skrypt pyta o token przy każdym uruchomieniu i **nigdzie go nie zapisuje** — ta sama umowa co przy
+budowaniu bundla. Token nie trafia do `.git/config` ani do adresu zdalnego repozytorium, gdzie
+pokazywałby go `git remote -v` i każdy komunikat błędu. Odpowiedzi dla gita idą przez `GIT_ASKPASS`,
+więc token nie pojawia się też w terminalu.
+
+Token potrzebuje prawa zapisu do `przunk/kratkoza`: klasyczny — zakres `repo`, precyzyjny —
+Contents: Read and write.
+
+Gdy historia została świadomie przepisana lokalnie, `KRATKOZA_FORCE_PUSH=1` nadpisze zdalną.
+Używa `--force-with-lease`, które odmawia, jeśli zdalne repo ruszyło od ostatniego pobrania — więc
+nadpisze własne przepisanie, ale nie czyjąś pracę, która w międzyczasie doszła.
+
+Wygodniejsza alternatywa, jeśli ciągłe wpisywanie zacznie przeszkadzać:
+`git config --global credential.helper 'cache --timeout=3600'` trzyma token w pamięci przez godzinę
+i nie zapisuje go na dysk. `credential.helper store` **zapisuje token czystym tekstem** w
+`~/.git-credentials` — działa, ale trzeba wiedzieć, na co się zgadzasz.
 
 ## Testy
 

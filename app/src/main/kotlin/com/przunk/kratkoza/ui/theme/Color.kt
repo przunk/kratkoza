@@ -36,6 +36,14 @@ internal val HighlightDarkSelected = Color(0xFF3D5B77)
 internal val EnteredLight = Color(0xFF15599E)
 internal val EnteredDark = Color(0xFF8CC6F5)
 
+/** Accents the other palettes lend to the rest of the interface. */
+internal val SepiaAccentLight = Color(0xFF8A5320)
+internal val SepiaAccentDark = Color(0xFFE0A868)
+internal val ForestAccentLight = Color(0xFF1D6B47)
+internal val ForestAccentDark = Color(0xFF86D6A8)
+internal val GraphiteAccentLight = Color(0xFF454545)
+internal val GraphiteAccentDark = Color(0xFFCFCFCF)
+
 internal val Teal40 = Color(0xFF2C6E63)
 internal val Teal80 = Color(0xFF9CD1C6)
 

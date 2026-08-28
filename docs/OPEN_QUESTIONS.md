@@ -12,6 +12,9 @@ dlaczego, oraz jakie są alternatywy.
 | 4 | Ponowne wpisanie tej samej cyfry | 🟢 **ustalone** — brak akcji |
 | 5 | Domyślne wartości dwóch opcji z §35 | 🟢 **ustalone** — zostaje ON |
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
+| 7 | Edycja poprawnie wpisanej cyfry | 🟢 **ustalone** — zablokowana, cofa tylko Undo |
+| 8 | Co odbiera Daily kwalifikację rankingową | 🟢 **ustalone** — minimalizacja nie, podpowiedź tak |
+| 9 | Wzór na wynik Daily i czasy odniesienia | 🟡 **wstępnie** — wzór przyjęty, czasy do dostrojenia |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.
 🟡 = przyjęte tymczasowo, czeka na decyzję.
@@ -167,3 +170,97 @@ i panel cyfr zjedzie poza ekran. Nie testowano tego, bo tablety są poza zakrese
   ale używalny. Mały koszt, usuwa najgorszy przypadek.
 - **C** — pełny layout landscape (plansza obok panelu cyfr). To już praca z §2 „tablety
   i landscape później".
+
+---
+
+## 7. Czy poprawnie wpisana cyfra powinna stać się nieedytowalna
+
+**Stan: 🟢 ustalone 2026-08-26 — tak, blokowana.** Poprawnie wpisanej cyfry nie da się zastąpić
+ani wymazać; jedyną drogą wstecz jest Undo. Blokada jest wyprowadzana z porównania z rozwiązaniem,
+a nie zapisywana, więc obowiązuje też natychmiast po wznowieniu zapisanej gry.
+
+**To jest zmiana wymagania, nie tylko implementacja.** `project.md` §5 mówi: „Gracz może edytować
+wyłącznie pola, które były puste w planszy początkowej" — czyli **każde** takie pole. Po tej decyzji
+§5 należy czytać z zastrzeżeniem: pole puste na starcie pozostaje edytowalne dopóty, dopóki nie
+przyjmie cyfry zgodnej z rozwiązaniem.
+
+Wymazywanie jest zablokowane razem ze zmianą, bo inaczej blokada byłaby atrapą — wystarczyłoby
+wymazać i wpisać co innego.
+
+**Zgłoszone:** 2026-08-26.
+
+**Pomysł:** po wpisaniu cyfry zgodnej z rozwiązaniem zablokować możliwość zastąpienia jej inną
+cyfrą. Chroniłoby to gracza przed przypadkowym zamienieniem poprawnego ruchu na błąd.
+
+**Konsekwencje do rozważenia:**
+
+- trzeba zdecydować, czy poprawną cyfrę nadal można wymazać oraz co dokładnie robi wtedy Undo,
+- blokada upraszcza grę i ujawnia trwałym zachowaniem, że wpis był poprawny,
+- obecne zasady pozwalają edytować każde pole, które było puste w planszy początkowej
+  (`project.md` §5), więc pełna nieedytowalność może wymagać świadomej zmiany wymagania,
+- alternatywą jest tylko ostrzeżenie lub prośba o potwierdzenie przed zastąpieniem poprawnej cyfry.
+
+---
+
+## 8. Co odbiera Daily kwalifikację do rankingu
+
+**Stan: 🟢 ustalone 2026-08-26.** Minimalizacja aplikacji **nie** odbiera kwalifikacji. Zegar biegnie
+dalej, także gdy aplikacja jest w tle albo została ubita.
+
+**To jest odstępstwo od `project.md` §28**, który wymienia minimalizację, przejście w tło,
+zablokowanie ekranu i przerwanie gry jako zdarzenia odbierające kwalifikację.
+
+**Dlaczego zmiana.** §28 chroni przed darmowym czasem do namysłu — pauzą, która zatrzymuje zegar,
+a pozwala studiować planszę. Ten cel realizuje **biegnący zegar**, nie flaga: skoro czas leci także
+w tle, zminimalizowanie aplikacji nic nie kupuje, tylko kosztuje. Odbieranie za to całej
+kwalifikacji karało odebranie telefonu wykluczeniem z dnia, a §31 mówi wprost, że ranking ma być
+„competitive-casual", nie e-sportowy.
+
+**Jak to jest liczone.** Czas gry rankingowej to różnica zegara ściennego od momentu otwarcia
+planszy. Licznik wewnątrz aplikacji zatrzymuje się razem z aplikacją, więc gracz, który zamknął ją
+na godzinę, wróciłby z godziną darmowego namysłu. Arytmetyki na zegarze ściennym nie da się w ten
+sposób obejść, a przy braku pauzy nie ma czego odejmować.
+
+**Co nadal odbiera kwalifikację:** nic — na razie. Uzgodnione, że odbierze ją **użycie podpowiedzi**,
+gdy powstanie (patrz „Podpowiedź dla gracza" w [STATUS.md](STATUS.md)). Metoda `loseRanking`
+w `GameViewModel` już istnieje i przełącza liczenie czasu na zwykłe, żeby w tym momencie licznik
+nie skoczył wstecz.
+
+**Czego to nie broni.** Gracz nadal może zrobić zrzut planszy i rozwiązać ją gdzie indziej — ale
+zegar przez ten czas biegnie, więc nic na tym nie zyskuje. `project.md` §31 uznaje wprost, że
+całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.
+
+---
+
+## 9. Wzór na wynik Daily i czasy odniesienia poziomów
+
+**Stan: 🟡 wstępnie przyjęte 2026-08-27.** `project.md` §39 zostawia wzór na wynik bazowy otwarty;
+§29 ustala jedynie karę za błędy.
+
+    wynik = 2 × baza(poziom) × cel(poziom) / (cel + czas) × 0.7 ^ błędy
+
+| poziom | baza | cel |
+|---|---|---|
+| Łatwy | 500 | 5 min |
+| Normalny | 700 | 9 min |
+| Trudny | 1000 | 15 min |
+| Ekspert | 1400 | 20 min |
+| Morderczy | 2000 | 25 min |
+
+**Co robi każdy człon.** Baza niesie wagę poziomu — pierwsza wersja punktowała wyłącznie osiągi
+względem poziomu, więc sam poziom znikał z odpowiedzi i bezbłędny Łatwy bił dobrego Morderczego.
+Człon czasowy wynosi dokładnie 1 przy czasie równym celowi, więc **cel jest miarą, nie limitem**:
+trafiony daje bazę, pobity podnosi mnożnik ku dwóm, przekroczony opada gładko i nigdy nie sięga
+zera. Ostatni człon to §29 dosłownie.
+
+**Dlaczego nie zerujemy przy trzech błędach**, mimo propozycji. Po pierwsze §29 podaje wprost
+mnożnik i tabelę procentów. Po drugie — i ważniejsze — wynik zerowy kończyłby grę we wszystkim poza
+literą: gracz z trzema błędami nie miałby o co grać, a `project.md` §16 mówi, że gra nie ma systemu
+żyć i błąd nie blokuje rozgrywki. Sedno zgłoszenia („błędy za mało bolą") załatwia natomiast waga
+poziomu: **jeden błąd na Morderczym kosztuje 600 punktów, czyli więcej, niż wart jest bezbłędny
+Łatwy.** Wcześniej mnożnik działał na wynik, który i tak nie zależał od poziomu.
+
+**Czasy odniesienia dobrane oceną.** Próba wyprowadzenia ich z solvera się nie udała i warto to
+zapisać: kroków logicznego rozwiązania jest 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
+niespełna półtorakrotny, gdy ludzki jest kilkukrotny. O trudności decyduje **znalezienie** techniki,
+a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi. Dostroić, gdy będą prawdziwe czasy.

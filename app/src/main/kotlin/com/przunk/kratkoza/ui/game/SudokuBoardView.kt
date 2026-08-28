@@ -2,6 +2,7 @@ package com.przunk.kratkoza.ui.game
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -45,6 +46,7 @@ import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
 import com.przunk.kratkoza.ui.theme.BoardColors
 import com.przunk.kratkoza.ui.theme.LocalBoardColors
+import kotlin.math.sin
 
 /**
  * The sudoku grid — the most important thing on the screen (project.md section 37).
@@ -81,12 +83,22 @@ fun SudokuBoardView(
     // board that simply updates.
     val entrance = remember { Animatable(1f) }
     val flash = remember { Animatable(0f) }
+    val shake = remember { Animatable(0f) }
 
     LaunchedEffect(lastMove?.token) {
         val cell = lastMove?.cell ?: return@LaunchedEffect
         if (cell !in 0 until Sudoku.CELL_COUNT) return@LaunchedEffect
         entrance.snapTo(ENTRANCE_FROM)
         entrance.animateTo(1f, tween(ENTRANCE_MILLIS, easing = FastOutSlowInEasing))
+    }
+
+    // Only the offending cell moves, not the board. A board-wide shake is the version that looks
+    // best in a recording and wears thin by the hundredth mistake — and moving the whole screen is a
+    // real problem for anyone who finds motion uncomfortable.
+    LaunchedEffect(lastMove?.token) {
+        if (lastMove?.flashKind != GameUiState.FlashKind.MISTAKE) return@LaunchedEffect
+        shake.snapTo(0f)
+        shake.animateTo(1f, tween(SHAKE_MILLIS, easing = LinearEasing))
     }
 
     LaunchedEffect(lastMove?.token) {
@@ -152,6 +164,14 @@ fun SudokuBoardView(
                                     0f
                                 },
                                 flashKind = lastMove?.flashKind ?: GameUiState.FlashKind.NONE,
+                                shake = if (
+                                    index == lastMove?.cell &&
+                                    lastMove.flashKind == GameUiState.FlashKind.MISTAKE
+                                ) {
+                                    shake.value
+                                } else {
+                                    1f
+                                },
                                 isSelected = index == selectedCell,
                                 cellSize = cellSize,
                                 colors = colors,
@@ -203,6 +223,7 @@ private fun SudokuCell(
     entranceScale: Float,
     flash: Float,
     flashKind: GameUiState.FlashKind,
+    shake: Float,
     cellSize: Dp,
     colors: BoardColors,
     enabled: Boolean,
@@ -211,9 +232,20 @@ private fun SudokuCell(
     val description = cellDescription(index, value, isGiven, isIncorrect, candidates, isSelected)
     val interactionSource = remember { MutableInteractionSource() }
 
+    val shakePixels = with(LocalDensity.current) { SHAKE_AMPLITUDE_DP.dp.toPx() }
+
     Box(
         modifier = Modifier
             .size(cellSize)
+            .graphicsLayer {
+                // Three swings, fading out as it goes: `1f - shake` is the damping, so the cell
+                // ends exactly where it started however the animation is scaled or cut short.
+                translationX = if (shake >= 1f) {
+                    0f
+                } else {
+                    sin(shake * SHAKE_SWINGS * TWO_PI) * shakePixels * (1f - shake)
+                }
+            }
             .background(background)
             .drawBehind {
                 if (flash <= 0f) return@drawBehind
@@ -436,5 +468,11 @@ private const val FLASH_ALPHA = 0.5f
 private const val MISTAKE_RISE_MILLIS = 110
 private const val MISTAKE_FALL_MILLIS = 260
 private const val MISTAKE_ALPHA = 0.22f
+
+/** The cell that took the wrong digit twitches once. Small enough to feel, not to read as a fault. */
+private const val SHAKE_MILLIS = 300
+private const val SHAKE_AMPLITUDE_DP = 3f
+private const val SHAKE_SWINGS = 3f
+private const val TWO_PI = (2 * Math.PI).toFloat()
 
 private const val HINT_ALPHA = 0.45f

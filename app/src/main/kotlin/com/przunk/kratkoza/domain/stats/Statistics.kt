@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.domain.stats
 
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.progress.Progress
 
 /**
  * The player's own record (project.md section 33).
@@ -9,14 +10,18 @@ import com.przunk.kratkoza.domain.model.Difficulty
  * section 23 asks that history stay rich enough to recompute statistics later, and a stored total
  * that has drifted from the rows behind it cannot be repaired.
  *
- * Absent for now: personal score, XP and rank. Their formulas are open (project.md section 39), and
- * a made-up number shown to the player is worse than no number.
+ * Absent for now: the personal score of project.md section 25. Its formula is open (section 39),
+ * and a made-up number shown to the player is worse than no number.
  */
 data class Statistics(
     val startedCount: Int,
     val completedCount: Int,
     val totalMistakes: Int,
+    /** Experience and level (project.md section 32). */
+    val progress: Progress,
     val perDifficulty: List<DifficultyStatistics>,
+    /** `null` until at least one Daily has been completed, keeping an empty section off screen. */
+    val daily: DailyStatistics?,
 ) {
     /** `0f` when nothing has been started, rather than a division by zero. */
     val completionRate: Float
@@ -31,7 +36,9 @@ data class Statistics(
             startedCount = 0,
             completedCount = 0,
             totalMistakes = 0,
+            progress = Progress.NONE,
             perDifficulty = emptyList(),
+            daily = null,
         )
     }
 }
@@ -44,7 +51,26 @@ data class DifficultyStatistics(
     val difficulty: Difficulty,
     val startedCount: Int,
     val completedCount: Int,
+    /** Games still on the board at this level, waiting to be picked up again. */
+    val inProgressCount: Int,
     val bestTimeMillis: Long?,
     val averageTimeMillis: Long?,
     val averageMistakes: Double?,
+)
+
+/** The completed Daily record (project.md section 33). */
+data class DailyStatistics(
+    val completedCount: Int,
+    /** Null when the completed rows predate scoring; a real zero score remains `0`. */
+    val totalScore: Long?,
+    val bestScore: Int?,
+    val averageScore: Double?,
+    val rankedEligibleCount: Int,
+    val perDifficulty: List<DailyDifficultyStatistics>,
+)
+
+/** How many Daily boards were completed at one level. */
+data class DailyDifficultyStatistics(
+    val difficulty: Difficulty,
+    val completedCount: Int,
 )

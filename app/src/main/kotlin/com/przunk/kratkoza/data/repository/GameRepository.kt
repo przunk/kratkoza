@@ -1,25 +1,46 @@
 package com.przunk.kratkoza.data.repository
 
 import com.przunk.kratkoza.data.local.GameHistoryDao
+import com.przunk.kratkoza.data.local.DifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyDifficultyStatisticsRow
+import com.przunk.kratkoza.data.local.DailyPuzzleDao
+import com.przunk.kratkoza.data.local.DailyPuzzleEntity
+import com.przunk.kratkoza.data.local.DailyStatisticsSummaryRow
 import com.przunk.kratkoza.data.local.GameHistoryEntity
+import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.MoveHistoryCodec
 import com.przunk.kratkoza.data.local.PuzzleDao
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
+import com.przunk.kratkoza.domain.daily.DailyEntry
+import com.przunk.kratkoza.domain.daily.DailyTotals
+import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailyScore
+import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.game.GameState
+import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.game.SavedGameSummary
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.model.Puzzle
+import com.przunk.kratkoza.domain.progress.PlayerProgress
+import com.przunk.kratkoza.domain.share.BoardCode
+import com.przunk.kratkoza.domain.share.BoardImportResult
 import com.przunk.kratkoza.domain.stats.DifficultyStatistics
+import com.przunk.kratkoza.domain.stats.DailyDifficultyStatistics
+import com.przunk.kratkoza.domain.stats.DailyStatistics
 import com.przunk.kratkoza.domain.stats.Statistics
+import com.przunk.kratkoza.domain.sudoku.DifficultyEvaluator
+import com.przunk.kratkoza.domain.sudoku.PuzzleId
 import com.przunk.kratkoza.domain.sudoku.SudokuBoard
+import com.przunk.kratkoza.domain.sudoku.SudokuSolver
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
+import java.time.LocalDate
 import kotlin.math.roundToLong
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +57,7 @@ import kotlinx.coroutines.withContext
  */
 class GameRepository(
     private val puzzleDao: PuzzleDao,
+    private val dailyPuzzleDao: DailyPuzzleDao,
     private val savedGameDao: SavedGameDao,
     private val historyDao: GameHistoryDao,
     private val generator: SudokuGenerator,
@@ -53,7 +75,11 @@ class GameRepository(
             generator.generate(difficulty, GameType.SOLO)
         }
         puzzleDao.insert(puzzle.toEntity())
+        return openGame(puzzle)
+    }
 
+    /** Opens the history row project.md section 33 counts as a started game, and the save for it. */
+    private suspend fun openGame(puzzle: Puzzle, rankedEligible: Boolean = false): SavedGame {
         val now = clock()
         val historyId = historyDao.insert(historyEntry(puzzle, startedAt = now))
 
@@ -63,11 +89,179 @@ class GameRepository(
             lastPlayedAt = now,
             elapsedMillis = 0,
             historyId = historyId,
-            // project.md section 24: solo games have no public leaderboard.
-            rankedEligible = false,
+            // project.md section 24: solo games have no public leaderboard. Only a Daily starts
+            // eligible, and section 28 can take that away.
+            rankedEligible = rankedEligible,
         )
         save(save)
         return save
+    }
+
+    /**
+     * The three boards of [date], with what the player has done about each (project.md section 26).
+     *
+     * Generates and stores them the first time the day is asked for, then reads the same rows back
+     * for good. Deriving the boards afresh each time would give the same answer today and a
+     * different one after any change to the generator — storing them means the day a player met
+     * keeps being that day.
+     */
+    suspend fun dailySet(date: LocalDate): List<DailyEntry> {
+        val stored = ensureDailyPuzzles(date)
+        val attempts = historyDao.attemptsOn(stored.map { it.puzzleId })
+
+        return stored.map { row ->
+            val difficulty = Difficulty.fromStorageName(row.difficulty)
+                ?: error("Unreadable difficulty stored for the daily of $date")
+            val finished = attempts.firstOrNull { it.puzzleId == row.puzzleId && it.completed }
+            val save = savedGameDao.byId(row.puzzleId)
+
+            DailyEntry(
+                date = date,
+                difficulty = difficulty,
+                puzzleId = row.puzzleId,
+                status = when {
+                    finished != null -> DailyStatus.COMPLETED
+                    save != null -> DailyStatus.IN_PROGRESS
+                    else -> DailyStatus.NOT_STARTED
+                },
+                elapsedMillis = finished?.elapsedMillis ?: save?.elapsedMillis,
+                mistakeCount = finished?.mistakeCount ?: save?.mistakeCount,
+                score = finished?.score,
+                rankedEligible = eligibilityOf(
+                    attempts = attempts.filter { it.puzzleId == row.puzzleId },
+                    save = save,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Opens one of the day's boards, or `null` when that board is already done.
+     *
+     * A Daily is solved once. Letting a finished board be played again would let anybody grind the
+     * same puzzle until the time looked good, which empties the ranking of meaning — and there is
+     * no half-measure available, because the result is already recorded.
+     *
+     * A board abandoned part-way *can* be picked up again, but not as a ranked attempt: project.md
+     * section 28 counts an interrupted game as having lost its place, and deleting the save is as
+     * thorough an interruption as there is. Anything after the first attempt is practice.
+     */
+    suspend fun startDaily(date: LocalDate, difficulty: Difficulty): SavedGame? {
+        val row = ensureDailyPuzzles(date).firstOrNull { it.difficulty == difficulty.name }
+            ?: error("No daily board for $date at $difficulty")
+
+        val attempts = historyDao.attemptsOn(listOf(row.puzzleId))
+        if (attempts.any { it.completed }) return null
+
+        loadGame(row.puzzleId)?.let { return it }
+
+        val puzzle = puzzleDao.byId(row.puzzleId)?.toPuzzle()
+            ?: error("The daily board for $date at $difficulty is missing from storage")
+
+        return openGame(puzzle, rankedEligible = eligibilityOf(attempts, save = null))
+    }
+
+    /**
+     * Whether a Daily board still counts for a ranking.
+     *
+     * One function because there are two callers and they disagreed: the card said an abandoned
+     * board was still eligible — no save, nothing completed, so it looked untouched — while
+     * starting it correctly refused to rank a second attempt. A rule written twice is a rule with
+     * two answers, and here the wrong one was the one the player could see.
+     *
+     * The order matters. A finished game reports what it was when it ended; a game in progress
+     * reports what it is now; and a board with attempts behind it but nothing on the go has already
+     * been interrupted, whatever the absence of a save might suggest.
+     */
+    private fun eligibilityOf(attempts: List<GameHistoryEntity>, save: SavedGameEntity?): Boolean {
+        attempts.firstOrNull { it.completed }?.let { return it.rankedEligible }
+        save?.let { return it.rankedEligible }
+        return attempts.isEmpty()
+    }
+
+    /**
+     * The day's boards, generating them once if this device has not met them before.
+     *
+     * Rows written under an older ruleset are ignored rather than reused: they describe boards this
+     * code would no longer produce, and a day whose identity quietly changed is worse than a day
+     * generated afresh.
+     */
+    private suspend fun ensureDailyPuzzles(date: LocalDate): List<DailyPuzzleEntity> {
+        val stored = dailyPuzzleDao.forDate(date.toString(), DailyPuzzles.RULESET_VERSION)
+        if (stored.size == DailyPuzzles.DIFFICULTIES.size) return stored
+
+        val puzzles = withContext(computationDispatcher) {
+            DailyPuzzles.DIFFICULTIES.map { DailyPuzzles.generate(generator, date, it) }
+        }
+        puzzles.forEach { puzzleDao.insert(it.toEntity()) }
+        dailyPuzzleDao.insert(
+            puzzles.map {
+                DailyPuzzleEntity(
+                    date = date.toString(),
+                    difficulty = it.difficulty.name,
+                    puzzleId = it.id,
+                    rulesetVersion = DailyPuzzles.RULESET_VERSION,
+                )
+            },
+        )
+        return dailyPuzzleDao.forDate(date.toString(), DailyPuzzles.RULESET_VERSION)
+    }
+
+    /**
+     * Opens a board somebody shared as a code.
+     *
+     * The board is validated rather than trusted: it has to have exactly one solution, and one a
+     * player could actually reach by reasoning (project.md section 5). A board from outside has not
+     * been through the generator that guarantees this, and handing someone an unsolvable grid would
+     * waste an evening before they suspected the puzzle rather than themselves.
+     *
+     * Difficulty is graded here for the same reason — the code does not carry it, so the label
+     * cannot disagree with the board.
+     */
+    suspend fun importSharedBoard(code: String): BoardImportResult {
+        val decoded = when (val result = BoardCode.decode(code)) {
+            is BoardCode.Result.Decoded -> result
+            BoardCode.Result.NotABoardCode -> return BoardImportResult.NotABoardCode
+            BoardCode.Result.Damaged -> return BoardImportResult.Damaged
+        }
+
+        // Solving and grading are pure CPU and must not run on the main thread.
+        val puzzle = withContext(computationDispatcher) {
+            val givens = decoded.givens
+            if (!SudokuSolver.hasUniqueSolution(givens)) return@withContext null
+            val rating = DifficultyEvaluator.evaluate(givens) ?: return@withContext null
+            val solution = SudokuSolver.solve(givens) ?: return@withContext null
+
+            Puzzle(
+                id = PuzzleId.of(decoded.generatorVersion, givens, solution),
+                generatorVersion = decoded.generatorVersion,
+                difficulty = rating.difficulty,
+                gameType = GameType.SOLO,
+                givens = givens,
+                solution = solution,
+                // Not ours to know: the sender's seed does not travel, and inventing one would
+                // claim this board is reproducible from a generator run that never happened here.
+                seed = null,
+            )
+        } ?: return BoardImportResult.NotAValidPuzzle
+
+        // Already playing this exact board — the same puzzle shared twice, or shared back.
+        loadGame(puzzle.id)?.let {
+            return BoardImportResult.Ready(
+                puzzleId = puzzle.id,
+                difficulty = it.state.puzzle.difficulty,
+                alreadyStarted = true,
+            )
+        }
+
+        puzzleDao.insert(puzzle.toEntity())
+        openGame(puzzle)
+
+        return BoardImportResult.Ready(
+            puzzleId = puzzle.id,
+            difficulty = puzzle.difficulty,
+            alreadyStarted = false,
+        )
     }
 
     /**
@@ -133,15 +327,38 @@ class GameRepository(
      * The game is then counted as both started and finished at this moment, which is the honest
      * reading: as far as the record is concerned, it began when the record did.
      */
-    suspend fun finishGame(game: SavedGame, completed: Boolean) {
+    suspend fun finishGame(game: SavedGame, completed: Boolean): FinishedGame {
         val now = clock()
-        if (game.historyId == NO_HISTORY_ROW) {
+        // project.md section 32: XP is for finishing. An abandoned game earns none, and mistakes
+        // take none away — the penalty for guessing belongs to the ranking (section 29), not here.
+        val xp = if (completed) {
+            PlayerProgress.xpForCompleting(game.state.puzzle.difficulty)
+        } else {
+            0
+        }
+
+        // Only a Daily is scored (project.md section 29). A solo game has nothing to be compared
+        // against, and an unfinished board has no score at all — which is not the same as zero.
+        val score = if (completed && game.state.puzzle.gameType == GameType.DAILY) {
+            DailyScore.of(
+                difficulty = game.state.puzzle.difficulty,
+                elapsedMillis = game.elapsedMillis,
+                mistakeCount = game.state.mistakeCount,
+            )
+        } else {
+            null
+        }
+
+        val historyId = if (game.historyId == NO_HISTORY_ROW) {
             historyDao.insert(
                 historyEntry(game.state.puzzle, startedAt = game.startedAt).copy(
                     finishedAt = now,
                     elapsedMillis = game.elapsedMillis,
                     mistakeCount = game.state.mistakeCount,
                     completed = completed,
+                    xpEarned = xp,
+                    rankedEligible = game.rankedEligible,
+                    score = score,
                 ),
             )
         } else {
@@ -151,10 +368,49 @@ class GameRepository(
                 elapsedMillis = game.elapsedMillis,
                 mistakeCount = game.state.mistakeCount,
                 completed = completed,
+                xpEarned = xp,
+                rankedEligible = game.rankedEligible,
+                score = score,
             )
+            game.historyId
         }
         savedGameDao.delete(game.state.puzzle.id)
+
+        return FinishedGame(
+            historyId = historyId,
+            gameType = game.state.puzzle.gameType,
+            difficulty = game.state.puzzle.difficulty,
+            score = score,
+            rankedEligible = game.rankedEligible,
+        )
     }
+
+    /**
+     * The totals to send to the public boards after finishing one Daily.
+     *
+     * The day is taken from the board itself rather than from the clock: a game begun before the
+     * changeover and finished after it still belongs to the day it was set for, and reading "today"
+     * off the clock would file it under the wrong one.
+     *
+     * Null when the board is not a Daily at all.
+     */
+    suspend fun dailyTotals(puzzleId: String): DailyTotals? {
+        val date = dailyPuzzleDao.dateOf(puzzleId, DailyPuzzles.RULESET_VERSION) ?: return null
+        val boards = dailyPuzzleDao.forDate(date, DailyPuzzles.RULESET_VERSION).map { it.puzzleId }
+
+        return DailyTotals(
+            today = historyDao.dailyScoreSum(boards) ?: 0L,
+            allTime = historyDao.allTimeDailyScoreSum() ?: 0L,
+        )
+    }
+
+    /**
+     * Records that a result actually reached the public ranking.
+     *
+     * Separate from finishing on purpose: the row has to be written before the network is involved,
+     * so that a solved board survives a failed submission. This is the second, optional half.
+     */
+    suspend fun markPubliclyRanked(historyId: Long) = historyDao.markPubliclyRanked(historyId)
 
     /** Abandons a game. The history row stays open, so it still counts as started but not completed. */
     suspend fun deleteSave(puzzleId: String) = savedGameDao.delete(puzzleId)
@@ -179,21 +435,55 @@ class GameRepository(
         historyDao.observeStartedCount(),
         historyDao.observeCompletedCount(),
         historyDao.observeTotalMistakes(),
+        historyDao.observeTotalXp(),
         historyDao.observeByDifficulty(),
-    ) { started, completed, mistakes, perDifficulty ->
+        savedGameDao.observeInProgressByDifficulty(),
+        historyDao.observeDailySummary(),
+        historyDao.observeDailyByDifficulty(),
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        val perDifficulty = values[4] as List<DifficultyStatisticsRow>
+
+        @Suppress("UNCHECKED_CAST")
+        val inProgress = (values[5] as List<InProgressCountRow>).associateBy { it.difficulty }
+
+        val dailySummary = values[6] as DailyStatisticsSummaryRow
+
+        @Suppress("UNCHECKED_CAST")
+        val dailyByDifficulty = values[7] as List<DailyDifficultyStatisticsRow>
+
         Statistics(
-            startedCount = started,
-            completedCount = completed,
-            totalMistakes = mistakes,
+            startedCount = values[0] as Int,
+            completedCount = values[1] as Int,
+            totalMistakes = values[2] as Int,
+            progress = PlayerProgress.of(values[3] as Long),
             perDifficulty = Difficulty.entries.map { difficulty ->
                 val row = perDifficulty.firstOrNull { it.difficulty == difficulty.name }
                 DifficultyStatistics(
                     difficulty = difficulty,
                     startedCount = row?.startedCount ?: 0,
                     completedCount = row?.completedCount ?: 0,
+                    inProgressCount = inProgress[difficulty.name]?.inProgressCount ?: 0,
                     bestTimeMillis = row?.bestTimeMillis,
                     averageTimeMillis = row?.averageTimeMillis?.roundToLong(),
                     averageMistakes = row?.averageMistakes,
+                )
+            },
+            daily = dailySummary.takeIf { it.completedCount > 0 }?.let { summary ->
+                DailyStatistics(
+                    completedCount = summary.completedCount,
+                    totalScore = summary.totalScore,
+                    bestScore = summary.bestScore,
+                    averageScore = summary.averageScore,
+                    rankedEligibleCount = summary.rankedEligibleCount,
+                    perDifficulty = Difficulty.entries.mapNotNull { difficulty ->
+                        dailyByDifficulty.firstOrNull { it.difficulty == difficulty.name }?.let {
+                            DailyDifficultyStatistics(
+                                difficulty = difficulty,
+                                completedCount = it.completedCount,
+                            )
+                        }
+                    },
                 )
             },
         )
@@ -203,8 +493,9 @@ class GameRepository(
 /**
  * An open history row for [puzzle].
  *
- * `score` and `xpEarned` stay empty: project.md section 23 wants both kept, and section 39 leaves
- * both algorithms open, so the columns exist and wait rather than holding a made-up number.
+ * `xpEarned` is filled in when the game finishes, not when it opens. `score` stays empty:
+ * project.md section 23 wants it kept and section 39 leaves the algorithm open, so the column
+ * exists and waits rather than holding a made-up number.
  */
 private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
     puzzleId = puzzle.id,
@@ -218,6 +509,7 @@ private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
     score = null,
     xpEarned = 0,
     publiclyRanked = false,
+    rankedEligible = false,
     autoRemoveCandidates = true,
     rulesetVersion = SudokuGenerator.GENERATOR_VERSION,
 )
@@ -258,6 +550,8 @@ private fun SavedGameSummaryRow.toSummary(): SavedGameSummary? = try {
         mistakeCount = mistakeCount,
         board = SudokuBoard.parse(board),
         givens = SudokuBoard.parse(givens),
+        solution = SudokuBoard.parse(solution),
+        generatorVersion = generatorVersion,
     )
 } catch (_: IllegalArgumentException) {
     null

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.SettingsRepository
 import com.przunk.kratkoza.domain.settings.AppLanguage
+import com.przunk.kratkoza.domain.settings.BoardPalette
 import com.przunk.kratkoza.domain.settings.GameSettings
 import com.przunk.kratkoza.domain.settings.ThemeMode
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +32,14 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
             settingsRepository.setLanguage(language)
             onApplied()
         }
+    }
+
+    fun setPalette(palette: BoardPalette) {
+        viewModelScope.launch { settingsRepository.setPalette(palette) }
+    }
+
+    fun setHighContrast(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setHighContrast(enabled) }
     }
 
     fun setAutoRemoveCandidates(enabled: Boolean) {

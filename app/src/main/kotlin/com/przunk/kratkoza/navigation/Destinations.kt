@@ -7,11 +7,12 @@ package com.przunk.kratkoza.navigation
  * kotlinx-serialization for the sake of one route argument. technical_requirements.md section 9 asks
  * a dependency to earn its place, and one string does not earn it.
  *
- * Daily and Challenge are absent: nothing about this file makes them harder to add.
+ * Challenge is absent: nothing about this file makes it harder to add.
  */
 object Destinations {
     const val HOME = "home"
     const val NEW_GAME = "new_game"
+    const val DAILY = "daily"
     const val SAVED_GAMES = "saved_games"
     const val STATISTICS = "statistics"
     const val SETTINGS = "settings"

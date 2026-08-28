@@ -1,10 +1,13 @@
 package com.przunk.kratkoza.ui.statistics
 
 import com.przunk.kratkoza.data.FakeGameHistoryDao
+import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
+import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,6 +18,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -28,6 +33,7 @@ class StatisticsViewModelTest {
 
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
+        dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
@@ -45,13 +51,33 @@ class StatisticsViewModelTest {
         val finished = repository.startNewGame(Difficulty.EASY)
         repository.finishGame(finished.copy(elapsedMillis = 60_000), completed = true)
         repository.startNewGame(Difficulty.HARD)
+        historyDao.insert(
+            GameHistoryEntity(
+                puzzleId = "daily-for-reset",
+                gameType = GameType.DAILY.name,
+                difficulty = Difficulty.MASTER.name,
+                startedAt = 1_000,
+                finishedAt = 61_000,
+                elapsedMillis = 60_000,
+                mistakeCount = 0,
+                completed = true,
+                score = 900,
+                xpEarned = 0,
+                publiclyRanked = false,
+                rankedEligible = true,
+                autoRemoveCandidates = true,
+                rulesetVersion = SudokuGenerator.GENERATOR_VERSION,
+            ),
+        )
 
         val viewModel = StatisticsViewModel(repository)
-        assertEquals(1, viewModel.statistics.first().completedCount)
+        assertEquals(2, viewModel.statistics.first().completedCount)
+        assertNotNull(viewModel.statistics.first().daily)
 
         viewModel.resetStatistics()
         val cleared = repository.statistics.first()
         assertEquals(0, cleared.startedCount)
         assertEquals(0, cleared.completedCount)
+        assertNull(cleared.daily)
     }
 }

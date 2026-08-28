@@ -26,3 +26,9 @@ signing.properties
 .DS_Store
 Thumbs.db
 dist/
+
+# Screenshots and notes dropped in for review; not part of the project.
+user/
+
+# Python (scripts/make-store-assets.py)
+__pycache__/

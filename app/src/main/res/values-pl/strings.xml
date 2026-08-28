@@ -7,6 +7,29 @@
     <string name="home_continue">Kontynuuj</string>
     <string name="home_continue_details">%1$s · %2$s</string>
     <string name="home_new_game">Nowa gra</string>
+    <string name="home_daily">Daily Sudoku</string>
+    <string name="daily_title">Daily Sudoku</string>
+    <string name="daily_subtitle">Te same trzy plansze dla wszystkich, codziennie.</string>
+    <string name="daily_preparing">Przygotowuję dzisiejsze plansze…</string>
+    <string name="daily_status_not_started">Nierozpoczęta</string>
+    <string name="daily_status_in_progress">W toku · %1$s</string>
+    <string name="daily_status_completed">Rozwiązana w %1$s · %2$s</string>
+    <string name="daily_ranked">Liczy się do rankingu — bez pauzy</string>
+    <string name="daily_unranked">Poza rankingiem</string>
+    <string name="daily_open">Rozpocznij</string>
+    <string name="daily_solved_mark">Rozwiązana</string>
+    <string name="daily_score">%1$d pkt</string>
+    <string name="daily_status_completed_scored">Rozwiązana w %1$s · %2$s · %3$d pkt</string>
+    <string name="daily_results_title">Twoje dzisiejsze wyniki</string>
+    <string name="daily_results_total">Razem</string>
+    <string name="daily_results_pending">Jeszcze nieukończone</string>
+    <string name="daily_continue">Kontynuuj</string>
+    <string name="daily_leaderboard">Tablica wyników</string>
+    <string name="daily_leaderboard_unavailable">Nie udało się otworzyć tablicy wyników. Spróbuj za chwilę.</string>
+    <string name="daily_board_today">Dziś</string>
+    <string name="daily_board_all_time">Wszech czasów</string>
+    <string name="daily_sign_in">Zaloguj się do Play Games</string>
+    <string name="daily_sign_in_explained">Zaloguj się, żeby porównywać swoje dzienne wyniki z innymi graczami.</string>
     <string name="home_saved_games">Zapisane gry</string>
     <string name="home_statistics">Statystyki</string>
     <string name="home_settings">Ustawienia</string>
@@ -22,6 +45,20 @@
     <string name="new_game_title">Nowa gra</string>
     <string name="new_game_choose_difficulty">Wybierz poziom trudności</string>
     <string name="new_game_generating">Przygotowuję planszę…</string>
+    <string name="saved_games_share">Udostępnij planszę</string>
+    <string name="share_board_subject">Plansza z Kratkozy</string>
+    <string name="share_board_body">Plansza %1$s w Kratkozie. Otwórz ją tym kodem:\n\n%2$s</string>
+    <string name="share_board_chooser">Udostępnij planszę</string>
+    <string name="new_game_import">Wczytaj udostępnioną planszę</string>
+    <string name="new_game_import_title">Wczytaj udostępnioną planszę</string>
+    <string name="new_game_import_message">Wklej kod, który ktoś Ci przysłał.</string>
+    <string name="new_game_import_hint">Kod planszy</string>
+    <string name="new_game_import_confirm">Otwórz</string>
+    <string name="new_game_import_cancel">Anuluj</string>
+    <string name="new_game_import_not_a_code">To nie wygląda na kod planszy.</string>
+    <string name="new_game_import_damaged">Ten kod jest uszkodzony — poproś o niego jeszcze raz.</string>
+    <string name="new_game_import_invalid">Ta plansza nie ma jednego rozwiązania, więc nie da się na niej grać.</string>
+    <string name="new_game_import_resumed">Masz już tę planszę — wracasz do niej tam, gdzie skończyłeś.</string>
     <string name="new_game_failed_title">Nie udało się przygotować planszy</string>
     <string name="new_game_failed_message">Wygenerowanie planszy na tym poziomie się nie powiodło. Spróbuj jeszcze raz.</string>
     <string name="new_game_failed_dismiss">OK</string>
@@ -31,6 +68,12 @@
     <string name="game_mistakes">Błędy</string>
     <string name="game_mistakes_value">%1$d</string>
     <string name="game_pause">Pauza</string>
+    <string name="game_ranked">Rankingowa</string>
+    <!-- Debug builds only; never reaches a release APK. -->
+    <string name="game_debug_solve">Rozwiąż</string>
+    <string name="game_unranked">Poza rankingiem</string>
+    <string name="game_ranking_lost">Ta gra wypadła z rankingu — możesz ją dokończyć jako zwykłą.</string>
+    <string name="daily_next_in_at">Nowe plansze za %1$s, o %2$s</string>
     <string name="game_resume">Wznów</string>
     <string name="game_paused_title">Pauza</string>
     <string name="game_paused_message">Plansza jest zasłonięta, dopóki czas stoi.</string>
@@ -38,6 +81,7 @@
     <string name="game_erase">Wymaż</string>
     <string name="game_candidates_on">Kandydaci włączeni</string>
     <string name="game_candidates_off">Kandydaci wyłączeni</string>
+    <string name="game_candidates">Kandydaci</string>
     <string name="game_loading">Wczytuję…</string>
     <string name="game_solved_title">Rozwiązane</string>
     <string name="game_solved_message">%1$s w czasie %2$s, %3$s.</string>
@@ -65,9 +109,14 @@
 
     <!-- Statystyki -->
     <string name="statistics_title">Statystyki</string>
+    <string name="statistics_level">Poziom %1$d</string>
+    <string name="statistics_xp_total">zdobyte XP: %1$s</string>
+    <string name="statistics_xp_into_level">%1$s / %2$s XP do poziomu %3$d</string>
     <string name="statistics_overall">Ogółem</string>
     <string name="statistics_started">Rozpoczęte gry</string>
     <string name="statistics_completed">Ukończone gry</string>
+    <string name="statistics_in_progress">W toku</string>
+    <string name="saved_games_progress">%1$s wypełnione · %2$s</string>
     <string name="statistics_completion_rate">Procent ukończeń</string>
     <string name="statistics_total_mistakes">Łącznie błędów</string>
     <string name="statistics_average_mistakes">Błędów na grę</string>
@@ -75,6 +124,14 @@
     <string name="statistics_best_time">Najlepszy czas</string>
     <string name="statistics_average_time">Średni czas</string>
     <string name="statistics_none">—</string>
+    <string name="statistics_daily">Daily Sudoku</string>
+    <string name="statistics_daily_completed">Ukończone Daily</string>
+    <string name="statistics_daily_by_difficulty">Ukończone według poziomu</string>
+    <string name="statistics_daily_scores">Wyniki</string>
+    <string name="statistics_daily_total_score">Łączny wynik</string>
+    <string name="statistics_daily_best_score">Najlepszy wynik</string>
+    <string name="statistics_daily_average_score">Średni wynik</string>
+    <string name="statistics_daily_ranked_eligible">Ukończone bez utraty kwalifikacji</string>
 
     <!-- Ustawienia -->
     <string name="settings_title">Ustawienia</string>
@@ -83,6 +140,14 @@
     <string name="settings_theme_system">Zgodny z systemem</string>
     <string name="settings_theme_light">Jasny</string>
     <string name="settings_theme_dark">Ciemny</string>
+    <string name="settings_palette">Paleta kolorów</string>
+    <string name="settings_palette_slate">Łupek</string>
+    <string name="settings_palette_sepia">Sepia</string>
+    <string name="settings_palette_forest">Las</string>
+    <string name="settings_palette_graphite">Grafit</string>
+    <string name="settings_high_contrast">Wysoki kontrast</string>
+    <string name="settings_high_contrast_summary">Mocniej rozdziel odcienie planszy i przyciemnij tekst. Podgląd powyżej uwzględnia to ustawienie.</string>
+    <string name="settings_palette_preview">Podgląd palety %1$s</string>
     <string name="settings_gameplay">Rozgrywka</string>
     <string name="settings_about">O aplikacji</string>
     <string name="settings_version">Wersja</string>
@@ -101,7 +166,7 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="statistics_reset">Resetuj statystyki</string>
     <string name="statistics_reset_title">Zresetować statystyki?</string>
-    <string name="statistics_reset_message">Wszystkie liczniki wrócą do zera i nie da się tego cofnąć. Gry będące w toku zostaną na miejscu i można je dokończyć.</string>
+    <string name="statistics_reset_message">Wszystkie liczniki wrócą do zera — łącznie z XP i poziomem — i nie da się tego cofnąć. Gry będące w toku zostaną na miejscu i można je dokończyć.</string>
     <string name="statistics_reset_confirm">Resetuj</string>
     <string name="statistics_reset_cancel">Anuluj</string>
     <string name="settings_language">Język</string>

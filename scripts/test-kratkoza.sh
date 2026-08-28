@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/kratkoza-env.sh"
 cd "$KRATKOZA_DIR"
 
-LOG_FILE="/tmp/kratkoza-test.log"
+LOG_FILE="$KRATKOZA_LOG_PREFIX-test.log"
 RESULTS_DIR="$KRATKOZA_DIR/app/build/test-results/testDebugUnitTest"
 
 started_at=$(date +%s)

@@ -7,6 +7,29 @@
     <string name="home_continue">Continue</string>
     <string name="home_continue_details">%1$s · %2$s</string>
     <string name="home_new_game">New game</string>
+    <string name="home_daily">Daily Sudoku</string>
+    <string name="daily_title">Daily Sudoku</string>
+    <string name="daily_subtitle">The same three boards for everybody, every day.</string>
+    <string name="daily_preparing">Preparing today\'s boards…</string>
+    <string name="daily_status_not_started">Not started</string>
+    <string name="daily_status_in_progress">In progress · %1$s</string>
+    <string name="daily_status_completed">Solved in %1$s · %2$s</string>
+    <string name="daily_ranked">Counts for the ranking — no pausing</string>
+    <string name="daily_unranked">Out of the ranking</string>
+    <string name="daily_open">Start</string>
+    <string name="daily_solved_mark">Solved</string>
+    <string name="daily_score">%1$d pts</string>
+    <string name="daily_status_completed_scored">Solved in %1$s · %2$s · %3$d pts</string>
+    <string name="daily_results_title">Your results today</string>
+    <string name="daily_results_total">Total</string>
+    <string name="daily_results_pending">Not finished yet</string>
+    <string name="daily_continue">Continue</string>
+    <string name="daily_leaderboard">Leaderboard</string>
+    <string name="daily_leaderboard_unavailable">Could not open the leaderboard. Try again in a moment.</string>
+    <string name="daily_board_today">Today</string>
+    <string name="daily_board_all_time">All time</string>
+    <string name="daily_sign_in">Sign in to Play Games</string>
+    <string name="daily_sign_in_explained">Sign in to compare your daily scores with other players.</string>
     <string name="home_saved_games">Saved games</string>
     <string name="home_statistics">Statistics</string>
     <string name="home_settings">Settings</string>
@@ -16,12 +39,28 @@
     <string name="difficulty_normal">Normal</string>
     <string name="difficulty_hard">Hard</string>
     <string name="difficulty_expert">Expert</string>
-    <string name="difficulty_master">Master</string>
+    <!-- Matches the Play Games leaderboard, which players see next to their score. The enum
+         behind it stays MASTER: that name is the on-disk storage format, not a label. -->
+    <string name="difficulty_master">Deadly</string>
 
     <!-- New game -->
     <string name="new_game_title">New game</string>
     <string name="new_game_choose_difficulty">Choose a difficulty</string>
     <string name="new_game_generating">Preparing a board…</string>
+    <string name="saved_games_share">Share board</string>
+    <string name="share_board_subject">A Kratkoza board</string>
+    <string name="share_board_body">%1$s board in Kratkoza. Open it with this code:\n\n%2$s</string>
+    <string name="share_board_chooser">Share board</string>
+    <string name="new_game_import">Open a shared board</string>
+    <string name="new_game_import_title">Open a shared board</string>
+    <string name="new_game_import_message">Paste the code somebody sent you.</string>
+    <string name="new_game_import_hint">Board code</string>
+    <string name="new_game_import_confirm">Open</string>
+    <string name="new_game_import_cancel">Cancel</string>
+    <string name="new_game_import_not_a_code">That does not look like a board code.</string>
+    <string name="new_game_import_damaged">This code is damaged — ask for it again.</string>
+    <string name="new_game_import_invalid">This board has no single solution, so it cannot be played.</string>
+    <string name="new_game_import_resumed">You already have this board — continuing where you left off.</string>
     <string name="new_game_failed_title">Could not prepare a board</string>
     <string name="new_game_failed_message">Generating this difficulty did not succeed. Please try again.</string>
     <string name="new_game_failed_dismiss">OK</string>
@@ -31,6 +70,12 @@
     <string name="game_mistakes">Mistakes</string>
     <string name="game_mistakes_value">%1$d</string>
     <string name="game_pause">Pause</string>
+    <string name="game_ranked">Ranked</string>
+    <!-- Debug builds only; never reaches a release APK. -->
+    <string name="game_debug_solve">Solve</string>
+    <string name="game_unranked">Out of the ranking</string>
+    <string name="game_ranking_lost">This game left the ranking — you can finish it as an ordinary one.</string>
+    <string name="daily_next_in_at">New boards in %1$s, at %2$s</string>
     <string name="game_resume">Resume</string>
     <string name="game_paused_title">Paused</string>
     <string name="game_paused_message">The board is hidden while the clock is stopped.</string>
@@ -38,6 +83,7 @@
     <string name="game_erase">Erase</string>
     <string name="game_candidates_on">Candidates on</string>
     <string name="game_candidates_off">Candidates off</string>
+    <string name="game_candidates">Candidates</string>
     <string name="game_loading">Loading…</string>
     <string name="game_solved_title">Solved</string>
     <string name="game_solved_message">%1$s in %2$s, %3$s.</string>
@@ -65,9 +111,14 @@
 
     <!-- Statistics -->
     <string name="statistics_title">Statistics</string>
+    <string name="statistics_level">Level %1$d</string>
+    <string name="statistics_xp_total">%1$s XP earned</string>
+    <string name="statistics_xp_into_level">%1$s / %2$s XP to level %3$d</string>
     <string name="statistics_overall">Overall</string>
     <string name="statistics_started">Games started</string>
     <string name="statistics_completed">Games completed</string>
+    <string name="statistics_in_progress">In progress</string>
+    <string name="saved_games_progress">%1$s done · %2$s</string>
     <string name="statistics_completion_rate">Completion rate</string>
     <string name="statistics_total_mistakes">Total mistakes</string>
     <string name="statistics_average_mistakes">Mistakes per game</string>
@@ -75,6 +126,14 @@
     <string name="statistics_best_time">Best time</string>
     <string name="statistics_average_time">Average time</string>
     <string name="statistics_none">—</string>
+    <string name="statistics_daily">Daily Sudoku</string>
+    <string name="statistics_daily_completed">Daily completed</string>
+    <string name="statistics_daily_by_difficulty">Completed by difficulty</string>
+    <string name="statistics_daily_scores">Scores</string>
+    <string name="statistics_daily_total_score">Total score</string>
+    <string name="statistics_daily_best_score">Best score</string>
+    <string name="statistics_daily_average_score">Average score</string>
+    <string name="statistics_daily_ranked_eligible">Ranking-eligible completions</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -83,6 +142,14 @@
     <string name="settings_theme_system">Follow system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_palette">Colour palette</string>
+    <string name="settings_palette_slate">Slate</string>
+    <string name="settings_palette_sepia">Sepia</string>
+    <string name="settings_palette_forest">Forest</string>
+    <string name="settings_palette_graphite">Graphite</string>
+    <string name="settings_high_contrast">High contrast</string>
+    <string name="settings_high_contrast_summary">Separate the board shades more strongly and darken the text. The preview above follows this setting.</string>
+    <string name="settings_palette_preview">Preview of the %1$s palette</string>
     <string name="settings_gameplay">Gameplay</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version</string>
@@ -101,7 +168,7 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="statistics_reset">Reset statistics</string>
     <string name="statistics_reset_title">Reset statistics?</string>
-    <string name="statistics_reset_message">Every counter goes back to zero and it cannot be undone. Games still on the board stay where they are and can be finished.</string>
+    <string name="statistics_reset_message">Every counter goes back to zero, XP and level included, and it cannot be undone. Games still on the board stay where they are and can be finished.</string>
     <string name="statistics_reset_confirm">Reset</string>
     <string name="statistics_reset_cancel">Cancel</string>
     <string name="settings_language">Language</string>

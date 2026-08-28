@@ -4,16 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.BoardInsights
+import com.przunk.kratkoza.BuildConfig
+import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.GameEngine
 import com.przunk.kratkoza.domain.game.GameState
 import com.przunk.kratkoza.domain.game.SavedGame
+import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.data.ranking.RankingSubmitter
+import com.przunk.kratkoza.domain.ranking.RankingLog
 import com.przunk.kratkoza.domain.settings.GameSettings
+import com.przunk.kratkoza.domain.share.BoardCode
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -35,6 +43,19 @@ class GameViewModel(
      * taking the flow keeps this class free of Android `Context` and testable on the JVM.
      */
     settingsFlow: Flow<GameSettings>,
+    /**
+     * Where a finished Daily goes afterwards. Defaults to nowhere so that every test, and every
+     * build without Play Games configured, behaves like a player who is simply not signed in.
+     */
+    /** Absent in tests that do not care; the ranking is not this screen's job beyond handing over. */
+    private val rankingSubmitter: RankingSubmitter? = null,
+    /**
+     * Whether to offer the debug-only shortcuts. Defaults to the build type, so the control cannot
+     * reach a release APK even if somebody forgets to hide it in the UI.
+     */
+    private val debugTools: Boolean = BuildConfig.DEBUG,
+    /** Where ranking events are kept so they can be read after the moment has passed. */
+    private val rankingLog: RankingLog = RankingLog(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
@@ -106,6 +127,11 @@ class GameViewModel(
         val index = selection ?: return
         if (!_uiState.value.isPlayable) return
 
+        // project.md section 19: once all nine are correctly placed the digit can go nowhere
+        // else, so pressing it could only ever be a mistake. Guarded here as well as on the pad —
+        // a rule that lives only in a button is a rule the next caller does not have.
+        if (state.isDigitComplete(digit)) return
+
         val updated = if (_uiState.value.candidateMode) {
             GameEngine.toggleCandidate(state, index, digit)
         } else {
@@ -121,6 +147,25 @@ class GameViewModel(
         apply(GameEngine.clearCell(state, index))
     }
 
+    /**
+     * Debug builds only: finishes the board as though every remaining digit had been tapped in.
+     *
+     * It really does tap them in — same selection, same entry, same completion check — rather than
+     * writing a solved board straight to the database. A shortcut that bypassed the normal path
+     * would prove nothing about the path being tested, and the reason this exists is to reach the
+     * end of a Daily without spending twenty minutes on it.
+     */
+    fun autoSolve() {
+        if (!debugTools) return
+        val solution = game?.state?.puzzle?.solution ?: return
+
+        for (cell in 0 until Sudoku.CELL_COUNT) {
+            if (game?.state?.board?.isEmpty(cell) != true) continue
+            selectCell(cell)
+            enterDigit(solution[cell])
+        }
+    }
+
     fun undo() {
         val state = game?.state ?: return
         if (!_uiState.value.isPlayable) return
@@ -132,12 +177,39 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(candidateMode = !_uiState.value.candidateMode)
     }
 
+    /**
+     * Takes a game out of the ranking for good, banking the time it had run up.
+     *
+     * Nothing calls this yet. It exists because the agreed reason to lose eligibility — using a
+     * hint — is coming, and the switch from wall-clock timing to the banked kind has to happen at
+     * that moment or the elapsed time would jump backwards.
+     */
+    private fun loseRanking() {
+        val current = game?.takeIf { it.rankedEligible } ?: return
+        bankedMillis = elapsedMillis()
+        runningSince = clock()
+        game = current.copy(rankedEligible = false)
+    }
+
     /** The pause button (project.md section 20). */
     fun setPaused(paused: Boolean) {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
+        // project.md section 28: a game that still counts for the ranking has no pause. Refused
+        // here rather than only hidden in the UI, so no other caller can reach around it.
+        if (paused && game?.rankedEligible == true) return
         if (paused == _uiState.value.isPaused) return
         if (paused) pauseClock() else resumeClock()
         game?.let { render(it.state) }
+    }
+
+    /**
+     * The code that hands this board to somebody else.
+     *
+     * `null` until the board is loaded — there is nothing to share before then, and the button is
+     * hidden rather than handed an empty string to send.
+     */
+    fun shareCode(): String? = game?.state?.puzzle?.let {
+        BoardCode.encode(it.givens, it.generatorVersion)
     }
 
     /**
@@ -156,7 +228,15 @@ class GameViewModel(
      */
     fun onLeftForeground() {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
-        pauseClock()
+
+        // A ranked game keeps running. project.md section 28 has minimising cost the Daily its
+        // place in the ranking; the rule was relaxed on 2026-08-26 because the clock already does
+        // that job — see docs/OPEN_QUESTIONS.md. What the section is really protecting against is
+        // free thinking time, and time that keeps running is not free. Losing the ranking outright
+        // punished answering a notification with total exclusion, which section 31's
+        // "competitive-casual" does not ask for.
+        if (game?.rankedEligible != true) pauseClock()
+
         game?.let { render(it.state) }
         persist()
     }
@@ -219,8 +299,16 @@ class GameViewModel(
     }
 
     private suspend fun finish() {
-        val finished = snapshot() ?: return
-        gameRepository.finishGame(finished, completed = true)
+        val snapshot = snapshot() ?: run {
+            rankingLog.add("game: finished with no snapshot")
+            return
+        }
+        val finished = gameRepository.finishGame(snapshot, completed = true)
+        rankingLog.add("game: finished ${finished.gameType} ${finished.difficulty} score=${finished.score}")
+
+        // Handed over rather than awaited. The submitter runs on the application's scope, so the
+        // sequence survives this screen being left — which it previously did not.
+        rankingSubmitter?.submit(finished, puzzleId)
     }
 
     /** Writes the current game out. Fire and forget: the next move will write again anyway. */
@@ -235,8 +323,23 @@ class GameViewModel(
         lastPlayedAt = clock(),
     )
 
-    private fun elapsedMillis(): Long =
-        bankedMillis + (runningSince?.let { clock() - it } ?: 0)
+    /**
+     * How long this game has been going.
+     *
+     * A ranked game is measured from when it was opened, against the wall clock, because it cannot
+     * be paused and therefore has nothing to subtract. That also makes it survive the process being
+     * killed: an in-app ticker stops when the app does, so a player who closed the app for an hour
+     * would come back to an hour of free thinking. Wall-clock arithmetic cannot be cheated that way.
+     *
+     * Everything else accumulates the usual way, banking time whenever the clock stops.
+     */
+    private fun elapsedMillis(): Long {
+        val current = game
+        if (current != null && current.rankedEligible) {
+            return (clock() - current.startedAt).coerceAtLeast(0)
+        }
+        return bankedMillis + (runningSince?.let { clock() - it } ?: 0)
+    }
 
     private fun resumeClock() {
         if (runningSince != null) return
@@ -279,6 +382,7 @@ class GameViewModel(
                 }
             },
             difficulty = state.puzzle.difficulty,
+            gameType = state.puzzle.gameType,
             mistakeCount = state.mistakeCount,
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,
@@ -288,7 +392,12 @@ class GameViewModel(
                 if (digit == 0) 0 else state.remainingCountOf(digit)
             },
             showRemainingCounts = settings.showRemainingCounts,
-            eightOfNineHints = if (settings.showEightOfNineHint) {
+            rankedEligible = game?.rankedEligible == true,
+            // project.md section 17: the hint is unavailable in a publicly ranked Daily. Checked
+            // against eligibility rather than against the game type, so a Daily that has dropped
+            // out of the ranking gets its help back — at that point it is an ordinary game, and
+            // there is nothing left to protect.
+            eightOfNineHints = if (settings.showEightOfNineHint && game?.rankedEligible != true) {
                 BoardInsights.eightOfNineHints(state.board, state.puzzle.solution)
             } else {
                 emptyMap()
