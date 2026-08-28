@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -46,14 +47,24 @@ class GameViewModelTest {
     private val settings = MutableStateFlow(GameSettings.DEFAULT)
     private var now = 0L
 
+    private val dailyPuzzleDao = FakeDailyPuzzleDao()
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
-        dailyPuzzleDao = FakeDailyPuzzleDao(),
+        dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
         computationDispatcher = dispatcher,
         clock = { now },
+    )
+    private val dailyRepository = DailyRepository(
+        games = repository,
+        puzzleDao = puzzleDao,
+        dailyPuzzleDao = dailyPuzzleDao,
+        savedGameDao = savedGameDao,
+        historyDao = historyDao,
+        generator = SudokuGenerator(),
+        computationDispatcher = Dispatchers.Unconfined,
     )
 
     @Before
@@ -496,8 +507,8 @@ class GameViewModelTest {
     fun `a daily that still counts cannot be paused`() = gameTest {
         // project.md section 28.
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
         val viewModel = viewModelFor(daily)
 
         assertTrue(viewModel.uiState.value.rankedEligible)
@@ -514,8 +525,8 @@ class GameViewModelTest {
         // costs the ranking, because a clock that keeps running already denies the free thinking
         // time the section is protecting against. See docs/OPEN_QUESTIONS.md.
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.HARD))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.HARD))
         val viewModel = viewModelFor(daily)
 
         now = daily.startedAt + 10_000
@@ -534,8 +545,8 @@ class GameViewModelTest {
         // Measured against the wall clock rather than an in-app ticker, so a process that was shut
         // down while backgrounded cannot hand back free minutes on reopening.
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
 
         now = daily.startedAt + 3_600_000
         val reopened = viewModelFor(requireNotNull(repository.loadGame(daily.state.puzzle.id)))
@@ -559,8 +570,8 @@ class GameViewModelTest {
         // Everybody already has the same board, so its code says nothing; and stepping out of a
         // game racing the clock is what section 28 penalises, not a button to offer.
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
 
         assertFalse(viewModelFor(daily).uiState.value.canShareAndSave)
         assertTrue(viewModelFor(startGame()).uiState.value.canShareAndSave)
@@ -569,8 +580,8 @@ class GameViewModelTest {
     @Test
     fun `the screen can tell a daily from a solo game`() = gameTest {
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER))
 
         assertEquals(GameType.DAILY, viewModelFor(daily).uiState.value.gameType)
         assertEquals(GameType.SOLO, viewModelFor(startGame()).uiState.value.gameType)
@@ -582,8 +593,8 @@ class GameViewModelTest {
         // simply being told the answer.
         settings.value = GameSettings.DEFAULT.copy(showEightOfNineHint = true)
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
         val viewModel = viewModelFor(daily)
 
         // Fill a row bar one cell — enough for the hint to have something to say.
@@ -603,8 +614,8 @@ class GameViewModelTest {
         // At that point it is an ordinary game and there is nothing left to protect.
         settings.value = GameSettings.DEFAULT.copy(showEightOfNineHint = true)
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        val daily = requireNotNull(repository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EASY))
         repository.save(daily.copy(rankedEligible = false))
 
         val viewModel = viewModelFor(daily)
@@ -671,8 +682,8 @@ class GameViewModelTest {
 
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {
         val day = java.time.LocalDate.parse("2026-08-26")
-        repository.dailySet(day)
-        return requireNotNull(repository.startDaily(day, difficulty))
+        dailyRepository.dailySet(day)
+        return requireNotNull(dailyRepository.startDaily(day, difficulty))
     }
 
     /** Fills every empty cell with the solution, the way a player finishing a board would. */

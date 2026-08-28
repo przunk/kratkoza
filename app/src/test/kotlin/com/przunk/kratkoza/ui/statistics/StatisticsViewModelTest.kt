@@ -5,6 +5,7 @@ import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
+import com.przunk.kratkoza.data.repository.StatisticsRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
@@ -39,6 +40,7 @@ class StatisticsViewModelTest {
         generator = SudokuGenerator(),
         computationDispatcher = dispatcher,
     )
+    private val statisticsRepository = StatisticsRepository(historyDao, savedGameDao)
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -70,12 +72,12 @@ class StatisticsViewModelTest {
             ),
         )
 
-        val viewModel = StatisticsViewModel(repository)
+        val viewModel = StatisticsViewModel(statisticsRepository)
         assertEquals(2, viewModel.statistics.first().completedCount)
         assertNotNull(viewModel.statistics.first().daily)
 
         viewModel.resetStatistics()
-        val cleared = repository.statistics.first()
+        val cleared = statisticsRepository.statistics.first()
         assertEquals(0, cleared.startedCount)
         assertEquals(0, cleared.completedCount)
         assertNull(cleared.daily)
