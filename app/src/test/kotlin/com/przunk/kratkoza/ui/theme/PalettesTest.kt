@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.luminance
 import com.przunk.kratkoza.domain.settings.BoardPalette
 import kotlin.math.abs
 import kotlin.math.cbrt
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -180,10 +181,52 @@ class PalettesTest {
                     assertTrue(
                         "$palette dark=$dark: high contrast reduced $name from " +
                             "${gaps.first} to ${gaps.second} L*",
-                        gaps.second >= gaps.first,
+                        gaps.second + LIGHTNESS_COMPARISON_EPSILON >= gaps.first,
                     )
                 }
             }
+        }
+    }
+
+    @Test
+    fun `high contrast preserves each palettes highlight colours`() {
+        for (palette in BoardPalette.entries) {
+            for (dark in listOf(true, false)) {
+                val plain = Palettes.boardColors(palette, dark, highContrast = false)
+                val strong = Palettes.boardColors(palette, dark, highContrast = true)
+
+                assertEquals("$palette dark=$dark: peer hue changed", plain.peerCell, strong.peerCell)
+                assertEquals(
+                    "$palette dark=$dark: same-digit hue changed",
+                    plain.sameDigitCell,
+                    strong.sameDigitCell,
+                )
+                assertEquals(
+                    "$palette dark=$dark: selected hue changed",
+                    plain.selectedCell,
+                    strong.selectedCell,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `high contrast keeps control containers distinct from the screen`() {
+        for (dark in listOf(true, false)) {
+            val accent = Palettes.accent(BoardPalette.SLATE, dark)
+            val plain = colorScheme(dark, accent, highContrast = false)
+            val strong = colorScheme(dark, accent, highContrast = true)
+            val plainGap = abs(
+                plain.surfaceContainerHigh.lightness() - plain.background.lightness(),
+            )
+            val strongGap = abs(
+                strong.surfaceContainerHigh.lightness() - strong.background.lightness(),
+            )
+
+            assertTrue(
+                "dark=$dark: high contrast reduced control edge from $plainGap to $strongGap L*",
+                strongGap >= plainGap,
+            )
         }
     }
 
@@ -220,6 +263,9 @@ private const val MINIMUM_ADJACENT_TIER_SEPARATION = 6f
 /** Device review showed that the general floor still disappears into a dark phone display. */
 private const val MINIMUM_DARK_SURFACE_TO_PEER_SEPARATION = 10f
 private const val MINIMUM_DARK_ADJACENT_TIER_SEPARATION = 8f
+
+/** Subtraction from a changed surface can differ by a few float ULPs for otherwise equal gaps. */
+private const val LIGHTNESS_COMPARISON_EPSILON = 0.001f
 
 /** A digit closer than this to its background is not readable at board size. */
 private const val MINIMUM_DIGIT_SEPARATION = 25f

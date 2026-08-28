@@ -15,7 +15,7 @@ import com.przunk.kratkoza.domain.settings.BoardPalette
  * needs a deliberate step from the surface, and every adjacent highlight needs another visible
  * step. Checking both matters because correctly ordered colours can still collapse into one wash.
  *
- * High contrast is the opposite — it is *computed*, and deliberately so. See [withHigherContrast].
+ * High contrast is computed from that base without replacing its hue. See [withHigherContrast].
  */
 internal object Palettes {
 
@@ -166,11 +166,10 @@ internal object Palettes {
 /**
  * A stronger version of a palette (project.md sections 9 and 35).
  *
- * The highlight tiers are *rebuilt* here rather than nudged. The rule the board is meant to obey is
- * that its tiers separate by lightness in deliberate steps — selected darker than matching,
- * matching darker than peers — and hand-tuned colours drift the moment anything is adjusted.
- * Recomputing them as fixed fractions between the surface and the ink guarantees wider spacing in
- * every palette and both themes. Tests additionally ensure no individual gap shrinks.
+ * Highlight fills stay untouched. Rebuilding them as fractions between the surface and white made
+ * Slate, Sepia and Forest collapse into the same neutral-grey ramp — exactly the colour information
+ * a palette is meant to retain. Moving only the ground away from those fills increases their
+ * contrast while preserving both their hue and their carefully measured adjacent spacing.
  *
  * "Higher contrast, still elegant" is what section 9 asks for, so the surface stops short of pure
  * white or pure black: paper-white behind nine black digits glares under a lamp, and the difference
@@ -183,9 +182,6 @@ private fun BoardColors.withHigherContrast(dark: Boolean): BoardColors {
         surface = lerp(surface, if (dark) Color.Black else Color.White, SURFACE_PUSH),
         gridLine = lerp(surface, ink, GRID_LINE_STEP),
         blockLine = lerp(surface, ink, BLOCK_LINE_STEP),
-        peerCell = lerp(surface, ink, PEER_STEP),
-        sameDigitCell = lerp(surface, ink, SAME_DIGIT_STEP),
-        selectedCell = lerp(surface, ink, SELECTED_STEP),
         // Digits go the other way — towards the ink, not away from the surface — because their job
         // is to be read, not to sit at a measured distance from anything.
         givenDigit = lerp(givenDigit, ink, DIGIT_PUSH),
@@ -200,12 +196,9 @@ private fun BoardColors.withHigherContrast(dark: Boolean): BoardColors {
     )
 }
 
-private const val SURFACE_PUSH = 0.55f
+private const val SURFACE_PUSH = 0.30f
 private const val GRID_LINE_STEP = 0.30f
 private const val BLOCK_LINE_STEP = 0.78f
-private const val PEER_STEP = 0.11f
-private const val SAME_DIGIT_STEP = 0.22f
-private const val SELECTED_STEP = 0.36f
 private const val DIGIT_PUSH = 0.45f
 private const val ACCENT_PUSH = 0.25f
 private const val ERROR_CELL_PUSH = 0.20f

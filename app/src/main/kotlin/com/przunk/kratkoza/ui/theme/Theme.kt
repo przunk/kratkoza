@@ -103,8 +103,7 @@ fun KratkozaTheme(
  * and outlines chasing the accent, which reads as four different apps rather than one app in four
  * moods — and project.md section 9 asks the palettes to be calm.
  */
-@Composable
-private fun colorScheme(dark: Boolean, accent: Color, highContrast: Boolean): ColorScheme {
+internal fun colorScheme(dark: Boolean, accent: Color, highContrast: Boolean): ColorScheme {
     val base = if (dark) DarkColors else LightColors
     val tinted = base.copy(
         primary = accent,
@@ -122,8 +121,10 @@ private fun colorScheme(dark: Boolean, accent: Color, highContrast: Boolean): Co
     return tinted.copy(
         background = lerp(base.background, ground, SURFACE_PUSH),
         surface = lerp(base.surface, ground, SURFACE_PUSH),
-        surfaceContainer = lerp(base.surfaceContainer, ground, SURFACE_PUSH),
-        surfaceContainerHigh = lerp(base.surfaceContainerHigh, ground, SURFACE_PUSH),
+        // Containers are the visible silhouettes of controls such as the number pad. Pushing them
+        // towards the same ground as the screen erased those edges in high-contrast dark mode.
+        surfaceContainer = base.surfaceContainer,
+        surfaceContainerHigh = base.surfaceContainerHigh,
         onBackground = lerp(base.onBackground, ink, TEXT_PUSH),
         onSurface = lerp(base.onSurface, ink, TEXT_PUSH),
         onSurfaceVariant = lerp(base.onSurfaceVariant, ink, TEXT_PUSH),
@@ -133,6 +134,6 @@ private fun colorScheme(dark: Boolean, accent: Color, highContrast: Boolean): Co
 }
 
 private const val PRIMARY_CONTAINER_MIX = 0.22f
-private const val SURFACE_PUSH = 0.55f
+private const val SURFACE_PUSH = 0.30f
 private const val TEXT_PUSH = 0.45f
 private const val OUTLINE_PUSH = 0.35f
