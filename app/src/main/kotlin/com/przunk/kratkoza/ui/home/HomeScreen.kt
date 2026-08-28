@@ -73,7 +73,9 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 RotatingBoardArt(
-                    modifier = Modifier.fillMaxSize(),
+                    // Clear of the menu below. The scene tilts and its particles drift past its
+                    // own bounds, so without a gap the artwork ends up touching the first button.
+                    modifier = Modifier.fillMaxSize().padding(bottom = ART_MENU_GAP_DP.dp),
                     contentDescription = stringResource(R.string.home_title),
                 )
             }
@@ -190,6 +192,9 @@ private const val MENU_GAP_DP = 12
 
 /** Breathing room under the status bar, in place of the title bar that used to provide it. */
 private const val TOP_MARGIN_DP = 20
+
+/** Between the artwork and the first button. */
+private const val ART_MENU_GAP_DP = 24
 
 /** Leaves a little more breathing room for the artwork and nudges the menu gently downwards. */
 private const val SPACE_ABOVE_MENU = 1.45f

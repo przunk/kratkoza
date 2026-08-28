@@ -102,12 +102,15 @@ internal object Wordmark {
             }
 
             'O' -> {
-                // Subtracted, not stated with even-odd. A fill rule belongs to the path that
-                // carries it, and addPath copies geometry alone — so a ring described by even-odd
-                // became a filled disc the moment it joined the rest of the word. A difference puts
-                // the ring into the geometry itself, where nothing downstream can lose it.
-                solid { addOval(Rect(x, 0f, x + w, cap)) }
-                hole { addOval(Rect(x + t, t, x + w - t, cap - t)) }
+                // Four bars leaving a gap, the way R's counter already worked. Path.op could
+                // subtract an inner oval on paper, but on the device it did not — and a ring that
+                // depends on a boolean succeeding is a ring that can come back filled. This one is
+                // a hole because nothing draws there, which cannot fail. A squared O also sits
+                // better among letters that have no curves anywhere else.
+                solid { bar(x, 0f, x + w, t) }
+                solid { bar(x, cap - t, x + w, cap) }
+                solid { bar(x, 0f, x + t, cap) }
+                solid { bar(x + w - t, 0f, x + w, cap) }
             }
 
             'Z' -> {
