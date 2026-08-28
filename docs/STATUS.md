@@ -95,6 +95,8 @@ tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
 ### ~~Podwójne kliknięcie „Start" otwiera dwie plansze Daily~~ — naprawione 2026-08-28
 
+**Potwierdzone na urządzeniu 2026-08-28** przez zgłaszającego.
+
 **Zgłoszone:** 2026-08-27. Testowane na buildzie 0.16.0 (26).
 
 Przyczyną były dwa równoległe wywołania `startDaily`, które odczytywały brak zapisu, zanim
