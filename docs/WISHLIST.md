@@ -241,3 +241,33 @@ w jej obrębie — u góry, nad kratką, grubymi literami na całą szerokość.
   zostać dostępny dla TalkBacka, a dziś grafika jest przed nim celowo ukryta
   (`clearAndSetSemantics`).
 
+---
+
+## 10. Cyfry w grafice tytułowej przechodzące jedna w drugą
+
+**Zgłoszone:** 2026-08-28.
+
+Dziś cyfra znika i pojawia się następna — zmiana trwa jedną klatkę. Pomysł: żeby jedna cyfra
+**przelewała się** w drugą, plastycznie, tak jak zmienia się kształt z gliny.
+
+**Czy to możliwe: tak, ale nie przez przenikanie.** Przenikanie dwóch cyfr daje moment, w którym obie
+są widoczne naraz i półprzezroczyste — czyta się to jako duch, nie jako zmiana kształtu. To jest
+tanie i można zrobić od ręki, ale nie o to chodzi w zgłoszeniu.
+
+**Prawdziwe morfowanie wymaga, żeby obie cyfry były tym samym rodzajem opisu.** Interpolacja między
+konturami z kroju pisma jest trudna: kontury mają różną liczbę punktów, różną liczbę konturów (8 ma
+dwa prześwity, 1 żadnego) i nie ma naturalnego przyporządkowania punktu do punktu. Bez tego wychodzi
+szarpanie, a nie przelewanie.
+
+**Droga, która to otwiera:** narysować cyfry jako **własną geometrię na wspólnym szkielecie** — tak
+jak zrobiony jest już napis „Kratkoza". Jeśli każda cyfra jest złożona z tego samego zestawu kresek,
+a różni się tylko ich położeniem, długością i tym, które są widoczne, to morfowanie sprowadza się do
+interpolacji kilkunastu liczb. Przelewanie wychodzi wtedy samo i jest tanie w każdej klatce.
+
+**Czego to kosztuje.** Zaprojektowania dziesięciu cyfr na jednym szkielecie, co jest robotą
+rysunkową, a nie programistyczną — i decyzji, czy taki „techniczny" krój cyfr pasuje do reszty
+grafiki, czy zaczyna wyglądać jak wyświetlacz kalkulatora.
+
+**Uwaga o zasięgu.** Dotyczy wyłącznie cyfr w grafice tytułowej. Cyfry na planszy zostają zwykłym
+tekstem: tam liczy się czytelność i respektowanie ustawień systemowych, a nie efekt.
+

@@ -93,6 +93,34 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
+### Grafika tytułowa jest zrobiona pod ciemny motyw
+
+**Zgłoszone:** 2026-08-28 z urządzenia. W ciemnym motywie wygląda dobrze, w jasnym źle, a w trybie
+wysokiego kontrastu jeszcze gorzej.
+
+**Trop, i jest jednoznaczny.** Wszystkie trzy kolory sceny są rozjaśniane **w stronę bieli**:
+
+```kotlin
+val digitColor = lerp(colors.enteredDigit, Color.White, DIGIT_COLOR_LIFT)   // 0.62
+val gridColor  = lerp(colors.blockLine,    Color.White, GRID_COLOR_LIFT)    // 0.48
+val boardColor = lerp(background,          Color.White, BOARD_BACKGROUND_LIFT) // 0.13
+```
+
+Na ciemnym tle rozjaśnianie oddala od tła i scena świeci. Na jasnym robi dokładnie odwrotnie —
+**zbliża wszystko do tła** i wypłukuje kontrast. Stała ma jeden znak, a potrzebuje dwóch kierunków.
+
+**Dlaczego wysoki kontrast wypada gorzej, a nie lepiej.** Ten tryb istnieje po to, żeby zwiększać
+rozdzielenie. Rozjaśnianie w stronę bieli działa wtedy przeciwko niemu — im mocniej tryb rozsuwa
+kolory, tym mocniej scena je z powrotem ściąga.
+
+**Kierunek naprawy.** Rozjaśnianie zastąpić przesunięciem **od tła**, nie ku bieli: w jasnym motywie
+w stronę czerni, w ciemnym w stronę bieli. Wtedy jedna stała opisuje „o ile odsunąć od tła" zamiast
+„o ile zbielić", i działa w obu motywach oraz nie walczy z wysokim kontrastem.
+
+**Uwaga o zakresie.** Codex pracuje równolegle nad kontrastem palet w `ui/theme/`. To jest osobna
+usterka, w `ui/home/`, i dotyczy wyłącznie rozjaśnień samej grafiki — ale obie zmiany spotkają się
+na ekranie, więc druga z nich powinna zostać obejrzana po scaleniu pierwszej.
+
 ### ~~Dwa kliknięcia „wstecz" w Ustawieniach zostawiają pusty ekran~~ — naprawione 2026-08-28
 
 **Zgłoszone:** 2026-08-28 z urządzenia, **100% powtarzalności**. Aplikacja wraca na ekran główny,

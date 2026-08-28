@@ -3,7 +3,6 @@ package com.przunk.kratkoza.ui.home
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
 
 /**
@@ -103,13 +102,12 @@ internal object Wordmark {
             }
 
             'O' -> {
-                // A ring has no self-overlap, so even-odd states it directly and needs no union or
-                // difference to go wrong.
-                return Path().apply {
-                    fillType = PathFillType.EvenOdd
-                    addOval(Rect(x, 0f, x + w, cap))
-                    addOval(Rect(x + t, t, x + w - t, cap - t))
-                }
+                // Subtracted, not stated with even-odd. A fill rule belongs to the path that
+                // carries it, and addPath copies geometry alone — so a ring described by even-odd
+                // became a filled disc the moment it joined the rest of the word. A difference puts
+                // the ring into the geometry itself, where nothing downstream can lose it.
+                solid { addOval(Rect(x, 0f, x + w, cap)) }
+                hole { addOval(Rect(x + t, t, x + w - t, cap - t)) }
             }
 
             'Z' -> {
