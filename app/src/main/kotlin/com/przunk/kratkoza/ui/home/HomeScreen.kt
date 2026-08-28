@@ -61,9 +61,9 @@ fun HomeScreen(
             // menu near the middle — a little below it, not pushed to the bottom.
             Box(
                 modifier = Modifier.fillMaxWidth().weight(SPACE_ABOVE_MENU),
-                contentAlignment = Alignment.TopCenter,
+                contentAlignment = Alignment.Center,
             ) {
-                RotatingBoardArt(modifier = Modifier.fillMaxWidth())
+                RotatingBoardArt(modifier = Modifier.fillMaxSize())
             }
 
             val mostRecent = state.mostRecent
@@ -176,6 +176,6 @@ private const val CONTINUE_HEIGHT_DP = 76
 
 private const val MENU_GAP_DP = 12
 
-/** Slightly more room above the menu than below, so it sits a touch under the middle. */
-private const val SPACE_ABOVE_MENU = 1.25f
-private const val SPACE_BELOW_MENU = 0.9f
+/** Leaves a little more breathing room for the artwork and nudges the menu gently downwards. */
+private const val SPACE_ABOVE_MENU = 1.45f
+private const val SPACE_BELOW_MENU = 0.75f

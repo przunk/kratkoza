@@ -1,82 +1,61 @@
-# Zadanie: jedno podejście do Daily, nie do obejścia
+# Zadanie: dopracowanie głębi i ruchu grafiki tytułowej
 
-> Zasady współpracy — worktree, gałęzie, konwencje, kto scala — są w `codex_instructions.md`.
-> Przeczytaj je najpierw. Ten plik opisuje wyłącznie bieżące zadanie.
+> Zasady współpracy — worktree, gałęzie, konwencje i scalanie — są w
+> `codex_instructions.md`. Prace wykonujemy na `feature/home-board-parallax` w osobnym worktree.
 
-**Gałąź:** `fix/daily-single-attempt` z `develop`.
+## Cel
 
-**Pliki, których dotyczy zadanie:**
-- `data/repository/GameRepository.kt` — `startDaily` i to, co ją broni
-- `data/local/Daos.kt`, `data/local/KratkozaDatabase.kt` — jeśli reguła wymaga zapytania lub migracji
-- `ui/daily/DailyViewModel.kt` — `open`
-- testy: `data/`, `data/local/`, `ui/daily/`
+Grafika 3×3 nad menu ma wyglądać jak spójna część ekranu, z czytelną głębią i płynnym ruchem w
+stylu efektów demonstracyjnych Atari/Amiga. Nie jest to obrót planszy dookoła osi, lecz ciągły,
+łagodny wobble wynikający z kilku złożonych fal.
 
-Równolegle przebudowuję moduł tablic wyników — dotykam `domain/ranking/`, `data/ranking/` oraz
-`res/values/play_games_ids.xml`. **Tam nie wchodź.** W szczególności **nie edytuj**
-`GameRepository.dailyTotals` ani niczego w `data/ranking/`. Reszta `GameRepository` jest Twoja.
+## Zakres
 
----
+### 1. Miejsce na grafikę
 
-## Usterka
+- Lekko przesunąć menu w dół, bez spychania go pod dolną krawędź na małych ekranach.
+- Wycentrować planszę w dostępnym obszarze nad menu.
+- Rozmiar planszy musi uwzględniać pionowy margines bezpieczeństwa i maksymalne wychylenie, aby
+  grafika nie była przycinana od góry ani od boków.
 
-Szybkie dwukrotne naciśnięcie „Start" na karcie Daily uruchamia grę **dwa razy**. Druga plansza
-zostaje w tle; po ukończeniu pierwszej gracz widzi ją od nowa i wygląda to tak, jakby Daily dało się
-rozegrać drugi raz. Zgłoszone z urządzenia 2026-08-27, build 0.16.0 (26). Opis jest też w
-`docs/STATUS.md` w sekcji „Znane usterki" — zaktualizuj go, gdy skończysz.
+### 2. Tło sceny
 
-## Dlaczego to nie jest usterka UI
+- Nie rysować osobnego, ciemniejszego prostokąta pod animacją.
+- Tło obszaru grafiki ma być przezroczyste i pokazywać dokładnie tło ekranu z `MaterialTheme`.
+- Sama plansza pozostaje w pełni nieprzezroczysta i wyraźnie oddzielona tonalnie od ekranu.
 
-`DailyViewModel.open` startuje korutynę na każde naciśnięcie. Dwie korutyny wchodzą do
-`GameRepository.startDaily` **równolegle** i obie czytają stan, zanim którakolwiek cokolwiek zapisze
-— więc obie widzą planszę jako nierozegraną i obie ją zakładają.
+### 3. Czytelna fizyczna głębia
 
-**Zablokowanie przycisku nie jest naprawą.** Zamyka najczęstszą drogę i nic poza tym: ta sama luka
-zostaje otwarta dla każdego innego wywołania, dla powrotu z nawigacji i dla wznowienia procesu.
-Reguła „jedno podejście dziennie" jest regułą domeny i ma być nie do obejścia **w repozytorium**.
-Blokada w UI jest mile widziana, ale jako uprzejmość, nie jako mechanizm.
+- Zachować kolejność: tło ekranu → plansza → cyfry.
+- Cyfry mają być jasne i czytelne, bez efektu prześwitywania spod planszy.
+- Cień cyfr ma być osobną projekcją na płaszczyźnie planszy, a nie cieniem przyklejonym do warstwy
+  cyfr. Przy wobble lub sterowaniu palcem położenie cyfry i jej cienia ma zmieniać się względem
+  siebie zgodnie z różnicą głębokości oraz stałym kierunkiem światła.
+- Dodać subtelne oddzielenie planszy od tła bez używania `shadowElevation`, które wcześniej dawało
+  prostokątne artefakty GPU.
 
-## Co ma być prawdą po naprawie
+### 4. Wobble bez przeskoku
 
-- Dwa równoległe wywołania `startDaily(date, difficulty)` dają **jedną** grę. Drugie dostaje tę
-  samą, którą założyło pierwsze — albo `null`, jeśli plansza jest już ukończona. Nigdy dwie.
-- Sekwencyjne wywołanie po ukończeniu dalej zwraca `null`, tak jak dziś.
-- Wznowienie rozpoczętej gry działa bez zmian.
-- To samo sprawdź dla `startNewGame` i dla ścieżki „Kontynuuj". Jeśli tam luka nie istnieje,
-  napisz w commicie **dlaczego** — to informacja warta tyle samo co poprawka.
+- Przyspieszyć ruch względem dotychczasowego cyklu 42 s.
+- Złożyć przechył z kilku sinusoid o całkowitych harmonicznych, aby ruch był organiczny, ale jego
+  początek i koniec pętli miały identyczne położenie oraz prędkość.
+- Plansza nie może wykonywać pełnego obrotu. Zakres pozostaje niewielkim przechyłem w osiach X/Y.
+- Sterowanie palcem i sprężysty powrót do aktualnej pozycji idle pozostają bez zmian.
 
-## Wskazówki, nie rozstrzygnięcia
+### 5. Parujące cząsteczki
 
-Sedno to atomowość: sprawdzenie i zajęcie planszy muszą być jednym krokiem, którego drugi wątek nie
-przecina. Do rozważenia — Room `@Transaction` na metodzie, która sprawdza i wstawia; unikalny indeks
-na `saved_games`/`game_history`, który po prostu nie pozwoli powstać drugiemu wierszowi; mutex w
-repozytorium. Każde ma inny koszt i inny zasięg:
+- Każda cząsteczka zaczyna przy dolnej krawędzi sceny i powoli płynie ku górze.
+- W trakcie drogi lekko dryfuje na boki, może mieć subtelny glow i zanika przed górną krawędzią.
+- Zachować trzy pasma głębokości: za planszą, między planszą i cyframi oraz przed cyframi.
+- Głębokość wpływa na rozmiar, jasność, dryf i reakcję paralaksy.
+- Odrodzenie cząsteczki na dole nie może powodować wspólnego, widocznego przeskoku całej animacji.
 
-- **Mutex** jest najprostszy i broni tylko tego procesu — tu wystarczy, bo baza jest lokalna
-  i jednoprocesowa, ale warto to napisać w komentarzu, żeby ktoś kiedyś nie założył więcej.
-- **Indeks unikalny** jest najmocniejszy i przeżywa każdą przyszłą ścieżkę wywołania, ale to
-  **migracja schematu** — wersja bazy w górę i ręcznie napisana migracja, jak dwie poprzednie.
-  Jeśli wybierzesz tę drogę, dopisz test migracji.
+## Testy i weryfikacja
 
-Wybierz sam i **uzasadnij wybór w commicie**. Nie ma tu jednej dobrej odpowiedzi, jest kilka
-z różnymi kosztami.
-
-## Na co uważać
-
-- **Test musi naprawdę być równoległy.** Test, który woła `startDaily` dwa razy pod rząd, przejdzie
-  także na niepoprawionym kodzie i niczego nie udowodni. Potrzebne są dwie korutyny startujące
-  razem — `async` + `awaitAll`, albo `coroutineScope` z dwoma `launch`. Sprawdź, że **bez** poprawki
-  ten test pada; jeśli przechodzi na obu wersjach, testuje coś innego, niż myślisz.
-- `FakeDaos` reimplementuje SQL w Kotlinie, więc **sam nie udowodni** niczego o atomowości zapytania.
-  Jeśli reguła siada w SQL-u albo w indeksie, potrzebny jest test na prawdziwej bazie Room —
-  wzorzec jest w `GameHistoryDaoTest`.
-- Nie podbijaj wersji na gałęzi zadaniowej.
-
-## Weryfikacja
-
-```bash
-./scripts/test-kratkoza.sh
-./scripts/lint-kratkoza.sh
-```
-
-W opisie commita napisz, czego **nie** udało się sprawdzić maszynowo — w szczególności to, że nie
-sprawdzałeś podwójnego kliknięcia na urządzeniu.
+- Test jednostkowy ciągłości wobble na granicy cyklu.
+- Test profilu widoczności cząsteczki: niewidoczna na starcie, widoczna w locie, wygaszona na końcu.
+- Zachować testy mapowania dotyku, powrotu i pasm głębokości.
+- Uruchomić testy celowane dla `RotatingBoardArtTest`, pełne testy i lint skryptami projektu.
+- Po każdej ukończonej zmianie zbudować debug i release skryptami z `scripts/`.
+- Skopiować APK do `/mnt/workspace/Kratkoza/dist`.
+- Nie scalać gałęzi bez akceptacji użytkownika. Wygląd musi zostać oceniony na urządzeniu.
