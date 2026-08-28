@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,12 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -61,9 +55,10 @@ import kotlinx.coroutines.launch
  * that was already suspended in space. The gesture changes no application state and deliberately
  * consumes nothing; the artwork remains decoration and stays hidden from TalkBack.
  *
- * Compose has no child `translateZ` equivalent to CSS preserve-3d. Separate layers therefore share
- * one perspective rotation while their scale and translation differ by depth. At this size the
- * approximation reads as real separation without a 3D engine or an offscreen blur.
+ * Compose has no child `translateZ` equivalent to CSS preserve-3d. The transparent grid and digits
+ * therefore share one perspective rotation while their scale and translation differ slightly by
+ * depth. Keeping both layers transparent matters: a card-like plate made this quiet title graphic
+ * look like a dark dialog, while nested alpha layers left rectangular GPU artefacts under 3D.
  *
  * Everything persistent is derived from a single repeating [phase]. Compose's animation clock
  * stops when the window is not drawn, so the idle movement and sparks pause with the screen rather
@@ -131,19 +126,6 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
                     translationY = parallax.y
                 }
                 .drawBehind {
-                    val haloCenter = Offset(size.width / 2f, side.toPx() / 2f)
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                colors.enteredDigit.copy(alpha = HALO_CENTER_ALPHA),
-                                Color.Transparent,
-                            ),
-                            center = haloCenter,
-                            radius = side.toPx() * HALO_RADIUS_FRACTION,
-                        ),
-                        radius = side.toPx() * HALO_RADIUS_FRACTION,
-                        center = haloCenter,
-                    )
                     for (spark in sparks) {
                         val life = (phase * spark.speed + spark.offset).let { it - it.toInt() }
                         // A bell: born from nothing, gone to nothing, brightest halfway up.
@@ -171,10 +153,8 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
                 )
                 .clearAndSetSemantics { },
         ) {
-            val boardShape = remember { RoundedCornerShape(BOARD_CORNER_DP.dp) }
-
-            // The plate carries the perspective and the shadow. Digits are a separate layer so
-            // they can travel farther than the grid and appear to float above it.
+            // The grid stays as light as it was before the parallax. Only the digits travel farther
+            // than it, which is enough depth without turning the decoration into an opaque card.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -182,35 +162,8 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
                         tilt = tilt,
                         density = density.density,
                         depth = PLATE_DEPTH,
-                        shape = boardShape,
-                        shadowElevationDp = BOARD_SHADOW_ELEVATION_DP,
-                        shadowColor = colors.blockLine.copy(alpha = BOARD_SHADOW_ALPHA),
-                        clipToShape = true,
                     )
                     .drawBehind {
-                        val corner = CornerRadius(BOARD_CORNER_DP.dp.toPx())
-                        drawRoundRect(
-                            color = colors.surface.copy(alpha = BOARD_SURFACE_ALPHA),
-                            cornerRadius = corner,
-                        )
-
-                        val yawShift = (tilt.yaw / MAX_VISUAL_YAW_DEGREES)
-                            .coerceIn(-1f, 1f) * size.width * GLINT_TRAVEL_FRACTION
-                        val pitchShift = (tilt.pitch / MAX_VISUAL_PITCH_DEGREES)
-                            .coerceIn(-1f, 1f) * size.height * GLINT_TRAVEL_FRACTION
-                        drawRoundRect(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    colors.enteredDigit.copy(alpha = GLINT_MAX_ALPHA),
-                                    Color.Transparent,
-                                ),
-                                start = Offset(size.width * 0.05f + yawShift, -pitchShift),
-                                end = Offset(size.width * 0.95f + yawShift, size.height - pitchShift),
-                            ),
-                            cornerRadius = corner,
-                        )
-
                         val step = size.width / Sudoku.BLOCK_SIZE
                         val stroke = GRID_STROKE_DP.dp.toPx()
                         val line = colors.blockLine.copy(alpha = GRID_ALPHA)
@@ -269,10 +222,11 @@ private fun DriftingDigit(sequence: List<Int>, cellPhase: Float, cellSize: Dp) {
             style = TextStyle(
                 fontSize = with(LocalDensity.current) { (cellSize * DIGIT_HEIGHT_FRACTION).toSp() },
                 fontWeight = FontWeight.Light,
-                color = colors.enteredDigit,
+                // Alpha in the paint, not another graphics layer. Nested translucent layers under
+                // a 3D parent produced dark rectangular tiles on real devices.
+                color = colors.enteredDigit.copy(alpha = visibility * DIGIT_MAX_ALPHA),
                 textAlign = TextAlign.Center,
             ),
-            modifier = Modifier.graphicsLayer { alpha = visibility * DIGIT_MAX_ALPHA },
         )
     }
 }
@@ -326,10 +280,6 @@ private fun Modifier.boardLayer(
     tilt: BoardTilt,
     density: Float,
     depth: Float,
-    shape: Shape = RectangleShape,
-    shadowElevationDp: Float = 0f,
-    shadowColor: Color = Color.Transparent,
-    clipToShape: Boolean = false,
 ): Modifier = graphicsLayer {
     val parallax = parallaxOffset(tilt, depth, density)
     val scale = 1f + depth * DEPTH_SCALE
@@ -341,11 +291,6 @@ private fun Modifier.boardLayer(
     translationY = parallax.y
     scaleX = scale
     scaleY = scale
-    this.shape = shape
-    clip = clipToShape
-    shadowElevation = shadowElevationDp * density
-    ambientShadowColor = shadowColor
-    spotShadowColor = shadowColor
 }
 
 private fun parallaxOffset(tilt: BoardTilt, depth: Float, density: Float): Offset {
@@ -404,22 +349,14 @@ private const val WIDTH_FRACTION = 0.42f
 
 /** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
 private const val MAX_SIDE_DP = 180
-private const val BOARD_CORNER_DP = 7f
-private const val BOARD_SURFACE_ALPHA = 0.22f
-private const val BOARD_SHADOW_ELEVATION_DP = 10f
-private const val BOARD_SHADOW_ALPHA = 0.28f
-private const val GLINT_MAX_ALPHA = 0.13f
-private const val GLINT_TRAVEL_FRACTION = 0.12f
 private const val GRID_STROKE_DP = 1f
-private const val GRID_ALPHA = 0.34f
+private const val GRID_ALPHA = 0.30f
 
 private const val PLATE_DEPTH = 0f
 private const val DIGIT_DEPTH = 1f
-private const val BACKGROUND_DEPTH = -0.45f
-private const val DEPTH_SCALE = 0.035f
-private const val MAX_DEPTH_TRAVEL_DP = 7f
-private const val HALO_RADIUS_FRACTION = 0.72f
-private const val HALO_CENTER_ALPHA = 0.15f
+private const val BACKGROUND_DEPTH = -0.30f
+private const val DEPTH_SCALE = 0.015f
+private const val MAX_DEPTH_TRAVEL_DP = 4f
 
 /** How many digits each cell shows per full cycle. */
 private const val DIGIT_CYCLES = 7f
