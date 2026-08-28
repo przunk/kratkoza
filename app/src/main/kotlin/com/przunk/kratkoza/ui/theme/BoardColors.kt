@@ -13,8 +13,8 @@ import androidx.compose.ui.graphics.Color
  * harder to retheme later.
  *
  * Three background tiers, ordered by strength: selected cell > matching digits > peer
- * (row/column/block) > plain surface. They separate by *lightness*, in even steps, so the order is
- * legible without telling any two hues apart.
+ * (row/column/block) > plain surface. Every adjacent pair has a deliberate minimum lightness gap,
+ * so the order is legible without telling any two hues apart.
  *
  * The values for each palette live in [Palettes], which is also where the high-contrast variant is
  * computed.
