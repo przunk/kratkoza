@@ -13,6 +13,10 @@ czego w specyfikacji w ogóle nie ma.
 **Zrobione 2026-08-26 — wariant B.** Obracający się w przestrzeni kwadrat 3×3 z cyframi,
 które pojawiają się i znikają. Zostaje niżej jako zapis rozważanych wariantów.
 
+**Rozwinięte 2026-08-28.** Kratka, cyfry i iskierki są osobnymi warstwami paralaksy: w spoczynku
+zachowują powolny dryf, pod palcem reagują na położenie, a po puszczeniu płynnie wracają do ruchu
+automatycznego. Efekt pozostaje czystą dekoracją Compose, bez sensorów i nowych zależności.
+
 **Zgłoszone:** 2026-08-25.
 
 Ekran główny jest czysty, ale pusty nad przyciskami. Pomysł: wstawić tam grafikę albo

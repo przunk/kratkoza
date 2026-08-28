@@ -1,27 +1,41 @@
 package com.przunk.kratkoza.ui.home
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
@@ -35,22 +49,25 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 /**
- * A 3x3 grid turning slowly in space above the menu, its digits fading in and out, with sparks
- * drifting up behind it.
+ * A layered 3x3 grid drifting above the menu, with digits floating in front of its plate.
  *
- * Decoration, and it behaves like it: no touch target, and hidden from TalkBack entirely — a screen
- * reader announcing nine drifting digits above the menu would be noise, not information.
+ * A finger over the artwork temporarily takes over the tilt. Releasing it blends back to the idle
+ * motion instead of snapping to a fixed pose, so the interaction feels like touching an object
+ * that was already suspended in space. The gesture changes no application state and deliberately
+ * consumes nothing; the artwork remains decoration and stays hidden from TalkBack.
  *
- * Everything is derived from a single repeating [phase] rather than driven by a coroutine loop, and
- * that is the important part. Compose's animation clock stops when the window stops being drawn, so
- * a phase-derived animation pauses on its own the moment the app goes to the background. A `while
- * (true) { delay(…) }` would keep ticking there, and this one runs for as long as anyone leaves the
- * app open on the menu.
+ * Compose has no child `translateZ` equivalent to CSS preserve-3d. Separate layers therefore share
+ * one perspective rotation while their scale and translation differ by depth. At this size the
+ * approximation reads as real separation without a 3D engine or an offscreen blur.
  *
- * The two rotations use periods that do not divide into each other, so the motion never repeats a
- * recognisable pose and reads as drift rather than as a loop.
+ * Everything persistent is derived from a single repeating [phase]. Compose's animation clock
+ * stops when the window is not drawn, so the idle movement and sparks pause with the screen rather
+ * than running a coroutine in the background.
  */
 @Composable
 fun RotatingBoardArt(modifier: Modifier = Modifier) {
@@ -90,6 +107,14 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
         }
     }
 
+    val touchBlend = remember { Animatable(0f) }
+    var touchTilt by remember { mutableStateOf(BoardTilt.Zero) }
+    val idleTilt = BoardTilt(
+        pitch = sin(phase * TAU * PITCH_PERIOD_RATIO + PITCH_OFFSET) * IDLE_PITCH_DEGREES,
+        yaw = sin(phase * TAU) * IDLE_YAW_DEGREES,
+    )
+    val tilt = blendBoardTilt(idleTilt, touchTilt, touchBlend.value)
+
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.TopCenter) {
         val side = minOf(maxWidth * WIDTH_FRACTION, maxHeight, MAX_SIDE_DP.dp)
         if (side <= 0.dp) return@BoxWithConstraints
@@ -100,7 +125,25 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer {
+                    val parallax = parallaxOffset(tilt, BACKGROUND_DEPTH, density.density)
+                    translationX = parallax.x
+                    translationY = parallax.y
+                }
                 .drawBehind {
+                    val haloCenter = Offset(size.width / 2f, side.toPx() / 2f)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                colors.enteredDigit.copy(alpha = HALO_CENTER_ALPHA),
+                                Color.Transparent,
+                            ),
+                            center = haloCenter,
+                            radius = side.toPx() * HALO_RADIUS_FRACTION,
+                        ),
+                        radius = side.toPx() * HALO_RADIUS_FRACTION,
+                        center = haloCenter,
+                    )
                     for (spark in sparks) {
                         val life = (phase * spark.speed + spark.offset).let { it - it.toInt() }
                         // A bell: born from nothing, gone to nothing, brightest halfway up.
@@ -119,38 +162,86 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
                 .clearAndSetSemantics { },
         )
 
-        Column(
+        Box(
             modifier = Modifier
                 .size(side)
-                .graphicsLayer {
-                    rotationY = sin(phase * TAU) * YAW_DEGREES
-                    rotationX = sin(phase * TAU * PITCH_PERIOD_RATIO + PITCH_OFFSET) * PITCH_DEGREES
-                    // Without a camera the rotation is a flat squash; this is what makes it read as
-                    // a plate turning in space rather than a shrinking rectangle.
-                    cameraDistance = CAMERA_DISTANCE * density.density
-                }
-                .drawBehind {
-                    val step = size.width / Sudoku.BLOCK_SIZE
-                    val stroke = GRID_STROKE_DP.dp.toPx()
-                    val line = colors.blockLine.copy(alpha = GRID_ALPHA)
-                    for (index in 0..Sudoku.BLOCK_SIZE) {
-                        val at = (index * step).coerceIn(stroke / 2, size.width - stroke / 2)
-                        drawLine(line, Offset(at, 0f), Offset(at, size.height), stroke)
-                        drawLine(line, Offset(0f, at), Offset(size.width, at), stroke)
-                    }
-                }
+                .boardParallaxInput(
+                    touchBlend = touchBlend,
+                    onTilt = { touchTilt = it },
+                )
                 .clearAndSetSemantics { },
         ) {
-            for (row in 0 until Sudoku.BLOCK_SIZE) {
-                Row {
-                    for (column in 0 until Sudoku.BLOCK_SIZE) {
-                        val index = row * Sudoku.BLOCK_SIZE + column
-                        DriftingDigit(
-                            sequence = sequences[index],
-                            // Spread the cells across the cycle so they never breathe in unison.
-                            cellPhase = phase * DIGIT_CYCLES + index * CELL_STAGGER,
-                            cellSize = cell,
+            val boardShape = remember { RoundedCornerShape(BOARD_CORNER_DP.dp) }
+
+            // The plate carries the perspective and the shadow. Digits are a separate layer so
+            // they can travel farther than the grid and appear to float above it.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .boardLayer(
+                        tilt = tilt,
+                        density = density.density,
+                        depth = PLATE_DEPTH,
+                        shape = boardShape,
+                        shadowElevationDp = BOARD_SHADOW_ELEVATION_DP,
+                        shadowColor = colors.blockLine.copy(alpha = BOARD_SHADOW_ALPHA),
+                        clipToShape = true,
+                    )
+                    .drawBehind {
+                        val corner = CornerRadius(BOARD_CORNER_DP.dp.toPx())
+                        drawRoundRect(
+                            color = colors.surface.copy(alpha = BOARD_SURFACE_ALPHA),
+                            cornerRadius = corner,
                         )
+
+                        val yawShift = (tilt.yaw / MAX_VISUAL_YAW_DEGREES)
+                            .coerceIn(-1f, 1f) * size.width * GLINT_TRAVEL_FRACTION
+                        val pitchShift = (tilt.pitch / MAX_VISUAL_PITCH_DEGREES)
+                            .coerceIn(-1f, 1f) * size.height * GLINT_TRAVEL_FRACTION
+                        drawRoundRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    colors.enteredDigit.copy(alpha = GLINT_MAX_ALPHA),
+                                    Color.Transparent,
+                                ),
+                                start = Offset(size.width * 0.05f + yawShift, -pitchShift),
+                                end = Offset(size.width * 0.95f + yawShift, size.height - pitchShift),
+                            ),
+                            cornerRadius = corner,
+                        )
+
+                        val step = size.width / Sudoku.BLOCK_SIZE
+                        val stroke = GRID_STROKE_DP.dp.toPx()
+                        val line = colors.blockLine.copy(alpha = GRID_ALPHA)
+                        for (index in 0..Sudoku.BLOCK_SIZE) {
+                            val at = (index * step).coerceIn(stroke / 2, size.width - stroke / 2)
+                            drawLine(line, Offset(at, 0f), Offset(at, size.height), stroke)
+                            drawLine(line, Offset(0f, at), Offset(size.width, at), stroke)
+                        }
+                    },
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .boardLayer(
+                        tilt = tilt,
+                        density = density.density,
+                        depth = DIGIT_DEPTH,
+                    ),
+            ) {
+                for (row in 0 until Sudoku.BLOCK_SIZE) {
+                    Row {
+                        for (column in 0 until Sudoku.BLOCK_SIZE) {
+                            val index = row * Sudoku.BLOCK_SIZE + column
+                            DriftingDigit(
+                                sequence = sequences[index],
+                                // Spread the cells across the cycle so they never breathe in unison.
+                                cellPhase = phase * DIGIT_CYCLES + index * CELL_STAGGER,
+                                cellSize = cell,
+                            )
+                        }
                     }
                 }
             }
@@ -186,16 +277,125 @@ private fun DriftingDigit(sequence: List<Int>, cellPhase: Float, cellSize: Dp) {
     }
 }
 
+/**
+ * Tracks one finger without consuming it. The artwork reacts immediately, while release animates
+ * only the blend weight; keeping the last pointer pose avoids two competing return animations.
+ */
+private fun Modifier.boardParallaxInput(
+    touchBlend: Animatable<Float, AnimationVector1D>,
+    onTilt: (BoardTilt) -> Unit,
+): Modifier = pointerInput(touchBlend) {
+    coroutineScope {
+        var blendJob: Job? = null
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            blendJob?.cancel()
+            onTilt(boardTiltForPointer(down.position.x, down.position.y, size.width, size.height))
+            blendJob = launch { touchBlend.snapTo(1f) }
+
+            var tracked = down
+            while (tracked.pressed) {
+                val event = awaitPointerEvent()
+                tracked = event.changes.firstOrNull { it.id == down.id } ?: break
+                onTilt(
+                    boardTiltForPointer(
+                        tracked.position.x,
+                        tracked.position.y,
+                        size.width,
+                        size.height,
+                    ),
+                )
+            }
+
+            blendJob?.cancel()
+            blendJob = launch {
+                touchBlend.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/** Applies the shared perspective plus the small offset that sells distance between flat layers. */
+private fun Modifier.boardLayer(
+    tilt: BoardTilt,
+    density: Float,
+    depth: Float,
+    shape: Shape = RectangleShape,
+    shadowElevationDp: Float = 0f,
+    shadowColor: Color = Color.Transparent,
+    clipToShape: Boolean = false,
+): Modifier = graphicsLayer {
+    val parallax = parallaxOffset(tilt, depth, density)
+    val scale = 1f + depth * DEPTH_SCALE
+
+    rotationX = tilt.pitch
+    rotationY = tilt.yaw
+    cameraDistance = CAMERA_DISTANCE * density
+    translationX = parallax.x
+    translationY = parallax.y
+    scaleX = scale
+    scaleY = scale
+    this.shape = shape
+    clip = clipToShape
+    shadowElevation = shadowElevationDp * density
+    ambientShadowColor = shadowColor
+    spotShadowColor = shadowColor
+}
+
+private fun parallaxOffset(tilt: BoardTilt, depth: Float, density: Float): Offset {
+    val yaw = (tilt.yaw / MAX_VISUAL_YAW_DEGREES).coerceIn(-1f, 1f)
+    val pitch = (tilt.pitch / MAX_VISUAL_PITCH_DEGREES).coerceIn(-1f, 1f)
+    val travel = depth * MAX_DEPTH_TRAVEL_DP * density
+    return Offset(x = -yaw * travel, y = -pitch * travel)
+}
+
+/** Perspective angles in degrees. Kept free of Compose state so input mapping is unit-testable. */
+internal data class BoardTilt(val pitch: Float, val yaw: Float) {
+    companion object {
+        val Zero = BoardTilt(pitch = 0f, yaw = 0f)
+    }
+}
+
+/** Maps the local pointer position to the same bounded tilt regardless of the artwork's size. */
+internal fun boardTiltForPointer(x: Float, y: Float, width: Int, height: Int): BoardTilt {
+    if (width <= 0 || height <= 0 || !x.isFinite() || !y.isFinite()) return BoardTilt.Zero
+    val horizontal = ((width / 2f - x) / (width / 2f)).coerceIn(-1f, 1f)
+    val vertical = ((height / 2f - y) / (height / 2f)).coerceIn(-1f, 1f)
+    return BoardTilt(
+        pitch = vertical * TOUCH_PITCH_DEGREES,
+        yaw = horizontal * TOUCH_YAW_DEGREES,
+    )
+}
+
+/** Cross-fades back to the live idle pose, rather than returning to a stale angle captured on up. */
+internal fun blendBoardTilt(idle: BoardTilt, touch: BoardTilt, touchWeight: Float): BoardTilt {
+    val weight = touchWeight.coerceIn(0f, 1f)
+    return BoardTilt(
+        pitch = idle.pitch + (touch.pitch - idle.pitch) * weight,
+        yaw = idle.yaw + (touch.yaw - idle.yaw) * weight,
+    )
+}
+
 private const val CELLS = Sudoku.BLOCK_SIZE * Sudoku.BLOCK_SIZE
 private const val TAU = (2 * PI).toFloat()
 
 /** One full turn of the slower rotation. Long enough that the motion is felt, not watched. */
 private const val CYCLE_MILLIS = 42_000
 
-private const val YAW_DEGREES = 16f
-private const val PITCH_DEGREES = 9f
+private const val IDLE_YAW_DEGREES = 16f
+private const val IDLE_PITCH_DEGREES = 9f
+internal const val TOUCH_YAW_DEGREES = 14f
+internal const val TOUCH_PITCH_DEGREES = 10f
+private const val MAX_VISUAL_YAW_DEGREES = 16f
+private const val MAX_VISUAL_PITCH_DEGREES = 10f
 
-/** Not a whole number, so the two rotations never come back into step. */
+/** Not a whole number, so the two idle rotations never come back into step. */
 private const val PITCH_PERIOD_RATIO = 0.63f
 private const val PITCH_OFFSET = 1.1f
 private const val CAMERA_DISTANCE = 14f
@@ -204,8 +404,22 @@ private const val WIDTH_FRACTION = 0.42f
 
 /** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
 private const val MAX_SIDE_DP = 180
+private const val BOARD_CORNER_DP = 7f
+private const val BOARD_SURFACE_ALPHA = 0.22f
+private const val BOARD_SHADOW_ELEVATION_DP = 10f
+private const val BOARD_SHADOW_ALPHA = 0.28f
+private const val GLINT_MAX_ALPHA = 0.13f
+private const val GLINT_TRAVEL_FRACTION = 0.12f
 private const val GRID_STROKE_DP = 1f
-private const val GRID_ALPHA = 0.30f
+private const val GRID_ALPHA = 0.34f
+
+private const val PLATE_DEPTH = 0f
+private const val DIGIT_DEPTH = 1f
+private const val BACKGROUND_DEPTH = -0.45f
+private const val DEPTH_SCALE = 0.035f
+private const val MAX_DEPTH_TRAVEL_DP = 7f
+private const val HALO_RADIUS_FRACTION = 0.72f
+private const val HALO_CENTER_ALPHA = 0.15f
 
 /** How many digits each cell shows per full cycle. */
 private const val DIGIT_CYCLES = 7f
