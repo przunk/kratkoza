@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -162,13 +163,9 @@ fun RotatingBoardArt(
             },
         contentAlignment = Alignment.Center,
     ) {
-        // Perspective can extend past the untransformed bounds. Reserving room on both axes keeps
-        // even the maximum finger-driven tilt comfortably inside the title area.
-        val side = minOf(
-            maxWidth * WIDTH_FRACTION,
-            maxHeight * HEIGHT_SAFE_FRACTION,
-            MAX_SIDE_DP.dp,
-        )
+        // Sized from the width alone. Taking height into account made the scene stretch to whatever
+        // room it was given, which is the opposite of what a fixed rhythm down the screen needs.
+        val side = minOf(maxWidth * WIDTH_FRACTION, MAX_SIDE_DP.dp)
         if (side <= 0.dp) return@BoxWithConstraints
         val cell = side / Sudoku.BLOCK_SIZE
 
@@ -186,17 +183,32 @@ fun RotatingBoardArt(
                 .boardLayer(tilt = tilt, density = density.density, depth = WORDMARK_DEPTH)
                 .drawBehind {
                     val glyphs = Wordmark.path(size.height)
-                    translate(left = digitShadowOffset.x, top = digitShadowOffset.y) {
-                        drawPath(glyphs, Color.Black, alpha = WORDMARK_SHADOW_ALPHA)
+                    // Several faint passes spreading outwards rather than one hard copy. A path
+                    // cannot be blurred the way text can, so the softness has to be built from
+                    // overlapping offsets — near ones dark, far ones barely there.
+                    for (pass in WORDMARK_SHADOW_PASSES downTo 1) {
+                        val spread = pass.toFloat() / WORDMARK_SHADOW_PASSES
+                        translate(
+                            left = digitShadowOffset.x * spread,
+                            top = digitShadowOffset.y * spread,
+                        ) {
+                            drawPath(
+                                glyphs,
+                                Color.Black,
+                                alpha = WORDMARK_SHADOW_ALPHA / WORDMARK_SHADOW_PASSES,
+                            )
+                        }
                     }
                     drawPath(glyphs, digitColor)
                 },
         )
 
-        // The board takes the space the name leaves, so neither has to be squeezed for the other.
+        // A stated height, not a filled one: the name, one gap, and the board. That is what lets the
+        // column space the scene instead of stretching it, and it is the whole rhythm of the screen.
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .height(wordHeight + WORDMARK_GAP_DP.dp + side)
                 .padding(top = wordHeight + WORDMARK_GAP_DP.dp),
             contentAlignment = Alignment.Center,
         ) {
@@ -537,11 +549,10 @@ private const val CONTENT_CYCLE_MILLIS = 36_000
 private const val CAMERA_DISTANCE = 14f
 
 private const val WIDTH_FRACTION = 0.44f
-private const val HEIGHT_SAFE_FRACTION = 0.78f
 
 /** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
 private const val MAX_SIDE_DP = 180
-private const val GRID_STROKE_DP = 1f
+private const val GRID_STROKE_DP = 1.6f
 private const val GRID_ALPHA = 0.46f
 private const val BOARD_EDGE_STROKE_DP = 1.25f
 private const val BOARD_EDGE_ALPHA = 0.22f
@@ -556,8 +567,11 @@ private const val MAX_DEPTH_TRAVEL_DP = 6f
 /** Shallower than the digits: the name sits above the board without leaving it behind. */
 private const val WORDMARK_DEPTH = 0.6f
 private const val WORDMARK_WIDTH_FRACTION = 0.82f
-private const val WORDMARK_GAP_DP = 10
-private const val WORDMARK_SHADOW_ALPHA = 0.45f
+private const val WORDMARK_GAP_DP = 20
+private const val WORDMARK_SHADOW_ALPHA = 0.5f
+
+/** More passes spread the shadow further; each one is correspondingly fainter. */
+private const val WORDMARK_SHADOW_PASSES = 5
 
 private const val Z_REAR_SPARKS = 1f
 private const val Z_BOARD = 2f
@@ -574,9 +588,9 @@ private const val CELL_STAGGER = 0.37f
 private const val DIGIT_HEIGHT_FRACTION = 0.42f
 private const val DIGIT_MIN_ALPHA = 0.72f
 private const val DIGIT_MAX_ALPHA = 1f
-private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.16f
-private const val DIGIT_CAST_SHADOW_ALPHA = 0.42f
-private const val DIGIT_CAST_SHADOW_BLUR_PX = 5f
+private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.10f
+private const val DIGIT_CAST_SHADOW_ALPHA = 0.30f
+private const val DIGIT_CAST_SHADOW_BLUR_PX = 12f
 
 /**
  * One drifting spark. Everything is a fraction of the drawing area, so the same description works

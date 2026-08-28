@@ -68,14 +68,17 @@ fun HomeScreen(
             // The artwork sits in the space above the menu and hangs from the top of it, so it
             // stays clear of the buttons instead of crowding down onto them. The weights leave the
             // menu near the middle — a little below it, not pushed to the bottom.
+            // Measured, not weighted. The rhythm down the screen is margin, title, margin, board,
+            // twice a margin, menu — which only holds if the artwork takes the height it needs
+            // instead of stretching into whatever is left.
             Box(
-                modifier = Modifier.fillMaxWidth().weight(SPACE_ABOVE_MENU),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 RotatingBoardArt(
                     // Clear of the menu below. The scene tilts and its particles drift past its
                     // own bounds, so without a gap the artwork ends up touching the first button.
-                    modifier = Modifier.fillMaxSize().padding(bottom = ART_MENU_GAP_DP.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = ART_MENU_GAP_DP.dp),
                     contentDescription = stringResource(R.string.home_title),
                 )
             }
@@ -196,6 +199,4 @@ private const val TOP_MARGIN_DP = 20
 /** Between the artwork and the first button. */
 private const val ART_MENU_GAP_DP = 24
 
-/** Leaves a little more breathing room for the artwork and nudges the menu gently downwards. */
-private const val SPACE_ABOVE_MENU = 1.45f
 private const val SPACE_BELOW_MENU = 0.75f
