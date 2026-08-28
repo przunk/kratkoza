@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.ui.home
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RotatingBoardArtTest {
@@ -55,5 +56,42 @@ class RotatingBoardArtTest {
         assertEquals(SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS, sparkDepthLayer(0f))
         assertEquals(SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS, sparkDepthLayer(0.99f))
         assertEquals(SparkDepthLayer.IN_FRONT_OF_DIGITS, sparkDepthLayer(1f))
+    }
+
+    @Test
+    fun `idle wobble joins seamlessly at the cycle boundary`() {
+        val start = idleBoardTilt(0f)
+        val end = idleBoardTilt(1f)
+
+        assertEquals(start.pitch, end.pitch, 0.0001f)
+        assertEquals(start.yaw, end.yaw, 0.0001f)
+    }
+
+    @Test
+    fun `spark cycle joins seamlessly at shared phase boundary`() {
+        assertEquals(
+            sparkLife(phase = 0f, cycles = 2, offset = 0.37f),
+            sparkLife(phase = 1f, cycles = 2, offset = 0.37f),
+            0.0001f,
+        )
+    }
+
+    @Test
+    fun `spark ignites at bottom and evaporates towards top`() {
+        assertEquals(0f, sparkVisibility(0f), 0f)
+        assertTrue(sparkVisibility(0.12f) > sparkVisibility(0.65f))
+        assertEquals(0f, sparkVisibility(1f), 0f)
+    }
+
+    @Test
+    fun `digit shadow reacts to tilt on the board plane`() {
+        val neutral = digitShadowOffsetForTilt(BoardTilt.Zero, density = 2f)
+        val tilted = digitShadowOffsetForTilt(
+            BoardTilt(pitch = TOUCH_PITCH_DEGREES, yaw = TOUCH_YAW_DEGREES),
+            density = 2f,
+        )
+
+        assertTrue(tilted.x > neutral.x)
+        assertTrue(tilted.y < neutral.y)
     }
 }
