@@ -93,22 +93,17 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
-### Podwójne kliknięcie „Start" otwiera dwie plansze Daily
+### ~~Podwójne kliknięcie „Start" otwiera dwie plansze Daily~~ — naprawione 2026-08-28
 
 **Zgłoszone:** 2026-08-27. Testowane na buildzie 0.16.0 (26).
 
-Szybkie dwukrotne naciśnięcie „Start" na karcie Daily uruchamia grę dwa razy. Druga plansza zostaje
-w tle i po ukończeniu pierwszej gracz widzi ją od nowa — wygląda to tak, jakby Daily dało się
-rozegrać drugi raz.
+Przyczyną były dwa równoległe wywołania `startDaily`, które odczytywały brak zapisu, zanim
+którekolwiek zdążyło utworzyć podejście. `GameRepository` serializuje teraz sprawdzenie i zajęcie
+planszy mutexem, a `DailyViewModel` dodatkowo odrzuca kolejne naciśnięcie podczas otwierania.
 
-**Co jest podejrzane w kodzie.** `DailyViewModel.open` startuje korutynę na każde naciśnięcie i nic
-nie pilnuje, żeby druga nie weszła, zanim pierwsza skończy `startDaily`. Sama reguła „jedno podejście
-dziennie" jest po stronie repozytorium (`startDaily` zwraca `null`, gdy gra jest ukończona), ale
-dwa równoległe wywołania zdążą ją minąć — obie widzą stan sprzed zapisania czegokolwiek.
-
-**Czego naprawa musi dotknąć.** Nie wystarczy zablokować przycisku w UI: to zamyka najczęstszą drogę,
-ale nie samą lukę. Reguła powinna być nieprzekraczalna w repozytorium, a przycisk ma być tylko
-uprzejmością. Warto przy okazji sprawdzić tę samą ścieżkę przy „Kontynuuj".
+Test z dwiema naprawdę równoległymi korutynami odtwarzał błąd na starym kodzie (powstawały dwa
+podejścia), a po naprawie potwierdza jeden wpis historii i jeden zapis. Nadal do sprawdzenia na
+urządzeniu: szybkie dwukrotne naciśnięcie i przejście do gry.
 
 ### ~~Suma wszech czasów nie zawsze dociera~~ — naprawione 2026-08-27
 
