@@ -12,6 +12,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -28,7 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -37,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.przunk.kratkoza.domain.sudoku.Sudoku
 import com.przunk.kratkoza.ui.theme.LocalBoardColors
 import kotlin.math.PI
@@ -55,10 +60,10 @@ import kotlinx.coroutines.launch
  * that was already suspended in space. The gesture changes no application state and deliberately
  * consumes nothing; the artwork remains decoration and stays hidden from TalkBack.
  *
- * Compose has no child `translateZ` equivalent to CSS preserve-3d. The transparent grid and digits
- * therefore share one perspective rotation while their scale and translation differ slightly by
- * depth. Keeping both layers transparent matters: a card-like plate made this quiet title graphic
- * look like a dark dialog, while nested alpha layers left rectangular GPU artefacts under 3D.
+ * Compose has no child `translateZ` equivalent to CSS preserve-3d. Independent drawing layers
+ * therefore establish the scene explicitly: dark ground, rear sparks, opaque board, middle sparks,
+ * digits, then foreground sparks. The board and digits share one perspective rotation but differ
+ * in scale and translation, which makes their order readable without ambiguous translucent planes.
  *
  * Everything persistent is derived from a single repeating [phase]. Compose's animation clock
  * stops when the window is not drawn, so the idle movement and sparks pause with the screen rather
@@ -98,6 +103,7 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
                 radius = SPARK_MIN_RADIUS + random.nextFloat() * SPARK_RADIUS_RANGE,
                 speed = SPARK_MIN_SPEED + random.nextFloat() * SPARK_SPEED_RANGE,
                 offset = random.nextFloat(),
+                depth = SPARK_MIN_DEPTH + random.nextFloat() * SPARK_DEPTH_RANGE,
             )
         }
     }
@@ -109,109 +115,170 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
         yaw = sin(phase * TAU) * IDLE_YAW_DEGREES,
     )
     val tilt = blendBoardTilt(idleTilt, touchTilt, touchBlend.value)
+    val digitColor = lerp(colors.enteredDigit, Color.White, DIGIT_COLOR_LIFT)
+    val gridColor = lerp(colors.blockLine, Color.White, GRID_COLOR_LIFT)
 
-    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+    BoxWithConstraints(
+        modifier = modifier
+            .background(SCENE_BACKGROUND)
+            .clearAndSetSemantics { },
+        contentAlignment = Alignment.TopCenter,
+    ) {
         val side = minOf(maxWidth * WIDTH_FRACTION, maxHeight, MAX_SIDE_DP.dp)
         if (side <= 0.dp) return@BoxWithConstraints
         val cell = side / Sudoku.BLOCK_SIZE
 
-        // Behind the plate, and drawn across the whole area rather than the square, so the sparks
-        // read as the room the board is turning in rather than as part of the board.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    val parallax = parallaxOffset(tilt, BACKGROUND_DEPTH, density.density)
-                    translationX = parallax.x
-                    translationY = parallax.y
-                }
-                .drawBehind {
-                    for (spark in sparks) {
-                        val life = (phase * spark.speed + spark.offset).let { it - it.toInt() }
-                        // A bell: born from nothing, gone to nothing, brightest halfway up.
-                        val glow = 1f - abs(life * 2f - 1f)
-                        drawCircle(
-                            color = colors.enteredDigit,
-                            radius = spark.radius * size.minDimension * (1f - life * SPARK_SHRINK),
-                            center = Offset(
-                                x = (spark.x + spark.drift * life * SPARK_SWAY) * size.width,
-                                y = (spark.y - life * spark.rise) * size.height,
-                            ),
-                            alpha = glow * glow * SPARK_MAX_ALPHA,
-                        )
-                    }
-                }
-                .clearAndSetSemantics { },
+        SparkField(
+            sparks = sparks,
+            layer = SparkDepthLayer.BEHIND_BOARD,
+            phase = phase,
+            tilt = tilt,
+            color = digitColor,
+            density = density.density,
+            modifier = Modifier.fillMaxSize().zIndex(Z_REAR_SPARKS),
         )
 
+        // An opaque board is the visual anchor. It is deliberately drawn rather than promoted to
+        // a clipped shadow layer, which avoids the rectangular compositing artefacts seen on-device.
         Box(
             modifier = Modifier
                 .size(side)
-                .boardParallaxInput(
-                    touchBlend = touchBlend,
-                    onTilt = { touchTilt = it },
+                .zIndex(Z_BOARD)
+                .boardLayer(
+                    tilt = tilt,
+                    density = density.density,
+                    depth = BOARD_DEPTH,
                 )
-                .clearAndSetSemantics { },
-        ) {
-            // The grid stays as light as it was before the parallax. Only the digits travel farther
-            // than it, which is enough depth without turning the decoration into an opaque card.
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .boardLayer(
-                        tilt = tilt,
-                        density = density.density,
-                        depth = PLATE_DEPTH,
-                    )
-                    .drawBehind {
-                        val step = size.width / Sudoku.BLOCK_SIZE
-                        val stroke = GRID_STROKE_DP.dp.toPx()
-                        val line = colors.blockLine.copy(alpha = GRID_ALPHA)
-                        for (index in 0..Sudoku.BLOCK_SIZE) {
-                            val at = (index * step).coerceIn(stroke / 2, size.width - stroke / 2)
-                            drawLine(line, Offset(at, 0f), Offset(at, size.height), stroke)
-                            drawLine(line, Offset(0f, at), Offset(size.width, at), stroke)
-                        }
-                    },
-            )
+                .drawBehind {
+                    drawRect(BOARD_BACKGROUND)
+                    val step = size.width / Sudoku.BLOCK_SIZE
+                    val stroke = GRID_STROKE_DP.dp.toPx()
+                    val line = gridColor.copy(alpha = GRID_ALPHA)
+                    for (index in 0..Sudoku.BLOCK_SIZE) {
+                        val at = (index * step).coerceIn(stroke / 2, size.width - stroke / 2)
+                        drawLine(line, Offset(at, 0f), Offset(at, size.height), stroke)
+                        drawLine(line, Offset(0f, at), Offset(size.width, at), stroke)
+                    }
+                },
+        )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .boardLayer(
-                        tilt = tilt,
-                        density = density.density,
-                        depth = DIGIT_DEPTH,
-                    ),
-            ) {
-                for (row in 0 until Sudoku.BLOCK_SIZE) {
-                    Row {
-                        for (column in 0 until Sudoku.BLOCK_SIZE) {
-                            val index = row * Sudoku.BLOCK_SIZE + column
-                            DriftingDigit(
-                                sequence = sequences[index],
-                                // Spread the cells across the cycle so they never breathe in unison.
-                                cellPhase = phase * DIGIT_CYCLES + index * CELL_STAGGER,
-                                cellSize = cell,
-                            )
-                        }
+        SparkField(
+            sparks = sparks,
+            layer = SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS,
+            phase = phase,
+            tilt = tilt,
+            color = digitColor,
+            density = density.density,
+            modifier = Modifier.fillMaxSize().zIndex(Z_MIDDLE_SPARKS),
+        )
+
+        Column(
+            modifier = Modifier
+                .size(side)
+                .zIndex(Z_DIGITS)
+                .boardLayer(
+                    tilt = tilt,
+                    density = density.density,
+                    depth = DIGIT_DEPTH,
+                ),
+        ) {
+            for (row in 0 until Sudoku.BLOCK_SIZE) {
+                Row {
+                    for (column in 0 until Sudoku.BLOCK_SIZE) {
+                        val index = row * Sudoku.BLOCK_SIZE + column
+                        DriftingDigit(
+                            sequence = sequences[index],
+                            // Spread the cells across the cycle so they never breathe in unison.
+                            cellPhase = phase * DIGIT_CYCLES + index * CELL_STAGGER,
+                            cellSize = cell,
+                            color = digitColor,
+                        )
                     }
                 }
             }
         }
+
+        SparkField(
+            sparks = sparks,
+            layer = SparkDepthLayer.IN_FRONT_OF_DIGITS,
+            phase = phase,
+            tilt = tilt,
+            color = digitColor,
+            density = density.density,
+            modifier = Modifier.fillMaxSize().zIndex(Z_FRONT_SPARKS),
+        )
+
+        // Input is its own top layer. It has no pixels and consumes no event, so the visual order
+        // remains independent from the gesture implementation.
+        Box(
+            modifier = Modifier
+                .size(side)
+                .zIndex(Z_INPUT)
+                .boardParallaxInput(
+                    touchBlend = touchBlend,
+                    onTilt = { touchTilt = it },
+                ),
+        )
     }
+}
+
+/**
+ * Draws only one depth band. A spark keeps its own depth inside that band, so nearer particles are
+ * larger, brighter and travel farther than distant ones instead of moving as one flat wallpaper.
+ */
+@Composable
+private fun SparkField(
+    sparks: List<Spark>,
+    layer: SparkDepthLayer,
+    phase: Float,
+    tilt: BoardTilt,
+    color: Color,
+    density: Float,
+    modifier: Modifier,
+) {
+    Box(
+        modifier = modifier
+            .drawBehind {
+                val yaw = (tilt.yaw / MAX_VISUAL_YAW_DEGREES).coerceIn(-1f, 1f)
+                val pitch = (tilt.pitch / MAX_VISUAL_PITCH_DEGREES).coerceIn(-1f, 1f)
+
+                for (spark in sparks) {
+                    if (sparkDepthLayer(spark.depth) != layer) continue
+
+                    val life = (phase * spark.speed + spark.offset).let { it - it.toInt() }
+                    val glow = 1f - abs(life * 2f - 1f)
+                    val depthScale = (1f + spark.depth * SPARK_DEPTH_SCALE)
+                        .coerceIn(SPARK_MIN_DEPTH_SCALE, SPARK_MAX_DEPTH_SCALE)
+                    val depthAlpha = (SPARK_DEPTH_ALPHA_BASE + spark.depth * SPARK_DEPTH_ALPHA_STEP)
+                        .coerceIn(SPARK_MIN_DEPTH_ALPHA, SPARK_MAX_DEPTH_ALPHA)
+                    val travel = spark.depth * SPARK_PARALLAX_TRAVEL_DP * density
+
+                    drawCircle(
+                        color = color,
+                        radius = spark.radius * size.minDimension *
+                            (1f - life * SPARK_SHRINK) * depthScale,
+                        center = Offset(
+                            x = (spark.x + spark.drift * life * SPARK_SWAY) * size.width -
+                                yaw * travel,
+                            y = (spark.y - life * spark.rise) * size.height - pitch * travel,
+                        ),
+                        alpha = glow * glow * SPARK_MAX_ALPHA * depthAlpha,
+                    )
+                }
+            }
+            .clearAndSetSemantics { },
+    )
 }
 
 /** One cell: a digit swelling into view and away again, taking the next of [sequence] each time. */
 @Composable
-private fun DriftingDigit(sequence: List<Int>, cellPhase: Float, cellSize: Dp) {
-    val colors = LocalBoardColors.current
+private fun DriftingDigit(sequence: List<Int>, cellPhase: Float, cellSize: Dp, color: Color) {
     val turn = cellPhase.toInt()
     val within = cellPhase - turn
 
-    // A bell rather than a triangle: the digit is absent for most of its turn and is only briefly
-    // legible, which is what keeps nine of them from adding up to a busy screen.
+    // A bell still changes the numeral, but the floor keeps all nine visibly in front of the board.
     val visibility = (1f - abs(within * 2f - 1f)).let { it * it }
+    val alpha = DIGIT_MIN_ALPHA + visibility * (DIGIT_MAX_ALPHA - DIGIT_MIN_ALPHA)
 
     Box(
         modifier = Modifier.size(cellSize),
@@ -221,11 +288,14 @@ private fun DriftingDigit(sequence: List<Int>, cellPhase: Float, cellSize: Dp) {
             text = sequence[turn % sequence.size].toString(),
             style = TextStyle(
                 fontSize = with(LocalDensity.current) { (cellSize * DIGIT_HEIGHT_FRACTION).toSp() },
-                fontWeight = FontWeight.Light,
-                // Alpha in the paint, not another graphics layer. Nested translucent layers under
-                // a 3D parent produced dark rectangular tiles on real devices.
-                color = colors.enteredDigit.copy(alpha = visibility * DIGIT_MAX_ALPHA),
+                fontWeight = FontWeight.Medium,
+                color = color.copy(alpha = alpha),
                 textAlign = TextAlign.Center,
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = DIGIT_SHADOW_ALPHA),
+                    offset = Offset(0f, DIGIT_SHADOW_OFFSET_PX),
+                    blurRadius = DIGIT_SHADOW_BLUR_PX,
+                ),
             ),
         )
     }
@@ -327,6 +397,20 @@ internal fun blendBoardTilt(idle: BoardTilt, touch: BoardTilt, touchWeight: Floa
     )
 }
 
+/** Explicit draw band for a particle relative to the two content planes. */
+internal enum class SparkDepthLayer {
+    BEHIND_BOARD,
+    BETWEEN_BOARD_AND_DIGITS,
+    IN_FRONT_OF_DIGITS,
+}
+
+/** Converts continuous particle depth into the scene's stable drawing order. */
+internal fun sparkDepthLayer(depth: Float): SparkDepthLayer = when {
+    depth < BOARD_DEPTH -> SparkDepthLayer.BEHIND_BOARD
+    depth < DIGIT_DEPTH -> SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS
+    else -> SparkDepthLayer.IN_FRONT_OF_DIGITS
+}
+
 private const val CELLS = Sudoku.BLOCK_SIZE * Sudoku.BLOCK_SIZE
 private const val TAU = (2 * PI).toFloat()
 
@@ -350,19 +434,34 @@ private const val WIDTH_FRACTION = 0.42f
 /** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
 private const val MAX_SIDE_DP = 180
 private const val GRID_STROKE_DP = 1f
-private const val GRID_ALPHA = 0.30f
+private const val GRID_ALPHA = 0.46f
 
-private const val PLATE_DEPTH = 0f
+private val SCENE_BACKGROUND = Color(0xFF090E12)
+private val BOARD_BACKGROUND = Color(0xFF1C2A34)
+private const val DIGIT_COLOR_LIFT = 0.62f
+private const val GRID_COLOR_LIFT = 0.48f
+
+private const val BOARD_DEPTH = 0f
 private const val DIGIT_DEPTH = 1f
-private const val BACKGROUND_DEPTH = -0.30f
-private const val DEPTH_SCALE = 0.015f
-private const val MAX_DEPTH_TRAVEL_DP = 4f
+private const val DEPTH_SCALE = 0.025f
+private const val MAX_DEPTH_TRAVEL_DP = 6f
+
+private const val Z_REAR_SPARKS = 1f
+private const val Z_BOARD = 2f
+private const val Z_MIDDLE_SPARKS = 3f
+private const val Z_DIGITS = 4f
+private const val Z_FRONT_SPARKS = 5f
+private const val Z_INPUT = 6f
 
 /** How many digits each cell shows per full cycle. */
 private const val DIGIT_CYCLES = 7f
 private const val CELL_STAGGER = 0.37f
 private const val DIGIT_HEIGHT_FRACTION = 0.42f
-private const val DIGIT_MAX_ALPHA = 0.38f
+private const val DIGIT_MIN_ALPHA = 0.26f
+private const val DIGIT_MAX_ALPHA = 0.94f
+private const val DIGIT_SHADOW_ALPHA = 0.48f
+private const val DIGIT_SHADOW_OFFSET_PX = 2f
+private const val DIGIT_SHADOW_BLUR_PX = 4f
 
 /**
  * One drifting spark. Everything is a fraction of the drawing area, so the same description works
@@ -377,6 +476,7 @@ private data class Spark(
     val radius: Float,
     val speed: Float,
     val offset: Float,
+    val depth: Float,
 )
 
 private const val SPARK_COUNT = 36
@@ -388,4 +488,14 @@ private const val SPARK_MIN_SPEED = 1.5f
 private const val SPARK_SPEED_RANGE = 2.5f
 private const val SPARK_SWAY = 0.12f
 private const val SPARK_SHRINK = 0.35f
-private const val SPARK_MAX_ALPHA = 0.42f
+private const val SPARK_MAX_ALPHA = 0.52f
+private const val SPARK_MIN_DEPTH = -1.1f
+private const val SPARK_DEPTH_RANGE = 2.55f
+private const val SPARK_DEPTH_SCALE = 0.20f
+private const val SPARK_MIN_DEPTH_SCALE = 0.68f
+private const val SPARK_MAX_DEPTH_SCALE = 1.30f
+private const val SPARK_DEPTH_ALPHA_BASE = 0.78f
+private const val SPARK_DEPTH_ALPHA_STEP = 0.16f
+private const val SPARK_MIN_DEPTH_ALPHA = 0.52f
+private const val SPARK_MAX_DEPTH_ALPHA = 1f
+private const val SPARK_PARALLAX_TRAVEL_DP = 8f

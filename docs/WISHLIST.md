@@ -15,7 +15,9 @@ które pojawiają się i znikają. Zostaje niżej jako zapis rozważanych warian
 
 **Rozwinięte 2026-08-28.** Kratka, cyfry i iskierki są osobnymi warstwami paralaksy: w spoczynku
 zachowują powolny dryf, pod palcem reagują na położenie, a po puszczeniu płynnie wracają do ruchu
-automatycznego. Efekt pozostaje czystą dekoracją Compose, bez sensorów i nowych zależności.
+automatycznego. Ciemna scena i jaśniejsza nieprzezroczysta plansza stanowią dwie stałe płaszczyzny,
+a iskry dzielą się na lecące za planszą, między planszą i cyframi oraz przed cyframi. Efekt pozostaje
+czystą dekoracją Compose, bez sensorów i nowych zależności.
 
 **Zgłoszone:** 2026-08-25.
 

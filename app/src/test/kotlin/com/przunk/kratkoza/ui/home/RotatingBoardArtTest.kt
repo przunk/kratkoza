@@ -48,4 +48,12 @@ class RotatingBoardArtTest {
         assertEquals(BoardTilt(pitch = 3f, yaw = -3f), blendBoardTilt(idle, touch, 0.5f))
         assertEquals(touch, blendBoardTilt(idle, touch, touchWeight = 2f))
     }
+
+    @Test
+    fun `spark depth places particles around both content planes`() {
+        assertEquals(SparkDepthLayer.BEHIND_BOARD, sparkDepthLayer(-0.01f))
+        assertEquals(SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS, sparkDepthLayer(0f))
+        assertEquals(SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS, sparkDepthLayer(0.99f))
+        assertEquals(SparkDepthLayer.IN_FRONT_OF_DIGITS, sparkDepthLayer(1f))
+    }
 }
