@@ -119,7 +119,8 @@ zatwierdzonymi wymaganiami** — zostaw kod gotowy na rozszerzenie, ale nie impl
 ## 6. Konwencje kodu
 
 - **Kotlin**, Jetpack Compose, Material 3. Nowego kodu w Javie nie piszemy.
-- **Komentarze i KDoc po angielsku.** Opisy commitów i dokumentacja w `docs/` — po polsku.
+- **Kod i git po angielsku** — komentarze, KDoc, nazwy gałęzi i opisy commitów.
+  Dokumentacja w `docs/` zostaje po polsku: czyta ją właściciel projektu, a nie kompilator.
 - Komentarz ma tłumaczyć **dlaczego**, nie powtarzać, co widać w kodzie. Szczególnie cenne jest
   zapisanie, czego dana decyzja unika.
 - **Żadnych nowych zależności** bez wyraźnego uzasadnienia (`technical_requirements.md` §9).
@@ -159,7 +160,9 @@ Po dodaniu napisu sprawdź parzystość kluczy między `values/` i `values-pl/`.
 
 ## 8. Commity
 
-- Opis po polsku, w trybie oznajmującym: „Cyfra rozdana na całej planszy nie daje się już wybrać".
+- Opis po angielsku, w trybie oznajmującym: "A digit placed nine times can no longer be
+  selected". Reguła zmieniona 2026-08-28; wcześniej opisy były po polsku, więc starsza
+  historia jest mieszana.
 - Tłumacz **dlaczego**, nie tylko co. Jeśli poprawiasz błąd, napisz, co było jego przyczyną — a jeśli
   przyczyną była wcześniejsza decyzja, napisz to wprost.
 - **Nie podbijaj `versionCode` ani `versionName` na gałęzi zadaniowej.** Robi to jedna osoba,

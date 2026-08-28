@@ -93,6 +93,25 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
+### Dwa kliknięcia „wstecz" w Ustawieniach zostawiają pusty ekran
+
+**Zgłoszone:** 2026-08-28 z urządzenia, **100% powtarzalności**. Aplikacja wraca na ekran główny,
+natychmiast go opuszcza i zostaje pusta karta, z której nie da się nic zrobić.
+
+**Trop.** Ekran główny nie ma strzałki wstecz, Ustawienia mają — i wołają `navController::popBackStack`
+bez żadnego zabezpieczenia (`KratkozaNavHost`, wszystkie ekrany podrzędne robią to tak samo). Dwa
+szybkie kliknięcia to dwa wywołania: pierwsze zdejmuje Ustawienia, drugie zdejmuje **ekran główny**,
+bo nikt nie sprawdza, czy jest jeszcze co zdejmować. Zostaje `NavHost` z pustym stosem — nie ma czego
+narysować, a Activity się nie kończy, więc nie ma też wyjścia.
+
+**To ta sama klasa błędu co podwójny „Start" w Daily**: dwa zdarzenia wchodzą, zanim pierwsze zdąży
+zmienić stan. Tamto rozwiązanie — blokada w warstwie, która naprawdę pilnuje reguły — jest tu
+wskazówką, ale nie da się przepisać wprost: to nawigacja, nie baza.
+
+**Do rozstrzygnięcia przy naprawie.** Czy zabezpieczyć każde wywołanie osobno, czy raz, w jednym
+miejscu, przez które przechodzą wszystkie powroty. Drugie jest lepsze: dziś sześć ekranów powtarza
+`navController::popBackStack` i każdy nowy ekran odziedziczy tę usterkę razem z wzorcem.
+
 ### ~~Podwójne kliknięcie „Start" otwiera dwie plansze Daily~~ — naprawione 2026-08-28
 
 **Potwierdzone na urządzeniu 2026-08-28** przez zgłaszającego.
@@ -327,6 +346,54 @@ Liczba testów po rozcięciu bez zmian (344), więc nic nie zginęło po drodze.
 
 **Czego nie ruszyłem:** `importSharedBoard` zostało w `GameRepository`. Jest małe i stabilne, a
 osobna klasa na jedną metodę dołożyłaby plik, nie zmniejszając pola konfliktów.
+
+### ~~Tablica wszech czasów nieosiągalna, dopóki nie zagra się dzisiaj~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28 z urządzenia.** Oba przyciski tablic siedzą w karcie „Twoje dzisiejsze
+wyniki", która renderuje się tylko przy `entries.any { it.score != null }`. Bez rozegranego dziś
+Daily nie ma karty, a razem z nią znikają oba przyciski.
+
+Dla sumy dnia to ma sens. Dla **sumy wszech czasów nie ma żadnego** — ona nie jest o dzisiaj, więc
+gracz z dorobkiem z zeszłego tygodnia nie widzi własnej tablicy, dopóki czegoś nie rozwiąże.
+
+Kierunek: wyjąć przyciski z karty wyników do własnej sekcji pokazywanej, gdy gracz jest zalogowany,
+niezależnie od tego, co zrobił dzisiaj. Tablica jest warta obejrzenia także wtedy, gdy nie ma się na
+niej wyniku.
+
+### ~~Mocniejsze wypalanie iskier~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28.** Iskry już maleją idąc ku górze (`SPARK_SHRINK = 0.22f`, czyli 22% ubytku
+promienia), ale efekt jest za słaby. Docelowo **60%**.
+
+### ~~Symetryzacja wobble w osi yaw~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28**, po zmierzeniu obu osi przez pełny cykl.
+
+Pitch jest praktycznie symetryczny (−7,45° … +7,27°). **Yaw nie jest: −15,46° … +10,23°** — wychył
+w jedną stronę o połowę większy niż w drugą, i to właśnie czyta się jako ruch jednokierunkowy.
+
+Przyczyna nie jest przypadkowa. Suma harmonicznych ma symetryczne skrajności dokładnie wtedy, gdy
+faza każdej składowej jest odpowiednią wielokrotnością fazy podstawowej — wtedy cały przebieg jest
+tylko przesunięciem w czasie przebiegu o zerowych fazach. W yaw fazy (0; 0,75; 2,20) tego warunku nie
+spełniają, w pitch spełniają go dwie z trzech (1,30; 2,60; **0,30** zamiast 5,20).
+
+Po zblokowaniu faz obie osie wychodzą symetryczne co do zera, przy zachowanym przesunięciu pitch
+względem yaw, które daje ruchowi charakter figury zamiast przekątnej. Zmierzone po zmianie:
+yaw ±12,79°, pitch ±6,33°, asymetria 0,000° na obu osiach, 50/50 czasu po każdej stronie. Szczyt
+w „większą" stronę jest mniejszy niż był (12,79° wobec 15,46°) — to cena symetrii, warta obejrzenia
+na urządzeniu.
+
+### ~~Matematyka animacji do osobnego pliku~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28.** `RotatingBoardArt.kt` ma 651 linii, 68 stałych i 18 deklaracji. Szew jest
+już wycięty i przetestowany: siedem funkcji `internal` to czysta matematyka, a testy są ułożone
+dokładnie wzdłuż tej granicy. Wyniesienie ich zostawia w pliku samo rysowanie.
+
+### ~~Wstrzykiwalne ziarno animacji~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28.** Cyfry i iskry są zasiewane z `System.nanoTime()` w dwóch miejscach, więc
+każde uruchomienie daje inny obrazek. Wizualnie bez znaczenia — ale blokuje taśmę klatek do oceny
+animacji (patrz niżej) i każde porównanie „przed/po".
 
 ### Generowanie zrzutów ekranu z testów Compose
 

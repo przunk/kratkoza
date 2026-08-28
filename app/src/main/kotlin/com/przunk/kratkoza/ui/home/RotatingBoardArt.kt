@@ -73,14 +73,28 @@ import kotlinx.coroutines.launch
  * drawn, so the wobble and sparks pause with the screen rather than running a background coroutine.
  */
 @Composable
-fun RotatingBoardArt(modifier: Modifier = Modifier) {
+fun RotatingBoardArt(
+    modifier: Modifier = Modifier,
+    /**
+     * Chooses the digits and the particles, or `null` to pick one per composition.
+     *
+     * Nullable rather than defaulted to the clock. A default argument is an expression evaluated on
+     * every call, and this composable is called on every animation frame — so `System.nanoTime()`
+     * as a default handed it a new seed sixty times a second and regenerated the whole scene with
+     * it. Passing null and resolving once is the same convenience without that trap.
+     */
+    seed: Long? = null,
+) {
     val colors = LocalBoardColors.current
     val density = LocalDensity.current
 
+    // Resolved once for the life of the composition, not once per frame.
+    val artSeed = remember(seed) { seed ?: System.nanoTime() }
+
     // A fixed order per composition, so the digits are unpredictable but never flicker into a new
     // value mid-fade.
-    val sequences = remember {
-        val random = Random(System.nanoTime())
+    val sequences = remember(artSeed) {
+        val random = Random(artSeed)
         List(CELLS) { (1..Sudoku.SIZE).shuffled(random) }
     }
 
@@ -104,8 +118,8 @@ fun RotatingBoardArt(modifier: Modifier = Modifier) {
         label = "content-phase",
     )
 
-    val sparks = remember {
-        val random = Random(System.nanoTime() + 1)
+    val sparks = remember(artSeed) {
+        val random = Random(artSeed + 1)
         List(SPARK_COUNT) {
             Spark(
                 x = random.nextFloat(),
@@ -289,17 +303,23 @@ private fun SparkField(
                     )
                     val alpha = visibility * SPARK_MAX_ALPHA * depthAlpha
 
+                    // Burning out is a loss of size as well as of light, so the halo shrinks with
+                    // the core rather than holding the particle at full width while only the middle
+                    // fades. Applied to both radii: the halo is nearly three times the core, so it
+                    // is what the eye reads as the size of the spark.
+                    val burn = sparkBurn(life)
+
                     // A wide, faint halo reads as emitted light; the compact core keeps the
-                    // particle crisp. Both evaporate together as the spark approaches the top.
+                    // particle crisp.
                     drawCircle(
                         color = color,
-                        radius = radius * SPARK_GLOW_RADIUS,
+                        radius = radius * burn * SPARK_GLOW_RADIUS,
                         center = centre,
                         alpha = alpha * SPARK_GLOW_ALPHA,
                     )
                     drawCircle(
                         color = color,
-                        radius = radius * (1f - life * SPARK_SHRINK),
+                        radius = radius * burn,
                         center = centre,
                         alpha = alpha,
                     )
@@ -460,96 +480,8 @@ private fun parallaxOffset(tilt: BoardTilt, depth: Float, density: Float): Offse
     return Offset(x = -yaw * travel, y = -pitch * travel)
 }
 
-/** Perspective angles in degrees. Kept free of Compose state so input mapping is unit-testable. */
-internal data class BoardTilt(val pitch: Float, val yaw: Float) {
-    companion object {
-        val Zero = BoardTilt(pitch = 0f, yaw = 0f)
-    }
-}
-
-/** Maps the local pointer position to the same bounded tilt regardless of the artwork's size. */
-internal fun boardTiltForPointer(x: Float, y: Float, width: Int, height: Int): BoardTilt {
-    if (width <= 0 || height <= 0 || !x.isFinite() || !y.isFinite()) return BoardTilt.Zero
-    val horizontal = ((width / 2f - x) / (width / 2f)).coerceIn(-1f, 1f)
-    val vertical = ((height / 2f - y) / (height / 2f)).coerceIn(-1f, 1f)
-    return BoardTilt(
-        pitch = vertical * TOUCH_PITCH_DEGREES,
-        yaw = horizontal * TOUCH_YAW_DEGREES,
-    )
-}
-
-/** Cross-fades back to the live idle pose, rather than returning to a stale angle captured on up. */
-internal fun blendBoardTilt(idle: BoardTilt, touch: BoardTilt, touchWeight: Float): BoardTilt {
-    val weight = touchWeight.coerceIn(0f, 1f)
-    return BoardTilt(
-        pitch = idle.pitch + (touch.pitch - idle.pitch) * weight,
-        yaw = idle.yaw + (touch.yaw - idle.yaw) * weight,
-    )
-}
-
-/**
- * Demo-scene wobble: integer harmonics make position and velocity meet at the loop boundary.
- * The result only tilts within a small range; it never accumulates into a full rotation.
- */
-internal fun idleBoardTilt(phase: Float): BoardTilt {
-    val angle = phase * TAU
-    return BoardTilt(
-        pitch = (
-            sin(angle + 1.30f) * 0.68f +
-                sin(angle * 2f + 2.60f) * 0.22f +
-                sin(angle * 4f + 0.30f) * 0.10f
-            ) * IDLE_PITCH_DEGREES,
-        yaw = (
-            sin(angle) * 0.72f +
-                sin(angle * 2f + 0.75f) * 0.20f +
-                sin(angle * 3f + 2.20f) * 0.08f
-            ) * IDLE_YAW_DEGREES,
-    )
-}
-
-/** Projects the elevated digits towards a fixed top-left light onto the board below. */
-internal fun digitShadowOffsetForTilt(tilt: BoardTilt, density: Float): Offset {
-    val yaw = (tilt.yaw / MAX_VISUAL_YAW_DEGREES).coerceIn(-1f, 1f)
-    val pitch = (tilt.pitch / MAX_VISUAL_PITCH_DEGREES).coerceIn(-1f, 1f)
-    return Offset(
-        x = (DIGIT_SHADOW_BASE_X_DP + yaw * DIGIT_SHADOW_TILT_X_DP) * density,
-        y = (DIGIT_SHADOW_BASE_Y_DP - pitch * DIGIT_SHADOW_TILT_Y_DP) * density,
-    )
-}
-
-/** Individual integer cycles keep every particle continuous when the shared phase restarts. */
-internal fun sparkLife(phase: Float, cycles: Int, offset: Float): Float {
-    val progress = phase * cycles + offset
-    return progress - floor(progress)
-}
-
-/** Quick ignition at the bottom followed by a long evaporation towards the top. */
-internal fun sparkVisibility(life: Float): Float {
-    val progress = life.coerceIn(0f, 1f)
-    val fadeIn = (progress / SPARK_FADE_IN_FRACTION).coerceIn(0f, 1f)
-    val evaporation = (
-        1f - ((progress - SPARK_EVAPORATION_START) / (1f - SPARK_EVAPORATION_START))
-            .coerceIn(0f, 1f)
-        )
-    return fadeIn * evaporation * evaporation
-}
-
-/** Explicit draw band for a particle relative to the two content planes. */
-internal enum class SparkDepthLayer {
-    BEHIND_BOARD,
-    BETWEEN_BOARD_AND_DIGITS,
-    IN_FRONT_OF_DIGITS,
-}
-
-/** Converts continuous particle depth into the scene's stable drawing order. */
-internal fun sparkDepthLayer(depth: Float): SparkDepthLayer = when {
-    depth < BOARD_DEPTH -> SparkDepthLayer.BEHIND_BOARD
-    depth < DIGIT_DEPTH -> SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS
-    else -> SparkDepthLayer.IN_FRONT_OF_DIGITS
-}
-
-private const val CELLS = Sudoku.BLOCK_SIZE * Sudoku.BLOCK_SIZE
-private const val TAU = (2 * PI).toFloat()
+internal const val CELLS = Sudoku.BLOCK_SIZE * Sudoku.BLOCK_SIZE
+internal const val TAU = (2 * PI).toFloat()
 
 /** Fast enough to feel alive, still slow enough to read as floating rather than spinning. */
 private const val WOBBLE_CYCLE_MILLIS = 20_000
@@ -557,12 +489,7 @@ private const val WOBBLE_CYCLE_MILLIS = 20_000
 /** Digits and vapour use a slower independent clock so faster wobble does not make them frantic. */
 private const val CONTENT_CYCLE_MILLIS = 36_000
 
-private const val IDLE_YAW_DEGREES = 16f
-private const val IDLE_PITCH_DEGREES = 9f
-internal const val TOUCH_YAW_DEGREES = 14f
-internal const val TOUCH_PITCH_DEGREES = 10f
-private const val MAX_VISUAL_YAW_DEGREES = 16f
-private const val MAX_VISUAL_PITCH_DEGREES = 10f
+
 
 private const val CAMERA_DISTANCE = 14f
 
@@ -580,8 +507,6 @@ private const val BOARD_BACKGROUND_LIFT = 0.13f
 private const val DIGIT_COLOR_LIFT = 0.62f
 private const val GRID_COLOR_LIFT = 0.48f
 
-private const val BOARD_DEPTH = 0f
-private const val DIGIT_DEPTH = 1f
 private const val DEPTH_SCALE = 0.025f
 private const val MAX_DEPTH_TRAVEL_DP = 6f
 
@@ -602,10 +527,6 @@ private const val DIGIT_MAX_ALPHA = 1f
 private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.16f
 private const val DIGIT_CAST_SHADOW_ALPHA = 0.42f
 private const val DIGIT_CAST_SHADOW_BLUR_PX = 5f
-private const val DIGIT_SHADOW_BASE_X_DP = 1.4f
-private const val DIGIT_SHADOW_BASE_Y_DP = 2.2f
-private const val DIGIT_SHADOW_TILT_X_DP = 1.8f
-private const val DIGIT_SHADOW_TILT_Y_DP = 1.4f
 
 /**
  * One drifting spark. Everything is a fraction of the drawing area, so the same description works
@@ -633,12 +554,9 @@ private const val SPARK_RADIUS_RANGE = 0.008f
 private const val SPARK_MIN_CYCLES = 1
 private const val SPARK_MAX_CYCLES = 2
 private const val SPARK_SWAY = 0.075f
-private const val SPARK_SHRINK = 0.22f
 private const val SPARK_MAX_ALPHA = 0.64f
 private const val SPARK_GLOW_RADIUS = 2.6f
 private const val SPARK_GLOW_ALPHA = 0.20f
-private const val SPARK_FADE_IN_FRACTION = 0.10f
-private const val SPARK_EVAPORATION_START = 0.22f
 private const val SPARK_MIN_DEPTH = -1.1f
 private const val SPARK_DEPTH_RANGE = 2.55f
 private const val SPARK_DEPTH_SCALE = 0.20f

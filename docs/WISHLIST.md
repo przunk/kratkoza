@@ -215,3 +215,29 @@ Ma dwie zalety, których wariant z przeskokiem nie ma:
   z klawiatury; bez tego powstanie druga cicha reguła,
 - decyzji, czy to osobna opcja w ustawieniach, czy zachowanie idące za istniejącym
   `highlightSameDigits`.
+
+---
+
+## 9. Tytuł wtopiony w animację zamiast nagłówka po lewej
+
+**Zgłoszone:** 2026-08-28.
+
+Dziś ekran główny ma zwykły pasek z tytułem „Kratkoza" wyrównanym do lewej, a pod nim osobny obszar
+z animacją. Pomysł: **usunąć pasek** i oddać całą górną część ekranu animacji, a nazwę narysować
+w jej obrębie — u góry, nad kratką, grubymi literami na całą szerokość.
+
+**Dlaczego to nie jest tylko przesunięcie napisu:**
+
+- Pasek to `KratkozaScaffold`, wspólny dla wszystkich ekranów. Ekran główny musiałby przestać go
+  używać albo dostać wariant bez paska — a wtedy trzeba zdecydować, co z górnym wcięciem systemowym,
+  które dziś załatwia `TopAppBar`.
+- Napis na całą szerokość, grubymi literami, przestaje być tekstem interfejsu i staje się elementem
+  grafiki. Musi więc znieść oba motywy, tryb wysokiego kontrastu i powiększoną czcionkę systemową —
+  a `project.md` §8 pozwala jej nie respektować tylko tam, gdzie niszczy geometrię planszy.
+- Animacja porusza się i przechyla pod palcem. Trzeba rozstrzygnąć, czy napis **należy do sceny**
+  i przechyla się razem z nią, czy stoi nieruchomo nad nią. To dwie różne rzeczy wizualnie i tylko
+  pierwsza wymaga wciągnięcia go w warstwy paralaksy.
+- Ekran główny jest jedynym miejscem, gdzie widać nazwę aplikacji. Po usunięciu paska tekst musi
+  zostać dostępny dla TalkBacka, a dziś grafika jest przed nim celowo ukryta
+  (`clearAndSetSemantics`).
+

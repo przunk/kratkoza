@@ -158,14 +158,14 @@ fun DailyScreen(
             // Only once there is something to show. An empty results card on a day nobody has
             // played is a promise of information rather than information.
             if (state.entries.any { it.score != null }) {
-                item {
-                    DailyResults(
-                        entries = state.entries,
-                        // Only once signed in. The totals are a comparison with other players, and
-                        // a board nobody can be placed on is not worth a button.
-                        onShowBoard = if (state.signedIn) viewModel::showBoard else null,
-                    )
-                }
+                item { DailyResults(entries = state.entries) }
+            }
+
+            // Not tied to today's card, which used to hide both boards until something had been
+            // solved. A day's total is about today and may reasonably wait for it; a lifetime total
+            // is not, and a board is worth looking at even by somebody who is not on it yet.
+            if (state.signedIn) {
+                item { LeaderboardCard(onShowBoard = viewModel::showBoard) }
             }
 
             // Below the boards, not above them: signing in is optional, and the day's puzzles are
@@ -174,6 +174,37 @@ fun DailyScreen(
                 item { SignInCard(onSignIn = viewModel::signIn) }
             }
 
+        }
+    }
+}
+
+@Composable
+private fun LeaderboardCard(onShowBoard: (Leaderboard) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.daily_leaderboard),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            // Two boards rather than one because Play Games keeps a best score, and a day's total
+            // and a lifetime's total are different questions that would otherwise share an answer.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { onShowBoard(Leaderboard.DAILY_TOTAL) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.daily_board_today))
+                }
+                OutlinedButton(
+                    onClick = { onShowBoard(Leaderboard.ALL_TIME_TOTAL) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.daily_board_all_time))
+                }
+            }
         }
     }
 }
@@ -295,7 +326,7 @@ private fun DailyCard(
  * results are already here and are most of what the card is for — seeing today at a glance.
  */
 @Composable
-private fun DailyResults(entries: List<DailyEntry>, onShowBoard: ((Leaderboard) -> Unit)?) {
+private fun DailyResults(entries: List<DailyEntry>) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(
@@ -342,29 +373,6 @@ private fun DailyResults(entries: List<DailyEntry>, onShowBoard: ((Leaderboard) 
                     text = stringResource(R.string.daily_score, entries.sumOf { it.score ?: 0 }),
                     style = MaterialTheme.typography.titleSmall,
                 )
-            }
-
-            // The same number, next to other people's. Two boards rather than one because Play
-            // Games keeps a best score, and a day's total and a lifetime's total are different
-            // questions that would otherwise share an answer.
-            if (onShowBoard != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = { onShowBoard(Leaderboard.DAILY_TOTAL) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.daily_board_today))
-                    }
-                    OutlinedButton(
-                        onClick = { onShowBoard(Leaderboard.ALL_TIME_TOTAL) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.daily_board_all_time))
-                    }
-                }
             }
         }
     }
