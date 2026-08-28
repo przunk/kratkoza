@@ -59,6 +59,19 @@ class RotatingBoardArtTest {
     }
 
     @Test
+    fun `the idle wobble leans as far one way as the other`() {
+        // Phases are multiples of the fundamental's precisely so this holds. Chosen freely they do
+        // not: yaw once ran to -15.5 degrees but only +10.2, which is what read on a device as the
+        // board leaning permanently to one side.
+        val samples = (0 until 2000).map { idleBoardTilt(it / 2000f) }
+
+        val pitch = samples.map { it.pitch }
+        val yaw = samples.map { it.yaw }
+        assertEquals(-pitch.min(), pitch.max(), 0.01f)
+        assertEquals(-yaw.min(), yaw.max(), 0.01f)
+    }
+
+    @Test
     fun `idle wobble joins seamlessly at the cycle boundary`() {
         val start = idleBoardTilt(0f)
         val end = idleBoardTilt(1f)

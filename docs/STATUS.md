@@ -328,7 +328,7 @@ Liczba testów po rozcięciu bez zmian (344), więc nic nie zginęło po drodze.
 **Czego nie ruszyłem:** `importSharedBoard` zostało w `GameRepository`. Jest małe i stabilne, a
 osobna klasa na jedną metodę dołożyłaby plik, nie zmniejszając pola konfliktów.
 
-### Tablica wszech czasów nieosiągalna, dopóki nie zagra się dzisiaj
+### ~~Tablica wszech czasów nieosiągalna, dopóki nie zagra się dzisiaj~~ — zrobione 2026-08-28
 
 **Zgłoszone 2026-08-28 z urządzenia.** Oba przyciski tablic siedzą w karcie „Twoje dzisiejsze
 wyniki", która renderuje się tylko przy `entries.any { it.score != null }`. Bez rozegranego dziś
@@ -341,12 +341,12 @@ Kierunek: wyjąć przyciski z karty wyników do własnej sekcji pokazywanej, gdy
 niezależnie od tego, co zrobił dzisiaj. Tablica jest warta obejrzenia także wtedy, gdy nie ma się na
 niej wyniku.
 
-### Mocniejsze wypalanie iskier
+### ~~Mocniejsze wypalanie iskier~~ — zrobione 2026-08-28
 
 **Zgłoszone 2026-08-28.** Iskry już maleją idąc ku górze (`SPARK_SHRINK = 0.22f`, czyli 22% ubytku
 promienia), ale efekt jest za słaby. Docelowo **60%**.
 
-### Symetryzacja wobble w osi yaw
+### ~~Symetryzacja wobble w osi yaw~~ — zrobione 2026-08-28
 
 **Zgłoszone 2026-08-28**, po zmierzeniu obu osi przez pełny cykl.
 
@@ -359,15 +359,18 @@ tylko przesunięciem w czasie przebiegu o zerowych fazach. W yaw fazy (0; 0,75; 
 spełniają, w pitch spełniają go dwie z trzech (1,30; 2,60; **0,30** zamiast 5,20).
 
 Po zblokowaniu faz obie osie wychodzą symetryczne co do zera, przy zachowanym przesunięciu pitch
-względem yaw, które daje ruchowi charakter figury zamiast przekątnej.
+względem yaw, które daje ruchowi charakter figury zamiast przekątnej. Zmierzone po zmianie:
+yaw ±12,79°, pitch ±6,33°, asymetria 0,000° na obu osiach, 50/50 czasu po każdej stronie. Szczyt
+w „większą" stronę jest mniejszy niż był (12,79° wobec 15,46°) — to cena symetrii, warta obejrzenia
+na urządzeniu.
 
-### Matematyka animacji do osobnego pliku
+### ~~Matematyka animacji do osobnego pliku~~ — zrobione 2026-08-28
 
 **Zgłoszone 2026-08-28.** `RotatingBoardArt.kt` ma 651 linii, 68 stałych i 18 deklaracji. Szew jest
 już wycięty i przetestowany: siedem funkcji `internal` to czysta matematyka, a testy są ułożone
 dokładnie wzdłuż tej granicy. Wyniesienie ich zostawia w pliku samo rysowanie.
 
-### Wstrzykiwalne ziarno animacji
+### ~~Wstrzykiwalne ziarno animacji~~ — zrobione 2026-08-28
 
 **Zgłoszone 2026-08-28.** Cyfry i iskry są zasiewane z `System.nanoTime()` w dwóch miejscach, więc
 każde uruchomienie daje inny obrazek. Wizualnie bez znaczenia — ale blokuje taśmę klatek do oceny
