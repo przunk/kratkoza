@@ -93,7 +93,7 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
-### Dwa kliknięcia „wstecz" w Ustawieniach zostawiają pusty ekran
+### ~~Dwa kliknięcia „wstecz" w Ustawieniach zostawiają pusty ekran~~ — naprawione 2026-08-28
 
 **Zgłoszone:** 2026-08-28 z urządzenia, **100% powtarzalności**. Aplikacja wraca na ekran główny,
 natychmiast go opuszcza i zostaje pusta karta, z której nie da się nic zrobić.
@@ -108,9 +108,13 @@ narysować, a Activity się nie kończy, więc nie ma też wyjścia.
 zmienić stan. Tamto rozwiązanie — blokada w warstwie, która naprawdę pilnuje reguły — jest tu
 wskazówką, ale nie da się przepisać wprost: to nawigacja, nie baza.
 
-**Do rozstrzygnięcia przy naprawie.** Czy zabezpieczyć każde wywołanie osobno, czy raz, w jednym
-miejscu, przez które przechodzą wszystkie powroty. Drugie jest lepsze: dziś sześć ekranów powtarza
-`navController::popBackStack` i każdy nowy ekran odziedziczy tę usterkę razem z wzorcem.
+**Rozwiązanie.** Jedno miejsce, `navigateBackOnce`, przez które przechodzą wszystkie sześć powrotów.
+Blokadą jest cykl życia wpisu, z którego przyszło naciśnięcie: ekran schodzący ze stosu nie jest już
+RESUMED, więc drugie wywołanie nie ma na czym zadziałać. W przeciwieństwie do flagi w każdym ekranie
+nie ma tu stanu do wyzerowania i nie da się o tym zapomnieć przy siódmym ekranie.
+
+Sprawdzone w obie strony: bez blokady test pada na „the stack must not be empty", a pojedyncze
+naciśnięcie dalej wraca — blokada nie zamieniła się w odmowę.
 
 ### ~~Podwójne kliknięcie „Start" otwiera dwie plansze Daily~~ — naprawione 2026-08-28
 
