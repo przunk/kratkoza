@@ -388,6 +388,38 @@ odniesienia zakładają rozpiętość **pięciokrotną** (5 → 25 minut). Cała
 wyprowadzenia czasów z licznika kroków zawiodła — ale też pokazuje, że pięciokrotność jest
 oszacowaniem z wyczucia i nic jej nie potwierdza.
 
+### Co z tym zrobiono (2026-08-29)
+
+**Daily bierze teraz Łatwy / Trudny / Ekspert**, a Łatwy został rozrzedzony z 36 do 30 podpowiedzi.
+Zmierzone ponownie po zmianie:
+
+| | przed | po |
+|---|---|---|
+| podpowiedzi w Łatwym | 36,0 | 30,0 |
+| średnia wymagana ranga | 1,15 | 1,71 |
+| kroki | 45,0 | 51,0 |
+| plansz na samych nagich singlach | 85% | 29% |
+
+Rozrzedzenie zmieniło Łatwy **w rodzaju, nie tylko w długości**: ukryty singiel jest teraz potrzebny
+w 71 planszach na 100 zamiast w 15. Pułap się nie zmienił, więc poziom dalej jest „na singlach" — po
+prostu przestał być planszą, którą wypełnia się bez patrzenia.
+
+**Skoki w Daily po obu zmianach:**
+
+| | przed | po |
+|---|---|---|
+| pierwszy szczebel | +1,85 | **+1,29** |
+| drugi szczebel | +5,72 | **+1,35** |
+
+Drabinka dnia jest teraz równa i mieści się w rozstępie zwykłego szczebla pełnej drabinki
+(+0,84 … +1,35). Przepaść przed najtrudniejszym poziomem zniknęła.
+
+**`RULESET_VERSION` podbite do 2**, bo zestaw poziomów jest częścią przepisu: wiersze zapisane pod
+jedynką opisują dzień, którego najtrudniejszą planszą był Morderczy, i są pomijane zamiast używane.
+
+**Morderczy zostaje jako poziom gry solo.** Nie jest już poziomem Daily, ale nadal istnieje — i nadal
+nigdy nie wymaga Swordfisha.
+
 ### Do decyzji
 
 Skok Trudny → Morderczy w Daily jest ponad czterokrotnie większy niż zwykły szczebel drabinki.

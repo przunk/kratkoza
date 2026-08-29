@@ -131,9 +131,9 @@ class DailyViewModelTest {
         val viewModel = viewModelWith(ranking)
         viewModel.uiState.first { !it.isLoading }
 
-        viewModel.showLeaderboard(Difficulty.MASTER)
+        viewModel.showLeaderboard(Difficulty.EXPERT)
 
-        assertEquals(listOf(Leaderboard.DAILY_MASTER), ranking.shown)
+        assertEquals(listOf(Leaderboard.DAILY_EXPERT), ranking.shown)
     }
 
     @Test

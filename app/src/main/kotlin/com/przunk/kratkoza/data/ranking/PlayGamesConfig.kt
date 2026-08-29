@@ -29,7 +29,7 @@ class PlayGamesConfig(context: Context) {
             when (board) {
                 Leaderboard.DAILY_EASY -> R.string.leaderboard_daily_easy
                 Leaderboard.DAILY_HARD -> R.string.leaderboard_daily_hard
-                Leaderboard.DAILY_MASTER -> R.string.leaderboard_daily_master
+                Leaderboard.DAILY_EXPERT -> R.string.leaderboard_daily_expert
                 Leaderboard.DAILY_TOTAL -> R.string.leaderboard_daily_total
                 Leaderboard.ALL_TIME_TOTAL -> R.string.leaderboard_all_time_total
             },

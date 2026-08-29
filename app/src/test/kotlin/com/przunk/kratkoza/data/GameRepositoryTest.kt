@@ -322,7 +322,7 @@ class GameRepositoryTest {
     fun `resetting statistics takes XP with it`() = runTest {
         // XP is derived from history, so wiping the record wipes the level. Honest, and the reset
         // dialog says so.
-        val game = repository.startNewGame(Difficulty.EXPERT)
+        val game = repository.startNewGame(Difficulty.MASTER)
         repository.finishGame(game, completed = true)
         assertTrue(statisticsRepository.statistics.first().progress.totalXp > 0)
 
@@ -352,7 +352,7 @@ class GameRepositoryTest {
     @Test
     fun `the difficulty is graded from the board rather than taken on trust`() = runTest {
         val generator = SudokuGenerator()
-        for (difficulty in listOf(Difficulty.NORMAL, Difficulty.EXPERT, Difficulty.MASTER)) {
+        for (difficulty in listOf(Difficulty.NORMAL, Difficulty.MASTER, Difficulty.MASTER)) {
             val puzzle = generator.generate(difficulty, random = Random(difficulty.ordinal + 20L))
             val receiver = freshRepository()
 
@@ -581,10 +581,10 @@ class GameRepositoryTest {
     @Test
     fun `a finished daily is reported as completed with its time and mistakes`() = runTest {
         dailyRepository.dailySet(DAY)
-        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.MASTER))
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EXPERT))
         repository.finishGame(game.copy(elapsedMillis = 240_000), completed = true)
 
-        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EXPERT }
         assertEquals(DailyStatus.COMPLETED, entry.status)
         assertEquals(240_000L, entry.elapsedMillis)
     }
@@ -656,10 +656,10 @@ class GameRepositoryTest {
         // read publiclyRanked — which asks whether a leaderboard saw the result, not whether the
         // game counted.
         dailyRepository.dailySet(DAY)
-        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.MASTER))
+        val game = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EXPERT))
         repository.finishGame(game.copy(elapsedMillis = 120_000), completed = true)
 
-        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EXPERT }
         assertEquals(DailyStatus.COMPLETED, entry.status)
         assertTrue("it was played straight through, so it counted", entry.rankedEligible)
     }
@@ -706,7 +706,7 @@ class GameRepositoryTest {
 
     @Test
     fun `an untouched board still reports itself as ranked`() = runTest {
-        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.MASTER }
+        val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.EXPERT }
 
         assertEquals(DailyStatus.NOT_STARTED, entry.status)
         assertTrue(entry.rankedEligible)

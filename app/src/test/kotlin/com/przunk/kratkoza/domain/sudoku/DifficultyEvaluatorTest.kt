@@ -11,13 +11,16 @@ import org.junit.Test
 class DifficultyEvaluatorTest {
 
     @Test
-    fun `the singles-only fixture grades as normal because it is tightly clued`() {
+    fun `a singles-only board exactly on the line grades as easy`() {
+        // The fixture carries exactly EASY_MINIMUM_GIVENS clues, which makes it the sharpest test of
+        // the split available: the line is inclusive, and an off-by-one here would move every board
+        // at the boundary into the wrong level.
         val givens = SudokuBoard.parse(SudokuFixtures.EASY_GIVENS)
         val rating = requireNotNull(DifficultyEvaluator.evaluate(givens))
 
         assertTrue(rating.hardestTechnique.rank <= SolvingTechnique.HIDDEN_SINGLE.rank)
-        assertTrue(givens.filledCount < Difficulty.EASY_MINIMUM_GIVENS)
-        assertEquals(Difficulty.NORMAL, rating.difficulty)
+        assertEquals(Difficulty.EASY_MINIMUM_GIVENS, givens.filledCount)
+        assertEquals(Difficulty.EASY, rating.difficulty)
     }
 
     @Test
