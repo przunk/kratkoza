@@ -1,61 +1,74 @@
-# Task: the palettes look low-contrast
+# Task: show the next correct digit
 
 > The rules of collaboration — worktree, branches, conventions, who merges — are in
 > `codex_instructions.md`. Read that first. This file describes only the current task.
 >
-> Note the rule that changed on 2026-08-28: **code and git are written in English now**, commit
-> messages included. Documents under `docs/` stay Polish.
+> Code and git are written in English, commit messages included. Documents under `docs/` stay Polish.
 
-**Branch:** `fix/palette-contrast` from `develop`.
+**Branch:** `feature/reveal-digit` from `develop`.
 
 **Files this task covers:**
-- `ui/theme/Palettes.kt`, `ui/theme/Color.kt`, `ui/theme/BoardColors.kt`, `ui/theme/Theme.kt`
-- `app/src/test/kotlin/.../ui/theme/PalettesTest.kt`
+- `domain/game/` — the reveal itself and what it costs
+- `ui/game/` — the control and the state behind it
+- `data/repository/GameRepository.kt` — only if a revealed cell has to be recorded
+- `res/values*/strings.xml`
+- tests: `domain/game/`, `ui/game/`
 
-I am working on the navigation back-stack defect at the same time — `navigation/` and the screens'
-back handling. **Stay out of those.** Our areas do not otherwise touch.
+I am working on the title artwork's colours at the same time — `ui/home/` and `ui/theme/`. **Stay out
+of those.**
 
 ---
 
-## The report
+## What the specification decides, and what it leaves open
 
-From the owner, on a device: the colours themselves are fine. **The contrast looks bad.**
+`project.md` §18 describes this feature but marks it **"do późniejszego ustalenia"**. The owner has
+now asked for it, so it is being built — but read §18 before anything else, because three things are
+already settled there and are not yours or mine to reopen:
 
-That is worth reading carefully, because it rules out the obvious answer. This is not a request for
-different hues. It is that the board does not separate into legible layers when you look at it.
+- it **may** be available in solo games,
+- it **must not** be usable in an active game that still qualifies for the public ranking,
+- using it **must** mark the game as non-ranked, where that case can arise.
 
-## Where the rule is already written down, and where it is too weak
+Note what that rules out: **reducing the score is not an option.** Eligibility is a yes or no in this
+codebase and in the specification; a hint does not make a ranked game worth fewer points, it makes it
+not a ranked game.
 
-`PalettesTest` holds five rules for every palette in both themes. They pass. That they pass while
-the board looks flat is the interesting part, and two gaps explain it.
+## How the app already says "this costs you the ranking"
 
-**The tiers are only ordered, not spaced.** The test asserts `sameDigit > peer` and
-`selected > sameDigit` — measured as distance in CIE L\* from the surface. Ordering says nothing
-about how far apart they are. Three tiers at 5.1, 5.2 and 5.3 satisfy it completely and are
-indistinguishable to a human eye.
+Two patterns exist and you should follow them rather than invent a third.
 
-**Only the faintest tier is checked against the surface**, and `MINIMUM_TIER_SEPARATION` is `5f` —
-five units on a scale that runs 0 to 100. Digits get `MINIMUM_DIGIT_SEPARATION = 25f`, which is a
-different order of magnitude. The tier threshold was set to be *a* floor, not a good one.
+**A control that would break the rule is absent, not disabled.** The pause button is missing entirely
+while a Daily still counts — see `GameStatusRow` and the comment there. A greyed-out control invites
+the player to wonder what they did wrong.
 
-So the likely shape of the defect: highlight tiers technically distinct, practically one wash.
+**Losing eligibility is a one-way step with a visible consequence.** `GameViewModel.loseRanking`
+already exists, banks the elapsed time and flips `rankedEligible`; the game screen shows a message
+when it happens, and the Daily card says whether a board still counts.
 
-## What to do
+So the shape is: in a Daily that still counts, no reveal control at all. In a solo game, and in a
+Daily that has already lost its place, the control is there.
 
-Strengthen the rules first, then move the palettes until they pass. Doing it the other way round
-produces colours tuned to a device and a mood, and the next palette repeats the same mistake.
+## What the specification does *not* decide — do not invent these
 
-At minimum the rules should gain a **minimum gap between adjacent tiers**, not only against the
-surface. Whether the surface floor of 5 is also too low is yours to judge — but if you raise it,
-raise it because you can say what the number means, not to make a specific palette pass.
+Ask before building, or build the simplest version and say plainly in the commit that you chose it:
 
-**Beware of the ceiling.** `project.md` §10 says same-digit highlighting must not make it harder to
-read the current cell, the row, the column, the block or mistakes. Contrast pushed too far breaks
-that from the other side, and no test will tell you — this one needs eyes.
+- **How many reveals.** Unlimited, or a budget per game.
+- **What it reveals.** The digit for the selected cell, or a cell the app picks.
+- **What it costs in a solo game.** Nothing, or XP, or a mark in the statistics.
 
-**High contrast mode has its own rule** (`high contrast never reduces separation`) and an open item
-in `docs/STATUS.md` about refining it. If your change makes the normal mode close to what high
-contrast used to give, say so in the commit; that changes what that mode is still for.
+My own reading is that the smallest useful version is: reveals the selected empty cell, unlimited,
+costs nothing in solo. It is the least that can be judged on a device, and every restriction is
+easier to add later than to take away. But it is the owner's call, not mine.
+
+## On what a revealed digit *is*
+
+Worth settling before you write it: a revealed digit is correct by construction, so it must not be
+enterable as a mistake, must not be undoable into a wrong state, and must not count as the player's
+own entry anywhere the statistics distinguish those. `GameEngine` already treats a correct digit as
+locked — check whether a reveal can simply go through the same path rather than a new one.
+
+Note also that **candidates are explicitly not a hint** (§18, last line). Whatever you build must not
+change how candidates behave.
 
 ## Verification
 
@@ -64,6 +77,6 @@ contrast used to give, say so in the commit; that changes what that mode is stil
 ./scripts/lint-kratkoza.sh
 ```
 
-Build a debug APK and look at all three palettes in both themes before you call it done. Say in the
-commit what you could not check by machine — and expect the owner to judge the result on a device,
-because the report that started this was visual and so is the answer.
+Test the rule, not only the mechanism: a Daily that still counts must have no way to reach a reveal,
+and a reveal must leave the game non-ranked wherever it was reachable. Say in the commit what you
+could not check by machine.
