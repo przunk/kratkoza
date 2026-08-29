@@ -232,7 +232,41 @@ całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.
 
 ---
 
-## 9. Wzór na wynik Daily i czasy odniesienia poziomów
+## 9. ~~Wzór na wynik Daily~~ — rozstrzygnięte 2026-08-29
+
+**Wynik = (punkty za rozwiązanie + bonus za czas) × 0.7 ^ błędy**, gdzie bonus wynosi ⅔ punktów za
+rozwiązanie i **połowi się co czas docelowy** poziomu.
+
+Poprzedni wzór **mnożył** przez czas, więc zegar mógł zjeść wszystko: na Łatwym rozpiętość między
+szybkim a bardzo wolnym ukończeniem wynosiła **44,6×**. Zgłoszone z urządzenia jako rozwiązana plansza
+warta 12 punktów — wzór policzył poprawnie 4,6 godziny na liczniku.
+
+To była wada kształtu, nie stałych. Zegar Daily biegnie od otwarcia i nie da się go zatrzymać (§28),
+więc „wolno" najczęściej zapisuje **odejście od telefonu**, a nie długie myślenie. Odejście nie
+powinno unieważniać rozwiązanej planszy.
+
+**Co daje nowy kształt:**
+
+| | natychmiast | czas docelowy | dwukrotność | doba |
+|---|---|---|---|---|
+| Łatwy | 833 | 667 | 583 | 500 |
+| Trudny | 1667 | 1333 | 1167 | 1000 |
+
+Rozpiętość szybki/wolny to teraz **5:3**, a nie kilkadziesiąt razy. Bonus nigdy nie znika całkiem, więc
+nie ma progu, po którym szybkość przestaje się liczyć — i nie ma widocznego limitu czasu, co było
+warunkiem: gracz ma robić sudoku na luzie.
+
+**Kara za błędy bez zmian** — §29 ustala ją wprost i tylko wynik bazowy zależny od czasu był otwarty.
+
+**Konsekwencja dla tablic wyników.** Wyniki zapisane starym wzorem nie są porównywalne z nowymi:
+wolne partie są teraz warte znacznie więcej. Tablice i tak mają zostać wymienione na świeże przed
+premierą, więc rozwiązuje się to samo — ale gdyby ta decyzja upadła, stare wyniki trzeba by uznać za
+nieporównywalne.
+
+**Czasy odniesienia poziomów** (5/9/15/20/25 minut) zostają i mają teraz inne znaczenie: nie są parą
+ani terminem, tylko czasem, w którym bonus spada o połowę.
+
+## 9a. Czasy odniesienia poziomów — nadal wybrane z wyczucia
 
 **Stan: 🟡 wstępnie przyjęte 2026-08-27.** `project.md` §39 zostawia wzór na wynik bazowy otwarty;
 §29 ustala jedynie karę za błędy.

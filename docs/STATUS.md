@@ -487,7 +487,7 @@ musiałoby być wstrzykiwalne. I `waitForIdle()` przy nieskończonej animacji **
 `autoAdvance` trzeba wyłączyć przed pierwszą kompozycją. Ta sama klasa zawieszenia, którą suite
 złapał już dwa razy.
 
-### Wynik Daily zjadany przez zegar ścienny
+### ~~Wynik Daily zjadany przez zegar ścienny~~ — rozstrzygnięte 2026-08-29
 
 **Zgłoszone:** 2026-08-29 — „zrobiłem easy z jednym błędem i dostałem 12 punktów".
 
@@ -510,10 +510,11 @@ z procesem, więc gracz, który schowałby aplikację na godzinę, dostałby god
 **Napięcie, które to tworzy.** Ta sama reguła karze zachowanie zupełnie zwyczajne — otworzyć
 planszę, odejść, wrócić wieczorem. Dziś kosztuje to cały wynik, bez żadnego ostrzeżenia.
 
-**Czego jeszcze nie wiadomo.** Czy problemem jest reguła, czy jej niewidoczność. Możliwe kierunki:
-powiedzieć wprost przy starcie, że zegar biegnie; ograniczyć czas z góry zamiast rozmywać wynik do
-zera; albo uznać, że Daily rozegrane po godzinach po prostu nie jest wynikiem rankingowym i
-potraktować to jak utratę kwalifikacji, którą widać. Do omówienia razem ze statystykami.
+**Co postanowiono.** Żadne z powyższych. Zamiast ograniczać czas albo odbierać kwalifikację — jedno
+i drugie odrzucone jako sprzeczne z założeniem, że gracz robi sudoku na luzie — zmieniono kształt
+wzoru: czas **dodaje** do wyniku, zamiast go mnożyć. Rozwiązana plansza jest zawsze warta punktów za
+rozwiązanie, a szybkość dokłada bonus, który połowi się co czas docelowy. Szczegóły i liczby
+w [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) §9.
 
 ## Wymaga decyzji
 
