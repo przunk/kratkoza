@@ -116,6 +116,13 @@ data class GameUiState(
      */
     val canEnterDigit: Boolean get() = isPlayable && selectedCell != null
 
+    /** project.md section 18: a publicly ranked game must not expose a reveal control at all. */
+    val showRevealDigit: Boolean get() = !rankedEligible
+
+    /** A reveal targets the selected empty cell; filled cells already have an answer. */
+    val canRevealDigit: Boolean
+        get() = showRevealDigit && isPlayable && selectedCell?.let(board::isEmpty) == true
+
     /** project.md section 28: no pause button while the game still counts. */
     val canPause: Boolean get() = !rankedEligible
 
