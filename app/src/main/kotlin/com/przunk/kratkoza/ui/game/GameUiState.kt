@@ -1,6 +1,5 @@
 package com.przunk.kratkoza.ui.game
 
-import com.przunk.kratkoza.BuildConfig
 import androidx.compose.runtime.Immutable
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -61,6 +60,15 @@ data class GameUiState(
      * not replay an animation.
      */
     val lastMove: MoveEcho? = null,
+    /**
+     * Whether to show the debug-only shortcuts.
+     *
+     * Carried from the ViewModel rather than read from BuildConfig here. Read separately, the two
+     * drifted apart the moment anything passed the flag explicitly: the shortcut stopped working
+     * while its button stayed on screen — which is how a debug control turned up in a store
+     * screenshot.
+     */
+    val debugTools: Boolean = false,
 ) {
     /** What the board should react to after a move. Purely decorative; nothing waits on it. */
     @Immutable
@@ -135,9 +143,4 @@ data class GameUiState(
      */
     val canShareAndSave: Boolean get() = gameType != GameType.DAILY
 
-    /**
-     * Whether to show the debug-only shortcuts. Follows the build type, so the control cannot
-     * appear in a release APK.
-     */
-    val debugTools: Boolean get() = BuildConfig.DEBUG
 }

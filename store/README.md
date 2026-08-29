@@ -37,3 +37,31 @@ Ikona w sklepie i ikona na ekranie głównym telefonu to **dwa osobne zasoby** i
 różnią się schematem: `app/src/main/res/drawable/ic_launcher_foreground.xml` ma ciemną
 planszę z jasnymi liniami, a `icon-512.png` odwrotnie — jasną planszę z ciemnymi liniami.
 Play tego nie zablokuje, ale wytyczne zalecają, żeby wyglądały tak samo.
+
+## Zrzuty ekranu
+
+`store/screenshots/` — sześć plików, trzy ekrany w obu motywach, 720×1600 (360×800 dp przy xhdpi).
+
+Generuje je `StoreScreenshotsTest`, czyli zwykły przebieg testów:
+
+```
+./scripts/test-kratkoza.sh
+```
+
+Jest to **generator, nie sprawdzian** — dlatego mieszka w drzewie testów. Renderowanie ekranu Compose
+wymaga środowiska Androida, a to jedyne miejsce w projekcie, gdzie takie jest bez urządzenia. Wynik
+jest deterministyczny, więc niezmieniony interfejs daje pliki co do bajtu takie same i git nic nie
+widzi.
+
+### Jak to działa, i czego nie da się tak zrobić
+
+`captureToImage` z reguły testowej Compose **nie zadziała** — woła `forceRedraw` i czeka na klatkę
+z prawdziwego okna, którego tu nie ma. Zamiast tego widok jest rysowany wprost na bitmapę, z
+pominięciem okna.
+
+Rozmiar urządzenia trzeba podać przez `@Config(qualifiers = …)`. Bez tego Compose układa się pod
+domyślny ekran Robolectrica i treść siedzi w rogu bitmapy.
+
+**Ekranu głównego tą drogą nie zrobisz.** Jego grafika planuje kolejną klatkę animacji w
+nieskończoność, więc przesunięcie zegara do dowolnego momentu nigdy nie wraca — test wisi, a nie
+pada. Zrzut ekranu głównego trzeba na razie zrobić z telefonu.
