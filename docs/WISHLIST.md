@@ -334,3 +334,32 @@ cofanie musi objąć wszystkie warstwy, a „porzuć warstwę" ma być jednym co
 **Kolejność ma znaczenie.** Pozycja 11 jest samodzielna i tania, a zagnieżdżone hipotezy na trzecim
 poziomie są sytuacją rzadką. Warto zrobić 11, pograć z tym, i dopiero wtedy ocenić, czy 12 nadal jest
 potrzebne — bo jeśli tak, będzie się dokładnie wiedziało, czego brakuje.
+
+### 12a. Zaznaczony kandydat zamiast warstw kolorem
+
+**Zgłoszone:** 2026-08-30, przez właściciela, jako rozwinięcie pozycji 12.
+
+Zamiast odróżniać warstwy kolorem — wyróżnić pojedynczego kandydata **kształtem**: kółkiem,
+podkreśleniem albo pogrubieniem. Jeden wyróżniony kandydat w komórce znaczy „to jest cyfra, którą
+zakładam".
+
+**To jest jednowarstwowa wersja pozycji 12, która nie kosztuje ani jednego koloru** — a więc omija
+wszystkie zastrzeżenia stamtąd: nie zderza się z czerwienią błędu, nie zależy od rozróżniania barw i
+nie dokłada nic trybowi wysokiego kontrastu. Razem z pozycją 11 domyka cały przepływ: zaznacz
+założenie, zapisz stan, graj dalej, wróć.
+
+**Nie automatycznie po kolejności wpisywania.** Pierwotna propozycja mówiła o „pierwszym wpisanym
+kandydacie", ale kolejność notowania kandydatów jest przypadkowa — skanuje się wiersz i zapisuje, co
+widać. Automatyczne kółko wyróżniałoby więc szum, a nie decyzję gracza, i miałoby brzydkie przypadki
+brzegowe (wyczyszczenie i ponowne wpisanie przesuwa oznaczenie). Zaznaczenie musi być świadomym
+gestem gracza.
+
+**Miejsce jest ciasne, ale wystarczające.** Przy szerokości 360 dp komórka ma około 38 dp, kratka
+kandydata około 12,7 dp, a glif rysuje się przy `CANDIDATE_HEIGHT_FRACTION = 0.26f`, czyli około
+10 sp. Kółko potrzebuje wtedy 11–12 dp średnicy i wchodzi praktycznie bez marginesu, dotykając
+sąsiadów. **Podkreślenie albo pogrubienie glifu kosztuje mniej miejsca przy tej samej czytelności** i
+byłoby pierwszym wyborem do sprawdzenia.
+
+**Koszt zapisu:** jedna dodatkowa maska 9-bitowa na komórkę — czyli zmiana formatu zapisanej gry i
+migracja, tyle samo co przy pozycji 12, ale jeden bit zamiast trzech barw. Cofanie musi obejmować
+oznaczenie tak samo jak samych kandydatów.
