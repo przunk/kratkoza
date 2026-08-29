@@ -46,7 +46,7 @@ class DailyPuzzlesTest {
 
     @Test
     fun `the set is easiest, middle and hardest`() {
-        assertEquals(listOf(Difficulty.EASY, Difficulty.HARD, Difficulty.MASTER), DailyPuzzles.DIFFICULTIES)
+        assertEquals(listOf(Difficulty.EASY, Difficulty.HARD, Difficulty.EXPERT), DailyPuzzles.DIFFICULTIES)
     }
 
     @Test

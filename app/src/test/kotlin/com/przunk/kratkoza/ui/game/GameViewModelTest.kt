@@ -703,7 +703,7 @@ class GameViewModelTest {
     fun `the screen can tell a daily from a solo game`() = gameTest {
         val day = java.time.LocalDate.parse("2026-08-26")
         dailyRepository.dailySet(day)
-        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER))
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EXPERT))
 
         assertEquals(GameType.DAILY, viewModelFor(daily).uiState.value.gameType)
         assertEquals(GameType.SOLO, viewModelFor(startGame()).uiState.value.gameType)

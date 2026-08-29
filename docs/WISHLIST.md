@@ -281,3 +281,56 @@ grafiki, czy zaczyna wyglądać jak wyświetlacz kalkulatora.
 **Uwaga o zasięgu.** Dotyczy wyłącznie cyfr w grafice tytułowej. Cyfry na planszy zostają zwykłym
 tekstem: tam liczy się czytelność i respektowanie ustawień systemowych, a nie efekt.
 
+---
+
+## 11. Punkt przywrócenia do testowania hipotez
+
+**Zgłoszone:** 2026-08-29, przez znajomego gracza.
+
+Akcja „zapamiętaj ten stan" i druga „wróć do zapamiętanego". Gracz dochodzi do pola z dwiema
+możliwościami, zapisuje stan, wybiera jedną i gra ją dalej zwykłymi kandydatami. Gdy okaże się
+sprzeczna, wraca jednym ruchem.
+
+**Wartość nie leży w samym cofnięciu.** Przy wyborze jeden z dwóch **nieudana gałąź dowodzi drugiej**
+— gracz wraca i wpisuje pewną już cyfrę. Zwykłe cofanie doprowadzi go w to samo miejsce, ale nie
+powie mu, że drugi wariant jest teraz pewny; potrzebna jest wyraźna granica, od której zaczęło się
+założenie.
+
+**Dlaczego to jest tanie:** jeden zapamiętany stan zamiast rozbudowy struktury kandydatów, zero
+budżetu wizualnego w polu, brak kolizji z podświetleniami, brak zmian w rysowaniu. Działa też dla
+wpisanych cyfr, nie tylko dla kandydatów — a hipoteza zwykle zaczyna się właśnie od wpisania cyfry.
+
+**To nie jest podpowiedź** w rozumieniu `project.md` §18: całe rozumowanie zostaje po stronie gracza,
+więc kwalifikacji rankingowej to nie dotyka.
+
+---
+
+## 12. Warstwy kandydatów odróżnione kolorem
+
+**Zgłoszone:** 2026-08-29, jako rozwinięcie pozycji 11.
+
+Czasem jeden poziom przewidywania nie wystarcza i wewnątrz założenia trzeba przyjąć kolejne. Wtedy
+przydaje się druga warstwa kandydatów, odróżniona kolorem — proponowano do trzech warstw. Kolor
+mówiłby wówczas, **od którego założenia dany zapis zależy**, a porzucenie warstwy porzucałoby tylko
+to, co pod nią powstało.
+
+**Miejsca w polu to nie kosztuje** — kolorowanie istniejących cyfr nie zajmuje dodatkowej
+powierzchni. Wcześniejsza notatka twierdziła inaczej i była błędna.
+
+**Kosztuje za to budżet kolorów, a ten jest ciasny:**
+
+- **Czerwony odpada.** Jest już kolorem błędu, a `project.md` §8 wymaga czytelnego oznaczenia błędów.
+  Warstwa hipotez w czerwieni zderza się z jedyną rzeczą, która musi być na planszy nie do pomylenia.
+- **Czerwony z zielonym to najgorsza możliwa para** przy zaburzeniach widzenia barw — dotyczy około
+  8% mężczyzn. §8 wprost prosi o czytelność dla osób o słabszym wzroku, więc warstwy potrzebowałyby
+  barw dobranych pod deuteranopię **i drugiej wskazówki poza kolorem**.
+- **Tryb wysokiego kontrastu** musiałby unieść trzy dodatkowe barwy ponad warstwami podświetleń,
+  które dopiero co udało się od siebie odsunąć.
+
+**Reszta kosztów:** `CandidateGrid` to jedna maska bitowa na pole, więc trzy warstwy potrajają zapis
+i zmieniają format zapisanej gry — czyli migracja. `Move.previousCandidates` to jedna mapa, więc
+cofanie musi objąć wszystkie warstwy, a „porzuć warstwę" ma być jednym cofnięciem.
+
+**Kolejność ma znaczenie.** Pozycja 11 jest samodzielna i tania, a zagnieżdżone hipotezy na trzecim
+poziomie są sytuacją rzadką. Warto zrobić 11, pograć z tym, i dopiero wtedy ocenić, czy 12 nadal jest
+potrzebne — bo jeśli tak, będzie się dokładnie wiedziało, czego brakuje.

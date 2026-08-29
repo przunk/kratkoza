@@ -35,7 +35,7 @@
 
     <string name="leaderboard_daily_easy" translatable="false">CgkIvIDDheUUEAIQAQ</string>
     <string name="leaderboard_daily_hard" translatable="false">CgkIvIDDheUUEAIQAg</string>
-    <string name="leaderboard_daily_master" translatable="false">CgkIvIDDheUUEAIQAw</string>
+    <string name="leaderboard_daily_expert" translatable="false">CgkIvIDDheUUEAIQCA</string>
 
     <string name="leaderboard_daily_total" translatable="false">CgkIvIDDheUUEAIQBg</string>
     <string name="leaderboard_all_time_total" translatable="false">CgkIvIDDheUUEAIQBw</string>

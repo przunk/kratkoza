@@ -23,7 +23,7 @@ import androidx.sqlite.execSQL
         GameHistoryEntity::class,
         DailyPuzzleEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class KratkozaDatabase : RoomDatabase() {
@@ -83,7 +83,48 @@ abstract class KratkozaDatabase : RoomDatabase() {
             }
         }
 
-        fun migrations(): Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        /**
+         * Puts `rulesetVersion` into the key of the Daily calendar.
+         *
+         * The recipe for a Daily board is allowed to change — that is the entire purpose of
+         * `RULESET_VERSION` — and on the day of such an update the normal case is a phone that has
+         * already opened today under the old recipe. The key was `(date, difficulty)`, so the new
+         * day's Easy and Hard collided with the old day's Easy and Hard and were dropped on insert,
+         * while a difficulty the old recipe had not used landed unopposed. The player was left
+         * looking at a single board.
+         *
+         * A board's identity is the day, the difficulty *and* the recipe it was made under. The old
+         * rows are kept: nothing reads them any more, and deleting somebody's history to tidy up
+         * would be a poor trade for a few bytes.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `daily_puzzles_new` (" +
+                        "`date` TEXT NOT NULL, " +
+                        "`difficulty` TEXT NOT NULL, " +
+                        "`puzzleId` TEXT NOT NULL, " +
+                        "`rulesetVersion` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`date`, `difficulty`, `rulesetVersion`), " +
+                        "FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                connection.execSQL(
+                    "INSERT INTO `daily_puzzles_new` " +
+                        "(`date`, `difficulty`, `puzzleId`, `rulesetVersion`) " +
+                        "SELECT `date`, `difficulty`, `puzzleId`, `rulesetVersion` " +
+                        "FROM `daily_puzzles`",
+                )
+                connection.execSQL("DROP TABLE `daily_puzzles`")
+                connection.execSQL("ALTER TABLE `daily_puzzles_new` RENAME TO `daily_puzzles`")
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_daily_puzzles_puzzleId` " +
+                        "ON `daily_puzzles` (`puzzleId`)",
+                )
+            }
+        }
+
+        fun migrations(): Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         fun create(context: Context): KratkozaDatabase =
             Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, NAME)

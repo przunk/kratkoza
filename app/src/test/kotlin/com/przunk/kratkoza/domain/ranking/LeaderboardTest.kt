@@ -20,7 +20,7 @@ class LeaderboardTest {
 
         assertEquals(407L, Leaderboard.DAILY_EASY.valueFor(result))
         assertNull(Leaderboard.DAILY_HARD.valueFor(result))
-        assertNull(Leaderboard.DAILY_MASTER.valueFor(result))
+        assertNull(Leaderboard.DAILY_EXPERT.valueFor(result))
     }
 
     @Test

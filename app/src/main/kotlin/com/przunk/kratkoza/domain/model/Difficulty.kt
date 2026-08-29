@@ -10,7 +10,7 @@ import com.przunk.kratkoza.domain.sudoku.SolvingTechnique
 private const val ABSOLUTE_MINIMUM = 17
 
 /** What separates [Difficulty.EASY] from [Difficulty.NORMAL]. */
-private const val EASY_MINIMUM = 36
+private const val EASY_MINIMUM = 30
 
 /**
  * The five difficulty levels of project.md section 7, all available from the start.
