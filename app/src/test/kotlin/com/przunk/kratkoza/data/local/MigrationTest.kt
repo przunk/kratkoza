@@ -55,12 +55,26 @@ class MigrationTest {
         "CREATE INDEX IF NOT EXISTS `index_game_history_completed` ON `game_history` (`completed`)",
     )
 
-    private fun createVersionOneDatabase(): SupportSQLiteDatabase {
+    /** The schema exactly as version 3 shipped it, taken from `app/schemas/…/3.json`. */
+    private val versionThreeDdl = listOf(
+        "CREATE TABLE IF NOT EXISTS `puzzles` (`puzzleId` TEXT NOT NULL, `generatorVersion` INTEGER NOT NULL, `difficulty` TEXT NOT NULL, `gameType` TEXT NOT NULL, `givens` TEXT NOT NULL, `solution` TEXT NOT NULL, `seed` INTEGER, PRIMARY KEY(`puzzleId`))",
+        "CREATE TABLE IF NOT EXISTS `saved_games` (`puzzleId` TEXT NOT NULL, `historyId` INTEGER NOT NULL, `startedAt` INTEGER NOT NULL, `lastPlayedAt` INTEGER NOT NULL, `elapsedMillis` INTEGER NOT NULL, `board` TEXT NOT NULL, `candidates` TEXT NOT NULL, `undoHistory` TEXT NOT NULL, `mistakeCount` INTEGER NOT NULL, `rankedEligible` INTEGER NOT NULL, PRIMARY KEY(`puzzleId`), FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_saved_games_lastPlayedAt` ON `saved_games` (`lastPlayedAt`)",
+        "CREATE INDEX IF NOT EXISTS `index_saved_games_historyId` ON `saved_games` (`historyId`)",
+        "CREATE TABLE IF NOT EXISTS `game_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `puzzleId` TEXT NOT NULL, `gameType` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, `finishedAt` INTEGER, `elapsedMillis` INTEGER NOT NULL, `mistakeCount` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `score` INTEGER, `xpEarned` INTEGER NOT NULL, `publiclyRanked` INTEGER NOT NULL, `rankedEligible` INTEGER NOT NULL, `autoRemoveCandidates` INTEGER NOT NULL, `rulesetVersion` INTEGER NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_puzzleId` ON `game_history` (`puzzleId`)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_startedAt` ON `game_history` (`startedAt`)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_completed` ON `game_history` (`completed`)",
+        "CREATE TABLE IF NOT EXISTS `daily_puzzles` (`date` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `puzzleId` TEXT NOT NULL, `rulesetVersion` INTEGER NOT NULL, PRIMARY KEY(`date`, `difficulty`), FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_daily_puzzles_puzzleId` ON `daily_puzzles` (`puzzleId`)",
+    )
+
+    private fun createDatabaseAt(version: Int, ddl: List<String>): SupportSQLiteDatabase {
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(name)
-            .callback(object : SupportSQLiteOpenHelper.Callback(1) {
+            .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                 override fun onCreate(db: SupportSQLiteDatabase) {
-                    versionOneDdl.forEach(db::execSQL)
+                    ddl.forEach(db::execSQL)
                     db.execSQL(
                         "CREATE TABLE IF NOT EXISTS room_master_table " +
                             "(id INTEGER PRIMARY KEY, identity_hash TEXT)",
@@ -72,6 +86,14 @@ class MigrationTest {
             .build()
         return FrameworkSQLiteOpenHelperFactory().create(configuration).writableDatabase
     }
+
+    private fun createVersionOneDatabase(): SupportSQLiteDatabase =
+        createDatabaseAt(version = 1, ddl = versionOneDdl)
+
+    private fun openWithRoom(): KratkozaDatabase =
+        Room.databaseBuilder(context, KratkozaDatabase::class.java, name)
+            .addMigrations(*KratkozaDatabase.migrations())
+            .build()
 
     @Test
     fun `a version one database migrates through every step and keeps what was in it`() = runTest {
@@ -120,6 +142,41 @@ class MigrationTest {
                 listOf(DailyPuzzleEntity("2026-08-26", Difficulty.EASY.name, "p1", 1)),
             )
             assertEquals(1, database.dailyPuzzleDao().forDate("2026-08-26", 1).size)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `rekeying the daily calendar keeps the days already in it`() = runTest {
+        createDatabaseAt(version = 3, ddl = versionThreeDdl).use { db ->
+            db.execSQL(
+                "INSERT INTO puzzles VALUES ('d1', 1, ?, 'DAILY', ?, ?, 99)",
+                arrayOf(Difficulty.HARD.name, ".".repeat(81), "1".repeat(81)),
+            )
+            db.execSQL(
+                "INSERT INTO daily_puzzles VALUES ('2026-08-26', ?, 'd1', 1)",
+                arrayOf(Difficulty.HARD.name),
+            )
+            db.version = 3
+        }
+
+        val database = openWithRoom()
+        try {
+            val kept = database.dailyPuzzleDao().forDate("2026-08-26", rulesetVersion = 1).single()
+            assertEquals("d1", kept.puzzleId)
+            assertEquals(Difficulty.HARD.name, kept.difficulty)
+
+            // And the point of the rekeying: the same day and difficulty under a newer recipe is a
+            // separate board, and it has to be able to land beside the one already there.
+            database.puzzleDao().insert(puzzleEntity("d2", difficulty = Difficulty.HARD))
+            database.dailyPuzzleDao().insert(
+                listOf(DailyPuzzleEntity("2026-08-26", Difficulty.HARD.name, "d2", 2)),
+            )
+            assertEquals(
+                "d2",
+                database.dailyPuzzleDao().forDate("2026-08-26", rulesetVersion = 2).single().puzzleId,
+            )
         } finally {
             database.close()
         }

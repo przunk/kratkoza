@@ -41,7 +41,7 @@ data class PuzzleEntity(
  */
 @Entity(
     tableName = "daily_puzzles",
-    primaryKeys = ["date", "difficulty"],
+    primaryKeys = ["date", "difficulty", "rulesetVersion"],
     foreignKeys = [
         ForeignKey(
             entity = PuzzleEntity::class,
