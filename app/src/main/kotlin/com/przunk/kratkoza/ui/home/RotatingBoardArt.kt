@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.MaterialTheme
@@ -33,10 +37,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -84,6 +90,13 @@ fun RotatingBoardArt(
      * it. Passing null and resolving once is the same convenience without that trap.
      */
     seed: Long? = null,
+    /**
+     * What a screen reader hears in place of the scene.
+     *
+     * The artwork is decoration and stays hidden, but it now draws the app's name — the only place
+     * that name appears since the title bar went. Left null it stays silent, as decoration should.
+     */
+    contentDescription: String? = null,
 ) {
     val colors = LocalBoardColors.current
     val density = LocalDensity.current
@@ -118,6 +131,16 @@ fun RotatingBoardArt(
         label = "content-phase",
     )
 
+    val sparkPhase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SPARK_CYCLE_MILLIS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "spark-phase",
+    )
+
     val sparks = remember(artSeed) {
         val random = Random(artSeed + 1)
         List(SPARK_COUNT) {
@@ -145,123 +168,165 @@ fun RotatingBoardArt(
 
     BoxWithConstraints(
         modifier = modifier
-            .clearAndSetSemantics { },
+            .clearAndSetSemantics {
+                contentDescription?.let { name -> this.contentDescription = name }
+            },
         contentAlignment = Alignment.Center,
     ) {
-        // Perspective can extend past the untransformed bounds. Reserving room on both axes keeps
-        // even the maximum finger-driven tilt comfortably inside the title area.
-        val side = minOf(
-            maxWidth * WIDTH_FRACTION,
-            maxHeight * HEIGHT_SAFE_FRACTION,
-            MAX_SIDE_DP.dp,
-        )
+        // Sized from the width alone. Taking height into account made the scene stretch to whatever
+        // room it was given, which is the opposite of what a fixed rhythm down the screen needs.
+        val side = minOf(maxWidth * WIDTH_FRACTION, MAX_SIDE_DP.dp)
         if (side <= 0.dp) return@BoxWithConstraints
         val cell = side / Sudoku.BLOCK_SIZE
 
-        SparkField(
-            sparks = sparks,
-            layer = SparkDepthLayer.BEHIND_BOARD,
-            phase = contentPhase,
-            tilt = tilt,
-            color = digitColor,
-            density = density.density,
-            modifier = Modifier.fillMaxSize().zIndex(Z_REAR_SPARKS),
-        )
+        // The name belongs to the scene: it shares the tilt and casts onto the same plane as the
+        // digits, one depth in front of the board so it separates without floating free of it.
+        val wordWidth = maxWidth * WORDMARK_WIDTH_FRACTION
+        val wordHeight = with(density) { wordmarkSize(wordWidth.toPx()).height.toDp() }
 
-        // An opaque board is the visual anchor. It is deliberately drawn rather than promoted to
-        // a clipped shadow layer, which avoids the rectangular compositing artefacts seen on-device.
         Box(
             modifier = Modifier
-                .size(side)
-                .zIndex(Z_BOARD)
-                .boardLayer(
-                    tilt = tilt,
-                    density = density.density,
-                    depth = BOARD_DEPTH,
-                )
+                .align(Alignment.TopCenter)
+                .width(wordWidth)
+                .height(wordHeight)
+                .zIndex(Z_WORDMARK)
+                .boardLayer(tilt = tilt, density = density.density, depth = WORDMARK_DEPTH)
                 .drawBehind {
-                    drawRect(boardColor)
-                    val step = size.width / Sudoku.BLOCK_SIZE
-                    val stroke = GRID_STROKE_DP.dp.toPx()
-                    val line = gridColor.copy(alpha = GRID_ALPHA)
-                    for (index in 0..Sudoku.BLOCK_SIZE) {
-                        val at = (index * step).coerceIn(stroke / 2, size.width - stroke / 2)
-                        drawLine(line, Offset(at, 0f), Offset(at, size.height), stroke)
-                        drawLine(line, Offset(0f, at), Offset(size.width, at), stroke)
+                    val glyphs = Wordmark.path(size.height)
+                    // Several faint passes spreading outwards rather than one hard copy. A path
+                    // cannot be blurred the way text can, so the softness has to be built from
+                    // overlapping offsets — near ones dark, far ones barely there.
+                    for (pass in WORDMARK_SHADOW_PASSES downTo 1) {
+                        val spread = pass.toFloat() / WORDMARK_SHADOW_PASSES
+                        translate(
+                            left = digitShadowOffset.x * spread,
+                            top = digitShadowOffset.y * spread,
+                        ) {
+                            drawPath(
+                                glyphs,
+                                Color.Black,
+                                alpha = WORDMARK_SHADOW_ALPHA / WORDMARK_SHADOW_PASSES,
+                            )
+                        }
                     }
-                    drawRect(
-                        color = digitColor.copy(alpha = BOARD_EDGE_ALPHA),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(
-                            width = BOARD_EDGE_STROKE_DP.dp.toPx(),
-                        ),
-                    )
+                    drawPath(glyphs, digitColor)
                 },
         )
 
-        // The blurred glyphs live on the board plane. The bright glyphs below live at digit depth,
-        // so their separation changes naturally during wobble and touch instead of behaving like
-        // one flat text layer with a CSS-style attached shadow.
-        DigitGrid(
-            sequences = sequences,
-            phase = contentPhase,
-            cell = cell,
-            color = Color.Black,
-            shadowOffset = digitShadowOffset,
-            drawAsShadow = true,
-            modifier = Modifier
-                .size(side)
-                .zIndex(Z_DIGIT_SHADOWS)
-                .boardLayer(tilt = tilt, density = density.density, depth = BOARD_DEPTH),
-        )
-
-        SparkField(
-            sparks = sparks,
-            layer = SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS,
-            phase = contentPhase,
-            tilt = tilt,
-            color = digitColor,
-            density = density.density,
-            modifier = Modifier.fillMaxSize().zIndex(Z_MIDDLE_SPARKS),
-        )
-
-        DigitGrid(
-            sequences = sequences,
-            phase = contentPhase,
-            cell = cell,
-            color = digitColor,
-            shadowOffset = Offset.Zero,
-            drawAsShadow = false,
-            modifier = Modifier
-                .size(side)
-                .zIndex(Z_DIGITS)
-                .boardLayer(
-                    tilt = tilt,
-                    density = density.density,
-                    depth = DIGIT_DEPTH,
-                ),
-        )
-
-        SparkField(
-            sparks = sparks,
-            layer = SparkDepthLayer.IN_FRONT_OF_DIGITS,
-            phase = contentPhase,
-            tilt = tilt,
-            color = digitColor,
-            density = density.density,
-            modifier = Modifier.fillMaxSize().zIndex(Z_FRONT_SPARKS),
-        )
-
-        // Input is its own top layer. It has no pixels and consumes no event, so the visual order
-        // remains independent from the gesture implementation.
+        // A stated height, not a filled one: the name, one gap, and the board. That is what lets the
+        // column space the scene instead of stretching it, and it is the whole rhythm of the screen.
         Box(
             modifier = Modifier
-                .size(side)
-                .zIndex(Z_INPUT)
-                .boardParallaxInput(
-                    touchBlend = touchBlend,
-                    onTilt = { touchTilt = it },
-                ),
-        )
+                .fillMaxWidth()
+                .height(wordHeight + SCENE_GAP_DP.dp + side)
+                .padding(top = wordHeight + SCENE_GAP_DP.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            SparkField(
+                sparks = sparks,
+                layer = SparkDepthLayer.BEHIND_BOARD,
+                phase = sparkPhase,
+                tilt = tilt,
+                color = digitColor,
+                density = density.density,
+                modifier = Modifier.fillMaxSize().zIndex(Z_REAR_SPARKS),
+            )
+
+            // An opaque board is the visual anchor. It is deliberately drawn rather than promoted to
+            // a clipped shadow layer, which avoids the rectangular compositing artefacts seen on-device.
+            Box(
+                modifier = Modifier
+                    .size(side)
+                    .zIndex(Z_BOARD)
+                    .boardLayer(
+                        tilt = tilt,
+                        density = density.density,
+                        depth = BOARD_DEPTH,
+                    )
+                    .drawBehind {
+                        drawRect(boardColor)
+                        val step = size.width / Sudoku.BLOCK_SIZE
+                        val stroke = GRID_STROKE_DP.dp.toPx()
+                        val line = gridColor.copy(alpha = GRID_ALPHA)
+                        for (index in 0..Sudoku.BLOCK_SIZE) {
+                            val at = (index * step).coerceIn(stroke / 2, size.width - stroke / 2)
+                            drawLine(line, Offset(at, 0f), Offset(at, size.height), stroke)
+                            drawLine(line, Offset(0f, at), Offset(size.width, at), stroke)
+                        }
+                        drawRect(
+                            color = digitColor.copy(alpha = BOARD_EDGE_ALPHA),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = BOARD_EDGE_STROKE_DP.dp.toPx(),
+                            ),
+                        )
+                    },
+            )
+
+            // The blurred glyphs live on the board plane. The bright glyphs below live at digit depth,
+            // so their separation changes naturally during wobble and touch instead of behaving like
+            // one flat text layer with a CSS-style attached shadow.
+            DigitGrid(
+                sequences = sequences,
+                phase = contentPhase,
+                cell = cell,
+                color = Color.Black,
+                shadowOffset = digitShadowOffset,
+                drawAsShadow = true,
+                modifier = Modifier
+                    .size(side)
+                    .zIndex(Z_DIGIT_SHADOWS)
+                    .boardLayer(tilt = tilt, density = density.density, depth = BOARD_DEPTH),
+            )
+
+            SparkField(
+                sparks = sparks,
+                layer = SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS,
+                phase = sparkPhase,
+                tilt = tilt,
+                color = digitColor,
+                density = density.density,
+                modifier = Modifier.fillMaxSize().zIndex(Z_MIDDLE_SPARKS),
+            )
+
+            DigitGrid(
+                sequences = sequences,
+                phase = contentPhase,
+                cell = cell,
+                color = digitColor,
+                shadowOffset = Offset.Zero,
+                drawAsShadow = false,
+                modifier = Modifier
+                    .size(side)
+                    .zIndex(Z_DIGITS)
+                    .boardLayer(
+                        tilt = tilt,
+                        density = density.density,
+                        depth = DIGIT_DEPTH,
+                    ),
+            )
+
+            SparkField(
+                sparks = sparks,
+                layer = SparkDepthLayer.IN_FRONT_OF_DIGITS,
+                phase = sparkPhase,
+                tilt = tilt,
+                color = digitColor,
+                density = density.density,
+                modifier = Modifier.fillMaxSize().zIndex(Z_FRONT_SPARKS),
+            )
+
+            // Input is its own top layer. It has no pixels and consumes no event, so the visual order
+            // remains independent from the gesture implementation.
+            Box(
+                modifier = Modifier
+                    .size(side)
+                    .zIndex(Z_INPUT)
+                    .boardParallaxInput(
+                        touchBlend = touchBlend,
+                        onTilt = { touchTilt = it },
+                    ),
+            )
+        }
     }
 }
 
@@ -489,16 +554,25 @@ private const val WOBBLE_CYCLE_MILLIS = 20_000
 /** Digits and vapour use a slower independent clock so faster wobble does not make them frantic. */
 private const val CONTENT_CYCLE_MILLIS = 36_000
 
+/**
+ * A clock of their own, a fifth quicker than the digits'.
+ *
+ * A spark's life is a whole number of trips through its phase, which is what keeps it
+ * continuous when the phase restarts — so its speed cannot be nudged by a fifth through
+ * that count. Giving the particles their own cycle changes their pace without touching
+ * how often a digit turns over.
+ */
+private const val SPARK_CYCLE_MILLIS = 30_000
+
 
 
 private const val CAMERA_DISTANCE = 14f
 
 private const val WIDTH_FRACTION = 0.44f
-private const val HEIGHT_SAFE_FRACTION = 0.78f
 
 /** Keeps the plate modest on a tablet, where 42% of the width would be a poster. */
 private const val MAX_SIDE_DP = 180
-private const val GRID_STROKE_DP = 1f
+private const val GRID_STROKE_DP = 1.6f
 private const val GRID_ALPHA = 0.46f
 private const val BOARD_EDGE_STROKE_DP = 1.25f
 private const val BOARD_EDGE_ALPHA = 0.22f
@@ -510,6 +584,16 @@ private const val GRID_COLOR_LIFT = 0.48f
 private const val DEPTH_SCALE = 0.025f
 private const val MAX_DEPTH_TRAVEL_DP = 6f
 
+/** Shallower than the digits: the name sits above the board without leaving it behind. */
+private const val WORDMARK_DEPTH = 0.6f
+private const val WORDMARK_WIDTH_FRACTION = 0.82f
+/** Shared with the gap below the board, so the two cannot drift apart. */
+internal const val SCENE_GAP_DP = 24
+private const val WORDMARK_SHADOW_ALPHA = 0.5f
+
+/** More passes spread the shadow further; each one is correspondingly fainter. */
+private const val WORDMARK_SHADOW_PASSES = 5
+
 private const val Z_REAR_SPARKS = 1f
 private const val Z_BOARD = 2f
 private const val Z_DIGIT_SHADOWS = 2.5f
@@ -517,6 +601,7 @@ private const val Z_MIDDLE_SPARKS = 3f
 private const val Z_DIGITS = 4f
 private const val Z_FRONT_SPARKS = 5f
 private const val Z_INPUT = 6f
+private const val Z_WORDMARK = 7f
 
 /** One full permutation per loop makes the digit layer continuous at the phase boundary. */
 private const val DIGIT_CYCLES = 9f
@@ -524,9 +609,15 @@ private const val CELL_STAGGER = 0.37f
 private const val DIGIT_HEIGHT_FRACTION = 0.42f
 private const val DIGIT_MIN_ALPHA = 0.72f
 private const val DIGIT_MAX_ALPHA = 1f
-private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.16f
-private const val DIGIT_CAST_SHADOW_ALPHA = 0.42f
-private const val DIGIT_CAST_SHADOW_BLUR_PX = 5f
+private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.22f
+/**
+ * Higher than before the blur widened, not lower.
+ *
+ * Blurring spreads the same ink across a larger area, so tripling the radius and
+ * cutting the alpha at the same time multiplied into a shadow that was not there.
+ */
+private const val DIGIT_CAST_SHADOW_ALPHA = 0.58f
+private const val DIGIT_CAST_SHADOW_BLUR_PX = 10f
 
 /**
  * One drifting spark. Everything is a fraction of the drawing area, so the same description works

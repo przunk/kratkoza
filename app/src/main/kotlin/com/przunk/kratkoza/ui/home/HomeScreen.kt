@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.przunk.kratkoza.R
-import com.przunk.kratkoza.ui.common.KratkozaScaffold
 import com.przunk.kratkoza.ui.common.labelRes
 import com.przunk.kratkoza.util.formatDuration
 
@@ -48,22 +51,36 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    KratkozaScaffold(title = stringResource(R.string.home_title), modifier = modifier) { padding ->
+    // No title bar here, unlike every other screen: the artwork draws the name itself, and a bar
+    // above it would repeat the word and cut the scene short. Without a bar nothing reserves the
+    // status bar, so the inset is taken directly.
+    Surface(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp),
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 24.dp)
+                // Room above the artwork. Without a title bar the scene otherwise begins at the
+                // very edge of the usable area, which reads as cramped rather than as full-bleed.
+                .padding(top = TOP_MARGIN_DP.dp),
             verticalArrangement = Arrangement.spacedBy(MENU_GAP_DP.dp),
         ) {
             // The artwork sits in the space above the menu and hangs from the top of it, so it
             // stays clear of the buttons instead of crowding down onto them. The weights leave the
             // menu near the middle — a little below it, not pushed to the bottom.
+            // Measured, not weighted. The rhythm down the screen is margin, title, margin, board,
+            // twice a margin, menu — which only holds if the artwork takes the height it needs
+            // instead of stretching into whatever is left.
             Box(
-                modifier = Modifier.fillMaxWidth().weight(SPACE_ABOVE_MENU),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
-                RotatingBoardArt(modifier = Modifier.fillMaxSize())
+                RotatingBoardArt(
+                    // Clear of the menu below. The scene tilts and its particles drift past its
+                    // own bounds, so without a gap the artwork ends up touching the first button.
+                    modifier = Modifier.fillMaxWidth().padding(bottom = SCENE_GAP_DP.dp),
+                    contentDescription = stringResource(R.string.home_title),
+                )
             }
 
             val mostRecent = state.mostRecent
@@ -176,6 +193,8 @@ private const val CONTINUE_HEIGHT_DP = 76
 
 private const val MENU_GAP_DP = 12
 
-/** Leaves a little more breathing room for the artwork and nudges the menu gently downwards. */
-private const val SPACE_ABOVE_MENU = 1.45f
+/** Breathing room under the status bar, in place of the title bar that used to provide it. */
+private const val TOP_MARGIN_DP = 20
+
+
 private const val SPACE_BELOW_MENU = 0.75f
