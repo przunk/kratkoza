@@ -13,6 +13,13 @@ czego w specyfikacji w ogóle nie ma.
 **Zrobione 2026-08-26 — wariant B.** Obracający się w przestrzeni kwadrat 3×3 z cyframi,
 które pojawiają się i znikają. Zostaje niżej jako zapis rozważanych wariantów.
 
+**Rozwinięte 2026-08-28.** Kratka, cyfry i iskierki są osobnymi warstwami paralaksy: w spoczynku
+zachowują płynny sinusoidalny wobble, pod palcem reagują na położenie, a po puszczeniu wracają do
+aktualnego ruchu automatycznego. Scena korzysta bezpośrednio z tła ekranu, plansza jest jaśniejszą,
+nieprzezroczystą płaszczyzną, a cienie cyfr są rzutowane na nią z osobnej warstwy. Iskry parują od
+dołu ku górze i dzielą się na lecące za planszą, między planszą i cyframi oraz przed cyframi. Efekt
+pozostaje czystą dekoracją Compose, bez sensorów i nowych zależności.
+
 **Zgłoszone:** 2026-08-25.
 
 Ekran główny jest czysty, ale pusty nad przyciskami. Pomysł: wstawić tam grafikę albo
@@ -158,3 +165,109 @@ niej — a nie jako drugi, niezależny mechanizm, który trzeba utrzymywać w dw
 
 Decyzje funkcjonalne wokół regionu są już podjęte i opisane w [STATUS.md](STATUS.md); ta pozycja
 dotyczy wyłącznie formy wyboru.
+
+---
+
+## 8. Podświetlenie cyfry klikniętej na klawiaturze
+
+**Zgłoszone:** 2026-08-28. Pomysł użytkownika, widziany w innej aplikacji do sudoku.
+
+Zgłaszający opisał to tak: gdy zaznaczone jest pole, którego nie da się nadpisać, kliknięcie cyfry
+na klawiaturze zaznacza pierwsze jej wystąpienie od góry i podświetla wszystkie takie same na
+planszy.
+
+**Połowa tego już działa.** Podświetlanie takich samych cyfr po zaznaczeniu pola jest wymaganiem
+`project.md` §10, jest zaimplementowane i domyślnie włączone (`highlightSameDigits`). Nowa jest
+wyłącznie część o wywołaniu tego **z klawiatury**, bez zaznaczonego pola z tą cyfrą.
+
+**Dlaczego to nie jest oczywiste:**
+
+- **Ten sam gest zacząłby znaczyć dwie różne rzeczy.** Kliknięcie „5" znaczy „wstaw tu piątkę".
+  W propozycji czasem znaczy „zabierz mnie do jakiejś piątki", a decyduje o tym, czy zaznaczone pole
+  akurat jest zajęte — stan, którego gracz patrzący na planszę nie śledzi.
+- **Przesunięcie zaznaczenia jest efektem ubocznym, o który nikt nie prosił.** Zaznaczenie to miejsce
+  gracza na planszy; po przeskoku **następne** kliknięcie działa gdzie indziej, niż zakłada. Pomyłka
+  przestaje być nieszkodliwa i zaczyna się kaskadować.
+- **„Pierwsze z góry" jest arbitralne.** Gdyby gracz chciał obejrzeć konkretną piątkę, kliknąłby
+  w nią.
+- **§10 stawia warunek czytelności:** podświetlenie nie może utrudniać odczytania bieżącego pola,
+  wiersza, kolumny, bloku i błędów. Podświetlenie wywołane z klawiatury obejmuje więcej pól naraz niż
+  to z zaznaczenia, więc kontrast trzeba obejrzeć w obu motywach i w trybie wysokiego kontrastu.
+
+**Wariant proponowany zamiast oryginalnego:** kliknięcie cyfry, której **nie da się wpisać**,
+podświetla wszystkie jej wystąpienia i **nie rusza zaznaczenia**. Ta sama potrzeba („pokaż mi, gdzie
+są piątki"), efekt czysto wizualny i odwracalny.
+
+Ma dwie zalety, których wariant z przeskokiem nie ma:
+
+- **Ożywia martwy przycisk.** Dziś, gdy cyfra jest już rozdystrybuowana po całej planszy,
+  `GameViewModel.enterDigit` po prostu wychodzi i kliknięcie nie robi **nic**. Podświetlenie daje
+  temu klawiszowi sens dokładnie wtedy, gdy stracił poprzedni.
+- **Zgadza się z §19**, które przewiduje wizualne wygaszenie przycisku po wykorzystaniu wszystkich
+  dziewięciu wystąpień. Wygaszony przycisk, który dalej umie pokazać, gdzie te dziewiątki są, to
+  spójna całość, a nie wyjątek.
+
+**Czego wymaga przed realizacją:**
+
+- rozstrzygnięcia, **jak się z tego wychodzi** — kliknięcie w pole, ponowne kliknięcie tej samej
+  cyfry, czy jedno i drugie,
+- rozstrzygnięcia **pierwszeństwa**, gdy naraz jest zaznaczone pole z cyfrą i „przypięta" cyfra
+  z klawiatury; bez tego powstanie druga cicha reguła,
+- decyzji, czy to osobna opcja w ustawieniach, czy zachowanie idące za istniejącym
+  `highlightSameDigits`.
+
+---
+
+## 9. Tytuł wtopiony w animację zamiast nagłówka po lewej
+
+**Zgłoszone:** 2026-08-28.
+
+Dziś ekran główny ma zwykły pasek z tytułem „Kratkoza" wyrównanym do lewej, a pod nim osobny obszar
+z animacją. Pomysł: **usunąć pasek** i oddać całą górną część ekranu animacji, a nazwę narysować
+w jej obrębie — u góry, nad kratką, grubymi literami na całą szerokość.
+
+**Dlaczego to nie jest tylko przesunięcie napisu:**
+
+- Pasek to `KratkozaScaffold`, wspólny dla wszystkich ekranów. Ekran główny musiałby przestać go
+  używać albo dostać wariant bez paska — a wtedy trzeba zdecydować, co z górnym wcięciem systemowym,
+  które dziś załatwia `TopAppBar`.
+- Napis na całą szerokość, grubymi literami, przestaje być tekstem interfejsu i staje się elementem
+  grafiki. Musi więc znieść oba motywy, tryb wysokiego kontrastu i powiększoną czcionkę systemową —
+  a `project.md` §8 pozwala jej nie respektować tylko tam, gdzie niszczy geometrię planszy.
+- Animacja porusza się i przechyla pod palcem. Trzeba rozstrzygnąć, czy napis **należy do sceny**
+  i przechyla się razem z nią, czy stoi nieruchomo nad nią. To dwie różne rzeczy wizualnie i tylko
+  pierwsza wymaga wciągnięcia go w warstwy paralaksy.
+- Ekran główny jest jedynym miejscem, gdzie widać nazwę aplikacji. Po usunięciu paska tekst musi
+  zostać dostępny dla TalkBacka, a dziś grafika jest przed nim celowo ukryta
+  (`clearAndSetSemantics`).
+
+---
+
+## 10. Cyfry w grafice tytułowej przechodzące jedna w drugą
+
+**Zgłoszone:** 2026-08-28.
+
+Dziś cyfra znika i pojawia się następna — zmiana trwa jedną klatkę. Pomysł: żeby jedna cyfra
+**przelewała się** w drugą, plastycznie, tak jak zmienia się kształt z gliny.
+
+**Czy to możliwe: tak, ale nie przez przenikanie.** Przenikanie dwóch cyfr daje moment, w którym obie
+są widoczne naraz i półprzezroczyste — czyta się to jako duch, nie jako zmiana kształtu. To jest
+tanie i można zrobić od ręki, ale nie o to chodzi w zgłoszeniu.
+
+**Prawdziwe morfowanie wymaga, żeby obie cyfry były tym samym rodzajem opisu.** Interpolacja między
+konturami z kroju pisma jest trudna: kontury mają różną liczbę punktów, różną liczbę konturów (8 ma
+dwa prześwity, 1 żadnego) i nie ma naturalnego przyporządkowania punktu do punktu. Bez tego wychodzi
+szarpanie, a nie przelewanie.
+
+**Droga, która to otwiera:** narysować cyfry jako **własną geometrię na wspólnym szkielecie** — tak
+jak zrobiony jest już napis „Kratkoza". Jeśli każda cyfra jest złożona z tego samego zestawu kresek,
+a różni się tylko ich położeniem, długością i tym, które są widoczne, to morfowanie sprowadza się do
+interpolacji kilkunastu liczb. Przelewanie wychodzi wtedy samo i jest tanie w każdej klatce.
+
+**Czego to kosztuje.** Zaprojektowania dziesięciu cyfr na jednym szkielecie, co jest robotą
+rysunkową, a nie programistyczną — i decyzji, czy taki „techniczny" krój cyfr pasuje do reszty
+grafiki, czy zaczyna wyglądać jak wyświetlacz kalkulatora.
+
+**Uwaga o zasięgu.** Dotyczy wyłącznie cyfr w grafice tytułowej. Cyfry na planszy zostają zwykłym
+tekstem: tam liczy się czytelność i respektowanie ustawień systemowych, a nie efekt.
+

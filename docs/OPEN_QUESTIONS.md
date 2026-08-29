@@ -264,3 +264,51 @@ poziomu: **jeden błąd na Morderczym kosztuje 600 punktów, czyli więcej, niż
 zapisać: kroków logicznego rozwiązania jest 45 / 58 / 63 dla ŁATWY / TRUDNY / MORDERCZY — rozrzut
 niespełna półtorakrotny, gdy ludzki jest kilkukrotny. O trudności decyduje **znalezienie** techniki,
 a nie jej zastosowanie, i żadna liczba zastosowań tego nie widzi. Dostroić, gdy będą prawdziwe czasy.
+
+---
+
+## Czy reset statystyk ma zerować sumę wysyłaną do rankingu?
+
+**Otwarte od 2026-08-28.** Właściciel projektu chce najpierw pożyć z tym trochę i zdecydować
+z doświadczenia, a nie z rozumowania — więc pytanie czeka, a zachowanie zostaje takie, jak jest.
+
+**Jak jest teraz.** Suma wszech czasów jest przeliczana z lokalnej historii, którą reset statystyk
+czyści. Tablica po stronie Google trzyma najlepszy wynik i nic o resecie nie wie, więc po resecie
+wysyłane sumy są niższe niż to, co tablica już ma, i są ignorowane, dopóki nowa suma nie przekroczy
+starej. Lokalny rekord i publiczny rozjeżdżają się wtedy na stałe.
+
+**Co przemawia za zostawieniem.** „Reset statystyk" znaczy dokładnie to, co mówi: zerujesz swój
+lokalny rekord i wszystko, co się z niego liczy. Wyjątek dla jednej liczby byłby regułą, o której
+nikt się nie dowie, dopóki go nie zauważy.
+
+**Co przemawia za zmianą.** Suma wszech czasów jest rekordem publicznym, a nie prywatnym. Gracz,
+który czyści swoje statystyki, prawdopodobnie chce zacząć od nowa u siebie, a nie wypaść z rankingu,
+w którym już jest — i przez pewien czas widzieć, że jego wyniki „nie działają".
+
+**Czego nie da się zrobić — sprawdzone w SDK 2026-08-28.** Skasować wyniku gracza z aplikacji.
+Całe API `LeaderboardsClient` w `play-services-games-v2:20.1.2` to odczyt i wysyłka:
+`loadTopScores`, `loadPlayerCenteredScores`, `loadCurrentPlayerLeaderboardScore`,
+`loadLeaderboardMetadata`, `loadMoreScores`, `getLeaderboardIntent`, `getAllLeaderboardsIntent`,
+`submitScore`, `submitScoreImmediate`. **Żadnej metody kasującej ani zerującej** — i nic takiego nie
+występuje w całym SDK w klasach tablic, wyników i graczy.
+
+Kasowanie istnieje wyłącznie w Management API, po stronie serwera, na koncie usługi — i tylko dla
+kont testerów, dopóki gra nie jest opublikowana. Aplikacja nie ma tam wstępu.
+
+Padło pytanie, czy reset statystyk mógłby wyczyścić także ranking gracza, za dodatkowym
+potwierdzeniem. **Nie może.** Dialog obiecywałby coś, czego nie da się dotrzymać, a tablica trzyma
+najlepszy wynik, więc nie da się go nawet obniżyć przez wysłanie zera.
+
+**Co zostaje do wyboru, skoro kasowanie odpada:**
+
+1. **Zostawić jak jest.** Po resecie wysyłane sumy są niższe od tego, co tablica trzyma, i są
+   ignorowane, dopóki nie przebiją starej wartości. Gracz przez pewien czas widzi, że jego wyniki
+   „nie działają", i nie ma jak się dowiedzieć dlaczego.
+2. **Liczyć sumę wszech czasów z osobnego licznika, którego reset nie dotyka**, i napisać w dialogu
+   resetu, że rankingu publicznego to nie obejmuje. Tablica pozostaje spójna, znika efekt martwych
+   wyników, a „reset statystyk" dalej znaczy „zeruję swój lokalny rekord" — bo suma publiczna nigdy
+   nie była lokalnym rekordem.
+
+Wariant 2 jest bliższy temu, o co pytano, i usuwa jedyną realną szkodę. Kosztuje licznik, który
+przeżywa reset, i jedno zdanie w dialogu.
+

@@ -106,6 +106,16 @@ data class GameUiState(
 
     val isPlayable: Boolean get() = phase == Phase.PLAYING && !isPaused
 
+    /**
+     * Whether the number pad and the eraser can do anything.
+     *
+     * They act on the selected cell, so without one they are live-looking controls that swallow the
+     * press — the failure ARCHITECTURE.md section 9 is about. Dimmed rather than explained after the
+     * fact, which is what the pad already does for a digit that has been placed nine times and what
+     * the status row does for the pause button of a ranked game.
+     */
+    val canEnterDigit: Boolean get() = isPlayable && selectedCell != null
+
     /** project.md section 28: no pause button while the game still counts. */
     val canPause: Boolean get() = !rankedEligible
 

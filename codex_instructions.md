@@ -66,9 +66,15 @@ zrebasowana i przez chwilę istniała jako komplet duplikatów gotowych do ponow
 
 ## 3. Gałęzie
 
-- `master` — baza,
-- `develop` — gałąź integracyjna, **nikt nie commituje na nią wprost**,
+- `develop` — **gałąź główna**. Stąd wychodzi każda gałąź zadaniowa i tu wraca. Nikt nie commituje
+  na nią wprost.
+- `master` — **baza wydań**, aktualizowana rzadko. Trafia tam `develop` dopiero wtedy, gdy właściciel
+  projektu uzna dany stan za milestone. To jego decyzja i jego ruch — **nie scalasz do `master`
+  nigdy**, nawet gdy Twoja gałąź jest gotowa i przetestowana.
 - `<typ>/<opis>` — gałąź zadania, np. `fix/game-screen-readability`.
+
+Praktyczny wniosek: `master` bywa o dziesiątki commitów w tyle i to jest stan normalny, a nie coś
+do nadrobienia. Jeśli kiedykolwiek zastanawiasz się, z czego odbić gałąź, odpowiedź brzmi `develop`.
 
 Scalenie do `develop` następuje, gdy zadanie jest skończone i zweryfikowane. **Własną, skończoną
 gałąź możesz scalić sam**, gdy właściciel to potwierdzi; cudzej nie scalasz nigdy.
@@ -113,7 +119,8 @@ zatwierdzonymi wymaganiami** — zostaw kod gotowy na rozszerzenie, ale nie impl
 ## 6. Konwencje kodu
 
 - **Kotlin**, Jetpack Compose, Material 3. Nowego kodu w Javie nie piszemy.
-- **Komentarze i KDoc po angielsku.** Opisy commitów i dokumentacja w `docs/` — po polsku.
+- **Kod i git po angielsku** — komentarze, KDoc, nazwy gałęzi i opisy commitów.
+  Dokumentacja w `docs/` zostaje po polsku: czyta ją właściciel projektu, a nie kompilator.
 - Komentarz ma tłumaczyć **dlaczego**, nie powtarzać, co widać w kodzie. Szczególnie cenne jest
   zapisanie, czego dana decyzja unika.
 - **Żadnych nowych zależności** bez wyraźnego uzasadnienia (`technical_requirements.md` §9).
@@ -153,7 +160,9 @@ Po dodaniu napisu sprawdź parzystość kluczy między `values/` i `values-pl/`.
 
 ## 8. Commity
 
-- Opis po polsku, w trybie oznajmującym: „Cyfra rozdana na całej planszy nie daje się już wybrać".
+- Opis po angielsku, w trybie oznajmującym: "A digit placed nine times can no longer be
+  selected". Reguła zmieniona 2026-08-28; wcześniej opisy były po polsku, więc starsza
+  historia jest mieszana.
 - Tłumacz **dlaczego**, nie tylko co. Jeśli poprawiasz błąd, napisz, co było jego przyczyną — a jeśli
   przyczyną była wcześniejsza decyzja, napisz to wprost.
 - **Nie podbijaj `versionCode` ani `versionName` na gałęzi zadaniowej.** Robi to jedna osoba,

@@ -68,7 +68,7 @@ fun KratkozaNavHost(
                         popUpTo(Destinations.NEW_GAME) { inclusive = true }
                     }
                 },
-                onNavigateBack = navController::popBackStack,
+                onNavigateBack = navController::navigateBackOnce,
             )
         }
 
@@ -92,7 +92,7 @@ fun KratkozaNavHost(
                         )
                     },
                 ),
-                onNavigateBack = navController::popBackStack,
+                onNavigateBack = navController::navigateBackOnce,
                 onNewGame = {
                     navController.navigate(Destinations.NEW_GAME) {
                         popUpTo(Destinations.HOME)
@@ -103,9 +103,9 @@ fun KratkozaNavHost(
 
         composable(Destinations.DAILY) {
             DailyScreen(
-                viewModel = viewModel(factory = factory { DailyViewModel(container.gameRepository, container.ranking, container.rankingLog) }),
+                viewModel = viewModel(factory = factory { DailyViewModel(container.dailyRepository, container.ranking, container.rankingLog) }),
                 onOpenGame = { navController.navigate(Destinations.game(it)) },
-                onNavigateBack = navController::popBackStack,
+                onNavigateBack = navController::navigateBackOnce,
             )
         }
 
@@ -113,21 +113,21 @@ fun KratkozaNavHost(
             SavedGamesScreen(
                 viewModel = viewModel(factory = factory { SavedGamesViewModel(container.gameRepository) }),
                 onOpenGame = { navController.navigate(Destinations.game(it)) },
-                onNavigateBack = navController::popBackStack,
+                onNavigateBack = navController::navigateBackOnce,
             )
         }
 
         composable(Destinations.STATISTICS) {
             StatisticsScreen(
-                viewModel = viewModel(factory = factory { StatisticsViewModel(container.gameRepository) }),
-                onNavigateBack = navController::popBackStack,
+                viewModel = viewModel(factory = factory { StatisticsViewModel(container.statisticsRepository) }),
+                onNavigateBack = navController::navigateBackOnce,
             )
         }
 
         composable(Destinations.SETTINGS) {
             SettingsScreen(
-                viewModel = viewModel(factory = factory { SettingsViewModel(container.settingsRepository) }),
-                onNavigateBack = navController::popBackStack,
+                viewModel = viewModel(factory = factory { SettingsViewModel(container.settingsRepository, container.rankingLog) }),
+                onNavigateBack = navController::navigateBackOnce,
             )
         }
     }

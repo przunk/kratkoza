@@ -3,7 +3,7 @@ package com.przunk.kratkoza.ui.daily
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.przunk.kratkoza.data.repository.GameRepository
+import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.BuildConfig
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
  * the morning sees the new set arrive instead of stale puzzles that quietly stopped being today's.
  */
 class DailyViewModel(
-    private val gameRepository: GameRepository,
+    private val dailyRepository: DailyRepository,
     /**
      * The public ranking. Defaults to nowhere, so a build without Play Games identifiers — and
      * every test — simply shows no ranking controls rather than showing dead ones.
@@ -49,6 +49,9 @@ class DailyViewModel(
     private val _openGame = Channel<String>(Channel.BUFFERED)
     val openGame = _openGame.receiveAsFlow()
 
+    /** UI courtesy only; [GameRepository.startDaily] owns the actual single-attempt invariant. */
+    private var openingGame = false
+
     /** Things that went wrong in a way the player asked for and should therefore hear about. */
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
@@ -57,11 +60,6 @@ class DailyViewModel(
         viewModelScope.launch { load(DailySchedule.dailyDateAt(clock())) }
         viewModelScope.launch { watchForChangeover() }
         viewModelScope.launch { refreshSignIn() }
-        viewModelScope.launch {
-            rankingLog.entries.collect { entries ->
-                _uiState.value = _uiState.value.copy(diagnostics = entries)
-            }
-        }
     }
 
     /**
@@ -121,11 +119,6 @@ class DailyViewModel(
         // Coming back from Play Games is one of the ways sign-in changes without this screen being
         // rebuilt, so the state is re-read rather than assumed to be still true.
         viewModelScope.launch { refreshSignIn() }
-        viewModelScope.launch {
-            rankingLog.entries.collect { entries ->
-                _uiState.value = _uiState.value.copy(diagnostics = entries)
-            }
-        }
     }
 
     /**
@@ -137,9 +130,15 @@ class DailyViewModel(
      */
     fun open(difficulty: Difficulty) {
         val date = _uiState.value.date ?: return
+        if (openingGame) return
+        openingGame = true
         viewModelScope.launch {
-            val game = gameRepository.startDaily(date, difficulty)
-            if (game == null) load(date) else _openGame.send(game.state.puzzle.id)
+            try {
+                val game = dailyRepository.startDaily(date, difficulty)
+                if (game == null) load(date) else _openGame.send(game.state.puzzle.id)
+            } finally {
+                openingGame = false
+            }
         }
     }
 
@@ -147,7 +146,7 @@ class DailyViewModel(
         // Generating three boards takes a moment on a first visit, so the screen says so rather
         // than looking broken.
         _uiState.value = _uiState.value.copy(isLoading = true)
-        val entries = gameRepository.dailySet(date)
+        val entries = dailyRepository.dailySet(date)
         _uiState.value = _uiState.value.copy(
             date = date,
             entries = entries,
@@ -198,6 +197,4 @@ data class DailyUiState(
     /** Whether Play Games is configured at all; false hides every ranking control. */
     val rankingAvailable: Boolean = false,
     val signedIn: Boolean = false,
-    /** Debug builds only: what the ranking has been doing, newest first. */
-    val diagnostics: List<String> = emptyList(),
 )

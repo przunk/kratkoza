@@ -212,13 +212,15 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
     NumberPad(
         remainingByDigit = state.remainingByDigit,
         onDigitClick = viewModel::enterDigit,
-        enabled = state.isPlayable,
+        enabled = state.canEnterDigit,
         candidateMode = state.candidateMode,
         showRemainingCounts = state.showRemainingCounts,
     )
 
     GameActionsRow(
         canUndo = state.canUndo,
+        // Erasing acts on the selected cell; undo and the candidate toggle do not.
+        canErase = state.canEnterDigit,
         candidateMode = state.candidateMode,
         enabled = state.isPlayable,
         onUndo = viewModel::undo,
@@ -407,6 +409,7 @@ private fun PauseCover(onResume: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun GameActionsRow(
     canUndo: Boolean,
+    canErase: Boolean,
     candidateMode: Boolean,
     enabled: Boolean,
     onUndo: () -> Unit,
@@ -427,7 +430,7 @@ private fun GameActionsRow(
         }
         OutlinedButton(
             onClick = onErase,
-            enabled = enabled,
+            enabled = enabled && canErase,
             modifier = Modifier.weight(1f).fillMaxSize(),
             contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {

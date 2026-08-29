@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.ui.settings
 
 import androidx.lifecycle.ViewModel
+import com.przunk.kratkoza.domain.ranking.RankingLog
 import androidx.lifecycle.viewModelScope
 import com.przunk.kratkoza.data.repository.SettingsRepository
 import com.przunk.kratkoza.domain.settings.AppLanguage
@@ -13,7 +14,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** project.md section 35. Each setter writes and lets the store's own flow report the change back. */
-class SettingsViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
+class SettingsViewModel(
+    private val settingsRepository: SettingsRepository,
+    /**
+     * What the ranking has been doing. Read-only here — Settings is where somebody goes when
+     * something is wrong, which is the only place this belongs once an investigation is over.
+     */
+    rankingLog: RankingLog = RankingLog(),
+) : ViewModel() {
+
+    val rankingDiagnostics: StateFlow<List<String>> = rankingLog.entries
 
     val settings: StateFlow<GameSettings> = settingsRepository.settings
         .stateIn(

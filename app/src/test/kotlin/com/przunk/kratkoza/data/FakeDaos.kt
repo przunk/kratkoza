@@ -31,14 +31,15 @@ import kotlinx.coroutines.flow.map
  * and it is the price of testing the repository without a device; the queries themselves are covered
  * by the instrumented tests.
  */
-class FakePuzzleDao : PuzzleDao {
+open class FakePuzzleDao : PuzzleDao {
     val puzzles = mutableMapOf<String, PuzzleEntity>()
+    private val writeLock = Any()
 
     override suspend fun insert(puzzle: PuzzleEntity) {
-        puzzles.putIfAbsent(puzzle.puzzleId, puzzle)
+        synchronized(writeLock) { puzzles.putIfAbsent(puzzle.puzzleId, puzzle) }
     }
 
-    override suspend fun byId(puzzleId: String): PuzzleEntity? = puzzles[puzzleId]
+    open override suspend fun byId(puzzleId: String): PuzzleEntity? = puzzles[puzzleId]
 }
 
 /** In-memory stand-in for the Daily calendar. */
@@ -59,14 +60,17 @@ class FakeDailyPuzzleDao : DailyPuzzleDao {
 
 class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
     private val saves = MutableStateFlow<Map<String, SavedGameEntity>>(emptyMap())
+    private val writeLock = Any()
 
     /** How many times a save has been written; the automatic save is meant to fire on every move. */
     var writeCount: Int = 0
         private set
 
     override suspend fun upsert(save: SavedGameEntity) {
-        writeCount++
-        saves.value = saves.value + (save.puzzleId to save)
+        synchronized(writeLock) {
+            writeCount++
+            saves.value = saves.value + (save.puzzleId to save)
+        }
     }
 
     override suspend fun byId(puzzleId: String): SavedGameEntity? = saves.value[puzzleId]
@@ -124,6 +128,7 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
  */
 class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : GameHistoryDao() {
     private val entries = MutableStateFlow<List<GameHistoryEntity>>(emptyList())
+    private val writeLock = Any()
 
     val all: List<GameHistoryEntity> get() = entries.value
 
@@ -136,9 +141,11 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
     }
 
     override suspend fun insert(entry: GameHistoryEntity): Long {
-        val id = entries.value.size + 1L
-        entries.value = entries.value + entry.copy(id = id)
-        return id
+        return synchronized(writeLock) {
+            val id = entries.value.size + 1L
+            entries.value = entries.value + entry.copy(id = id)
+            id
+        }
     }
 
     override suspend fun markFinished(

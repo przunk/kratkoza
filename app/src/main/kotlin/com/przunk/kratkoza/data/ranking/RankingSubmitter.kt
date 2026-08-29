@@ -1,8 +1,10 @@
 package com.przunk.kratkoza.data.ranking
 
+import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.model.GameType
+import com.przunk.kratkoza.domain.ranking.DailyResult
 import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.ranking.RankingLog
@@ -25,6 +27,7 @@ import kotlinx.coroutines.launch
  */
 class RankingSubmitter(
     private val repository: GameRepository,
+    private val daily: DailyRepository,
     private val ranking: Ranking,
     private val log: RankingLog,
     private val scope: CoroutineScope,
@@ -54,23 +57,28 @@ class RankingSubmitter(
             log.add("ranking: skipped — Play Games is not configured")
             return
         }
-        val board = Leaderboard.forDaily(finished.difficulty) ?: run {
+        if (Leaderboard.forDaily(finished.difficulty) == null) {
             log.add("ranking: skipped — no board for ${finished.difficulty}")
             return
         }
+        // Not a reason to stop. Without the totals the two sum boards have nothing to hear, but
+        // the level board carries this game's own score and is unaffected — and it is the one whose
+        // acceptance decides publiclyRanked.
+        val totals = daily.dailyTotals(puzzleId)
+        if (totals == null) log.add("ranking: no totals for $puzzleId — sending the level only")
 
-        // The level board first: it is the one whose acceptance decides publiclyRanked, because it
-        // is the only one carrying this game's own result rather than a running sum.
-        if (sendOne(board, score.toLong()) is SubmissionOutcome.Submitted) {
-            repository.markPubliclyRanked(finished.historyId)
+        // Every board is asked what it wants from this result, rather than the sending order being
+        // written out here. A board added to the enum is picked up by this loop without touching
+        // this file — which is the whole reason the declaration lives in one place.
+        val result = DailyResult(finished.difficulty, score, totals)
+        for (board in Leaderboard.entries) {
+            val value = board.valueFor(result) ?: continue
+            val outcome = sendOne(board, value)
+
+            if (board.carriesOwnResult && outcome is SubmissionOutcome.Submitted) {
+                repository.markPubliclyRanked(finished.historyId)
+            }
         }
-
-        // Then the totals, recomputed from the record rather than added up here — the stored rows
-        // are what the statistics screen reads, and two additions of the same numbers would
-        // eventually disagree.
-        val totals = repository.dailyTotals(puzzleId) ?: return
-        sendOne(Leaderboard.DAILY_TOTAL, totals.today)
-        sendOne(Leaderboard.ALL_TIME_TOTAL, totals.allTime)
     }
 
     private suspend fun sendOne(board: Leaderboard, value: Long): SubmissionOutcome {

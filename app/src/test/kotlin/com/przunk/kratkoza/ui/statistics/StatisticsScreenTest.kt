@@ -24,6 +24,7 @@ import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameEntity
+import com.przunk.kratkoza.data.repository.StatisticsRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.GameFixtures
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -59,6 +60,7 @@ class StatisticsScreenTest {
         generator = SudokuGenerator(),
         computationDispatcher = Dispatchers.Unconfined,
     )
+    private val statisticsRepository = StatisticsRepository(historyDao, savedGameDao)
 
     @Test
     fun `empty statistics show zero values none placeholders and a disabled reset`() {
@@ -174,7 +176,7 @@ class StatisticsScreenTest {
     }
 
     private fun showScreen() {
-        val viewModel = StatisticsViewModel(repository)
+        val viewModel = StatisticsViewModel(statisticsRepository)
         compose.setContent {
             KratkozaTheme {
                 StatisticsScreen(viewModel = viewModel, onNavigateBack = {})

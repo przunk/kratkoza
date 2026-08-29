@@ -93,22 +93,70 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
-### Podwójne kliknięcie „Start" otwiera dwie plansze Daily
+### Grafika tytułowa jest zrobiona pod ciemny motyw
+
+**Zgłoszone:** 2026-08-28 z urządzenia. W ciemnym motywie wygląda dobrze, w jasnym źle, a w trybie
+wysokiego kontrastu jeszcze gorzej.
+
+**Trop, i jest jednoznaczny.** Wszystkie trzy kolory sceny są rozjaśniane **w stronę bieli**:
+
+```kotlin
+val digitColor = lerp(colors.enteredDigit, Color.White, DIGIT_COLOR_LIFT)   // 0.62
+val gridColor  = lerp(colors.blockLine,    Color.White, GRID_COLOR_LIFT)    // 0.48
+val boardColor = lerp(background,          Color.White, BOARD_BACKGROUND_LIFT) // 0.13
+```
+
+Na ciemnym tle rozjaśnianie oddala od tła i scena świeci. Na jasnym robi dokładnie odwrotnie —
+**zbliża wszystko do tła** i wypłukuje kontrast. Stała ma jeden znak, a potrzebuje dwóch kierunków.
+
+**Dlaczego wysoki kontrast wypada gorzej, a nie lepiej.** Ten tryb istnieje po to, żeby zwiększać
+rozdzielenie. Rozjaśnianie w stronę bieli działa wtedy przeciwko niemu — im mocniej tryb rozsuwa
+kolory, tym mocniej scena je z powrotem ściąga.
+
+**Kierunek naprawy.** Rozjaśnianie zastąpić przesunięciem **od tła**, nie ku bieli: w jasnym motywie
+w stronę czerni, w ciemnym w stronę bieli. Wtedy jedna stała opisuje „o ile odsunąć od tła" zamiast
+„o ile zbielić", i działa w obu motywach oraz nie walczy z wysokim kontrastem.
+
+**Uwaga o zakresie.** Codex pracuje równolegle nad kontrastem palet w `ui/theme/`. To jest osobna
+usterka, w `ui/home/`, i dotyczy wyłącznie rozjaśnień samej grafiki — ale obie zmiany spotkają się
+na ekranie, więc druga z nich powinna zostać obejrzana po scaleniu pierwszej.
+
+### ~~Dwa kliknięcia „wstecz" w Ustawieniach zostawiają pusty ekran~~ — naprawione 2026-08-28
+
+**Zgłoszone:** 2026-08-28 z urządzenia, **100% powtarzalności**. Aplikacja wraca na ekran główny,
+natychmiast go opuszcza i zostaje pusta karta, z której nie da się nic zrobić.
+
+**Trop.** Ekran główny nie ma strzałki wstecz, Ustawienia mają — i wołają `navController::popBackStack`
+bez żadnego zabezpieczenia (`KratkozaNavHost`, wszystkie ekrany podrzędne robią to tak samo). Dwa
+szybkie kliknięcia to dwa wywołania: pierwsze zdejmuje Ustawienia, drugie zdejmuje **ekran główny**,
+bo nikt nie sprawdza, czy jest jeszcze co zdejmować. Zostaje `NavHost` z pustym stosem — nie ma czego
+narysować, a Activity się nie kończy, więc nie ma też wyjścia.
+
+**To ta sama klasa błędu co podwójny „Start" w Daily**: dwa zdarzenia wchodzą, zanim pierwsze zdąży
+zmienić stan. Tamto rozwiązanie — blokada w warstwie, która naprawdę pilnuje reguły — jest tu
+wskazówką, ale nie da się przepisać wprost: to nawigacja, nie baza.
+
+**Rozwiązanie.** Jedno miejsce, `navigateBackOnce`, przez które przechodzą wszystkie sześć powrotów.
+Blokadą jest cykl życia wpisu, z którego przyszło naciśnięcie: ekran schodzący ze stosu nie jest już
+RESUMED, więc drugie wywołanie nie ma na czym zadziałać. W przeciwieństwie do flagi w każdym ekranie
+nie ma tu stanu do wyzerowania i nie da się o tym zapomnieć przy siódmym ekranie.
+
+Sprawdzone w obie strony: bez blokady test pada na „the stack must not be empty", a pojedyncze
+naciśnięcie dalej wraca — blokada nie zamieniła się w odmowę.
+
+### ~~Podwójne kliknięcie „Start" otwiera dwie plansze Daily~~ — naprawione 2026-08-28
+
+**Potwierdzone na urządzeniu 2026-08-28** przez zgłaszającego.
 
 **Zgłoszone:** 2026-08-27. Testowane na buildzie 0.16.0 (26).
 
-Szybkie dwukrotne naciśnięcie „Start" na karcie Daily uruchamia grę dwa razy. Druga plansza zostaje
-w tle i po ukończeniu pierwszej gracz widzi ją od nowa — wygląda to tak, jakby Daily dało się
-rozegrać drugi raz.
+Przyczyną były dwa równoległe wywołania `startDaily`, które odczytywały brak zapisu, zanim
+którekolwiek zdążyło utworzyć podejście. `GameRepository` serializuje teraz sprawdzenie i zajęcie
+planszy mutexem, a `DailyViewModel` dodatkowo odrzuca kolejne naciśnięcie podczas otwierania.
 
-**Co jest podejrzane w kodzie.** `DailyViewModel.open` startuje korutynę na każde naciśnięcie i nic
-nie pilnuje, żeby druga nie weszła, zanim pierwsza skończy `startDaily`. Sama reguła „jedno podejście
-dziennie" jest po stronie repozytorium (`startDaily` zwraca `null`, gdy gra jest ukończona), ale
-dwa równoległe wywołania zdążą ją minąć — obie widzą stan sprzed zapisania czegokolwiek.
-
-**Czego naprawa musi dotknąć.** Nie wystarczy zablokować przycisku w UI: to zamyka najczęstszą drogę,
-ale nie samą lukę. Reguła powinna być nieprzekraczalna w repozytorium, a przycisk ma być tylko
-uprzejmością. Warto przy okazji sprawdzić tę samą ścieżkę przy „Kontynuuj".
+Test z dwiema naprawdę równoległymi korutynami odtwarzał błąd na starym kodzie (powstawały dwa
+podejścia), a po naprawie potwierdza jeden wpis historii i jeden zapis. Nadal do sprawdzenia na
+urządzeniu: szybkie dwukrotne naciśnięcie i przejście do gry.
 
 ### ~~Suma wszech czasów nie zawsze dociera~~ — naprawione 2026-08-27
 
@@ -286,30 +334,127 @@ Do ustalenia poza liczbą użyć:
 - czy w grze solo działa bez ograniczeń (§18 dopuszcza),
 - czy pole wstawione podpowiedzią jest oznaczone i czy liczy się do XP.
 
-### Wymiana tablic wyników i reużywalność modułu rankingu
+### ~~Wymiana tablic wyników i reużywalność modułu rankingu~~ — zrobione 2026-08-28
 
-**Zgłoszone:** 2026-08-27. Do zrobienia **przed premierą** — patrz „Reset statystyk nie czyści
-tablic wyników" wyżej: tablice zbierają dziś wyniki testowe, których nie da się usunąć, więc przed
-publikacją i tak powstaną nowe.
+Deklaracja tablicy jest teraz w jednym miejscu: enum `domain/ranking/Leaderboard`. Dodanie tablicy to
+stała plus odpowiedź na dwa `when`; kompilator dopomina się wtedy o identyfikator w
+`PlayGamesConfig`, a wysyłka podchwytuje nową pozycję sama, bo `RankingSubmitter` przechodzi po
+`Leaderboard.entries` zamiast trzymać własną listę.
 
-Skoro wymiana jest pewna, ma być jednym ruchem, a nie polowaniem po plikach.
+Sprawdzone doświadczalnie, nie założone: dopisanie `WEEKLY_TOTAL` daje trzy odmowy kompilacji —
+dwie w `Leaderboard`, trzecią w `PlayGamesConfig`. Wcześniej submitter milczał.
 
-**Jak jest teraz.** Identyfikatory siedzą w `res/values/play_games_ids.xml` — to już dobrze i
-celowo. Ale sama *definicja* tablicy jest rozsypana: `Leaderboard` wylicza je w enumie,
-`PlayGamesConfig` mapuje każdą pozycję na osobny zasób ręcznym `when`, a `RankingSubmitter` wie z
-osobna, które trzy wysyłać po ukończeniu Daily i skąd brać ich wartości.
+**Wymiana identyfikatorów** przed premierą to edycja wyłącznie `res/values/play_games_ids.xml`;
+procedura jest opisana w nagłówku tego pliku.
 
-**Czego to nie wytrzyma.** Dołożenie tablicy — tygodniowej, regionalnej, dla trybu, którego jeszcze
-nie ma — wymaga dziś dotknięcia trzech plików i pamiętania o czwartym. Rozejście się tych miejsc
-nie wywoła błędu kompilacji wszędzie tam, gdzie powinno: `when` w `PlayGamesConfig` owszem, ale
-lista wysyłek w `RankingSubmitter` już nie.
+**Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk —
+przeniesione do [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
-**Kierunek, nie rozstrzygnięcie.** Jedna deklaracja na tablicę, niosąca identyfikator zasobu i to,
-skąd bierze się wysyłana wartość — wtedy dodanie tablicy jest jedną pozycją, a wymiana identyfikatorów
-zostaje tam, gdzie jest. Wymaga przemyślenia, jak taka deklaracja sięga po dane, żeby nie wciągnąć
-repozytorium do domeny.
+### Usunąć kartę „Ranking (debug)" z ekranu Daily
 
-**Przy okazji warto rozstrzygnąć:** czy suma wszech czasów ma dalej iść za resetem statystyk.
+**Zdecydowane 2026-08-28.** Do usunięcia, nie do zachowania.
+
+Powstała reaktywnie, pod jedno śledztwo nad wysyłką wyników, i spełniła zadanie. Została na stałe na
+ekranie Daily w buildach debug — gdzie wygląda jak część interfejsu, a jest narzędziem do jednej
+sprawy. Przy następnej sesji testowej będzie mylić.
+
+Do rozstrzygnięcia przy okazji: czy `RankingLog` znika razem z nią, czy przenosi się w mniej
+natrętne miejsce (Ustawienia, obok numeru wersji). Sam log jest tani i przydał się bardziej niż
+Toasty; natrętna jest karta, nie zapis.
+
+### ~~Rozciąć `GameRepository`~~ — zrobione 2026-08-28
+
+571 linii rozcięte na trzy: `GameRepository` (368) trzyma cykl życia gry i udostępnianie planszy,
+`DailyRepository` (182) kalendarz i podejścia Daily, `StatisticsRepository` (97) rekord gracza.
+Otwieranie i wczytywanie gry zostało w pierwszym; pozostałe dwa proszą go o to i mają tylko swoje.
+
+**Zagrożenie, które zapisałem tu wcześniej, zostało sprawdzone, a nie założone.** Mutex chroniący
+regułę „jedno podejście dziennie" przeniósł się do `DailyRepository`. Żeby potwierdzić, że dalej
+czegokolwiek broni, zamieniłem go tymczasowo na mutex tworzony przy każdym wywołaniu — czyli
+dokładnie na opisany tu przypadek „rozmnożony na dwie instancje". Test wyścigu wykrył to
+natychmiast, tym samym błędem co pierwotna usterka: `expected:<1> but was:<2>`.
+
+Liczba testów po rozcięciu bez zmian (344), więc nic nie zginęło po drodze.
+
+**Czego nie ruszyłem:** `importSharedBoard` zostało w `GameRepository`. Jest małe i stabilne, a
+osobna klasa na jedną metodę dołożyłaby plik, nie zmniejszając pola konfliktów.
+
+### ~~Tablica wszech czasów nieosiągalna, dopóki nie zagra się dzisiaj~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28 z urządzenia.** Oba przyciski tablic siedzą w karcie „Twoje dzisiejsze
+wyniki", która renderuje się tylko przy `entries.any { it.score != null }`. Bez rozegranego dziś
+Daily nie ma karty, a razem z nią znikają oba przyciski.
+
+Dla sumy dnia to ma sens. Dla **sumy wszech czasów nie ma żadnego** — ona nie jest o dzisiaj, więc
+gracz z dorobkiem z zeszłego tygodnia nie widzi własnej tablicy, dopóki czegoś nie rozwiąże.
+
+Kierunek: wyjąć przyciski z karty wyników do własnej sekcji pokazywanej, gdy gracz jest zalogowany,
+niezależnie od tego, co zrobił dzisiaj. Tablica jest warta obejrzenia także wtedy, gdy nie ma się na
+niej wyniku.
+
+### ~~Mocniejsze wypalanie iskier~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28.** Iskry już maleją idąc ku górze (`SPARK_SHRINK = 0.22f`, czyli 22% ubytku
+promienia), ale efekt jest za słaby. Docelowo **60%**.
+
+### ~~Symetryzacja wobble w osi yaw~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28**, po zmierzeniu obu osi przez pełny cykl.
+
+Pitch jest praktycznie symetryczny (−7,45° … +7,27°). **Yaw nie jest: −15,46° … +10,23°** — wychył
+w jedną stronę o połowę większy niż w drugą, i to właśnie czyta się jako ruch jednokierunkowy.
+
+Przyczyna nie jest przypadkowa. Suma harmonicznych ma symetryczne skrajności dokładnie wtedy, gdy
+faza każdej składowej jest odpowiednią wielokrotnością fazy podstawowej — wtedy cały przebieg jest
+tylko przesunięciem w czasie przebiegu o zerowych fazach. W yaw fazy (0; 0,75; 2,20) tego warunku nie
+spełniają, w pitch spełniają go dwie z trzech (1,30; 2,60; **0,30** zamiast 5,20).
+
+Po zblokowaniu faz obie osie wychodzą symetryczne co do zera, przy zachowanym przesunięciu pitch
+względem yaw, które daje ruchowi charakter figury zamiast przekątnej. Zmierzone po zmianie:
+yaw ±12,79°, pitch ±6,33°, asymetria 0,000° na obu osiach, 50/50 czasu po każdej stronie. Szczyt
+w „większą" stronę jest mniejszy niż był (12,79° wobec 15,46°) — to cena symetrii, warta obejrzenia
+na urządzeniu.
+
+### ~~Matematyka animacji do osobnego pliku~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28.** `RotatingBoardArt.kt` ma 651 linii, 68 stałych i 18 deklaracji. Szew jest
+już wycięty i przetestowany: siedem funkcji `internal` to czysta matematyka, a testy są ułożone
+dokładnie wzdłuż tej granicy. Wyniesienie ich zostawia w pliku samo rysowanie.
+
+### ~~Wstrzykiwalne ziarno animacji~~ — zrobione 2026-08-28
+
+**Zgłoszone 2026-08-28.** Cyfry i iskry są zasiewane z `System.nanoTime()` w dwóch miejscach, więc
+każde uruchomienie daje inny obrazek. Wizualnie bez znaczenia — ale blokuje taśmę klatek do oceny
+animacji (patrz niżej) i każde porównanie „przed/po".
+
+### Generowanie zrzutów ekranu z testów Compose
+
+**Zapisane 2026-08-28 jako pomysł wart sprawdzenia.**
+
+Powiedziałem wcześniej, że zrzuty do sklepu muszą pochodzić z działającej aplikacji na urządzeniu.
+To prawdopodobnie nieprawda: Robolectric w trybie natywnej grafiki renderuje realne piksele Compose,
+a infrastruktura testów Compose już stoi. Dałoby to zrzuty planszy, Daily i statystyk — w obu
+motywach, odtwarzalne po każdej zmianie UI.
+
+**Ciekawsze zastosowanie niż sklep:** animacja nad menu (`RotatingBoardArt`). Chodzi na
+`rememberInfiniteTransition`, czyli na zegarze Compose, który w teście da się zatrzymać
+(`mainClock.autoAdvance = false`) i przesuwać o dokładne milisekundy. Zamiast jednego szczęśliwego
+kadru z telefonu można wyrenderować **taśmę klatek przez cały cykl** i zobaczyć, czy plansza
+w którejś fazie się nie spłaszcza, nie ucieka poza kadr albo nie gubi kontrastu. Telefonem tego nie
+złapiesz, bo nie zatrzymasz animacji w wybranej fazie.
+
+**Czego nie wiadomo, a trzeba sprawdzić najpierw.** Obrót robi `graphicsLayer { rotationX; rotationY;
+cameraDistance }` — transformacja RenderNode, nie rysowanie po Canvasie. Rysowanie 2D (siatka, iskry)
+narysuje się na pewno; czy Robolectric honoruje kamerę i obrót w trzech osiach — nie wiadomo. Jeśli
+nie honoruje, plansza wyjdzie **płaska**, co wygląda jak zepsuta animacja i może sprowokować
+„naprawianie" czegoś, co działa. **Pierwszym krokiem jest jedna klatka porównana z telefonem.**
+Reszta jest warta tyle, ile ta weryfikacja.
+
+**Dwie pułapki.** Zawartość animacji jest zasiewana z `System.nanoTime()`, więc każdy przebieg da
+inny obrazek — do oceny „czy ładnie" bez znaczenia, do porównań przed/po bezużyteczne; ziarno
+musiałoby być wstrzykiwalne. I `waitForIdle()` przy nieskończonej animacji **nigdy nie wraca** —
+`autoAdvance` trzeba wyłączyć przed pierwszą kompozycją. Ta sama klasa zawieszenia, którą suite
+złapał już dwa razy.
 
 ## Wymaga decyzji
 

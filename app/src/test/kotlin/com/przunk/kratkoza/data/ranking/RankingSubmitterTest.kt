@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -31,9 +32,19 @@ class RankingSubmitterTest {
     private val puzzleDao = FakePuzzleDao()
     private val savedGameDao = FakeSavedGameDao(puzzleDao)
     private val historyDao = FakeGameHistoryDao(savedGameDao)
+    private val dailyPuzzleDao = FakeDailyPuzzleDao()
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
-        dailyPuzzleDao = FakeDailyPuzzleDao(),
+        dailyPuzzleDao = dailyPuzzleDao,
+        savedGameDao = savedGameDao,
+        historyDao = historyDao,
+        generator = SudokuGenerator(),
+        computationDispatcher = Dispatchers.Unconfined,
+    )
+    private val dailyRepository = DailyRepository(
+        games = repository,
+        puzzleDao = puzzleDao,
+        dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
         generator = SudokuGenerator(),
@@ -138,6 +149,23 @@ class RankingSubmitterTest {
         )
     }
 
+    @Test
+    fun `a daily whose totals cannot be read still reaches its level board`() = runTest {
+        // dailyTotals returns null when the board is not in daily_puzzles for the current ruleset
+        // version — after a ruleset change, for a game begun under the old one. The level score is
+        // still a real result and still belongs on its board.
+        val (submitter, ranking) = submitterWith()
+        val finished = finishDaily(Difficulty.EASY)
+
+        submitter.submit(finished.game, puzzleId = "not-a-daily-board")
+
+        assertEquals(
+            listOf(Leaderboard.DAILY_EASY),
+            ranking.submissions.map { it.first },
+        )
+        assertTrue(historyDao.all.single().publiclyRanked)
+    }
+
     private fun submitterWith(
         outcome: SubmissionOutcome = SubmissionOutcome.Submitted(newBest = true),
     ): Pair<RankingSubmitter, RecordingRanking> {
@@ -145,7 +173,7 @@ class RankingSubmitterTest {
         // Unconfined, so the submission runs inline and the test does not have to chase it. In the
         // app this scope belongs to the application, which is the whole point of the class.
         val scope = CoroutineScope(UnconfinedTestDispatcher())
-        return RankingSubmitter(repository, ranking, log, scope) to ranking
+        return RankingSubmitter(repository, dailyRepository, ranking, log, scope) to ranking
     }
 
     /** Plays one daily to the end, the way the repository would have it. */
@@ -153,8 +181,8 @@ class RankingSubmitterTest {
         difficulty: Difficulty,
         rankedEligible: Boolean = true,
     ): FinishedDaily {
-        repository.dailySet(day)
-        val game = requireNotNull(repository.startDaily(day, difficulty))
+        dailyRepository.dailySet(day)
+        val game = requireNotNull(dailyRepository.startDaily(day, difficulty))
         val played = game.copy(elapsedMillis = 60_000, rankedEligible = rankedEligible)
         return FinishedDaily(repository.finishGame(played, completed = true), game.state.puzzle.id)
     }
