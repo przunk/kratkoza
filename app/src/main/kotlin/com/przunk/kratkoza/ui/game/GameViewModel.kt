@@ -419,6 +419,7 @@ class GameViewModel(
             difficulty = state.puzzle.difficulty,
             gameType = state.puzzle.gameType,
             mistakeCount = state.mistakeCount,
+            debugTools = debugTools,
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,
             candidateMode = _uiState.value.candidateMode,
