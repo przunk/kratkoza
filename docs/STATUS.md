@@ -352,7 +352,7 @@ Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudno
 w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
 poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
 
-### Podpowiedź dla gracza
+### ~~Podpowiedź dla gracza~~ — zrobione 2026-08-29
 
 **Zgłoszone:** 2026-08-26. `project.md` §18 zostawia tę funkcję do ustalenia.
 
@@ -458,7 +458,7 @@ dokładnie wzdłuż tej granicy. Wyniesienie ich zostawia w pliku samo rysowanie
 każde uruchomienie daje inny obrazek. Wizualnie bez znaczenia — ale blokuje taśmę klatek do oceny
 animacji (patrz niżej) i każde porównanie „przed/po".
 
-### Generowanie zrzutów ekranu z testów Compose
+### ~~Generowanie zrzutów ekranu z testów Compose~~ — zrobione 2026-08-29
 
 **Zapisane 2026-08-28 jako pomysł wart sprawdzenia.**
 
