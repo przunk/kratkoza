@@ -718,15 +718,17 @@ class GameRepositoryTest {
         // compared against, so it has no score — which is not the same as a score of zero.
         dailyRepository.dailySet(DAY)
         val daily = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.HARD))
-        // Asked for through DailyScore rather than written out, so tuning the targets does not turn
-        // this into a test of last month's numbers.
-        val target = DailyScore.targetMinutesFor(Difficulty.HARD) * 60_000L
-        repository.finishGame(daily.copy(elapsedMillis = target), completed = true)
+        val elapsed = DailyScore.targetMinutesFor(Difficulty.HARD) * 60_000L
+        repository.finishGame(daily.copy(elapsedMillis = elapsed), completed = true)
 
+        // Compared against DailyScore rather than a number, and against the whole of it rather than
+        // one property of its shape. This test is about the score being computed and stored at all;
+        // what the formula says is DailyScoreTest's business, and an earlier version of this line
+        // pinned a property that the formula later stopped having.
         val entry = dailyRepository.dailySet(DAY).single { it.difficulty == Difficulty.HARD }
         assertEquals(
-            "hitting the target is worth the level's base",
-            DailyScore.baseFor(Difficulty.HARD),
+            "the stored score must be the one DailyScore gives for this game",
+            DailyScore.of(Difficulty.HARD, elapsed, mistakeCount = 0),
             entry.score,
         )
 
