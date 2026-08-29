@@ -35,7 +35,18 @@ summary="$(grep -aoE '[0-9]+ tests completed(, [0-9]+ failed)?(, [0-9]+ skipped)
 if [ $status -eq 0 ]; then
     # Gradle only prints a count when something failed, so a green run counts the XML itself.
     total="$(python3 -c 'import glob,sys,xml.etree.ElementTree as ET; print(sum(int(ET.parse(f).getroot().get("tests",0)) for f in glob.glob(sys.argv[1]+"/*.xml")))' "$RESULTS_DIR" 2>/dev/null || true)"
-    echo "✅ ${total:-All} tests passed (${elapsed}s)"
+
+    # Gradle exiting zero having run nothing is not a pass. It happens when the results directory
+    # is stale or the task is skipped, and it used to print a green tick over the number zero —
+    # the loudest possible way of saying nothing, and the failure ARCHITECTURE.md section 9 is about.
+    if [ -z "$total" ] || [ "$total" -eq 0 ]; then
+        echo "❌ No tests ran (${elapsed}s). Gradle succeeded but produced no results."
+        echo "   Usually a stale build directory: rm -rf app/build and run again."
+        echo "   Full log: $LOG_FILE"
+        exit 1
+    fi
+
+    echo "✅ $total tests passed (${elapsed}s)"
     exit 0
 fi
 

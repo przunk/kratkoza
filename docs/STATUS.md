@@ -192,7 +192,7 @@ osobny właśnie po to.
 statystyk, ale wtedy „reset statystyk" przestaje znaczyć to, co mówi. Na razie zostaje tak, jak jest,
 a log rankingu mówi wprost, kiedy wynik został przyjęty, ale niczego nie zmienił.
 
-### Tablica Daily ma otwierać się zawsze na „dziś"
+### ~~Tablica Daily ma otwierać się zawsze na „dziś"~~ — zrobione 2026-08-29
 
 **Zgłoszone:** 2026-08-29. Nakładka Play Games zapamiętuje ostatnio wybrany zakres czasu, więc gracz,
 który raz przełączył na „wszech czasów", widzi go już zawsze — także przy tablicy dziennej, gdzie
@@ -205,7 +205,7 @@ sens ma wyłącznie dzisiejszy dzień.
 **Do rozstrzygnięcia przy okazji:** czy wymuszać zakres także dla tablic poziomów i dla sumy wszech
 czasów, czy tylko dla dziennej. Dla sumy wszech czasów zakres dzienny nie miałby sensu.
 
-### Porządki w dokumentacji i skryptach
+### ~~Porządki w dokumentacji i skryptach~~ — zrobione 2026-08-29
 
 **Zebrane 2026-08-29.** Drobne, tanie, wszystkie o tym samym: pliki opisują stan, którego już nie ma.
 
@@ -219,6 +219,9 @@ czasów, czy tylko dla dziennej. Dla sumy wszech czasów zakres dzienny nie mia�
 - Wishlist 9 (tytuł wtopiony w animację) jest zrobiona i nieoznaczona.
 - Pozycja „Usunąć kartę Ranking (debug)" jest nieaktualna — zapadła decyzja, że log zostaje
   w Ustawieniach.
+
+Wszystkie odhaczone. `PLAY_CONSOLE.md` ma jeszcze osiem pozycji otwartych i wszystkie są prawdziwe:
+kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` przy wysyłce.
 
 ## Do zrobienia
 
@@ -240,7 +243,10 @@ Do ustalenia: jak wyliczyć „najlepszy" przy różnej liczbie błędów. `proj
 mnożnikową `wynik × 0.7^błędy`, ale wzoru na wynik bazowy zależny od czasu jeszcze nie ma — bez
 niego „najlepszy czas uwzględniający błędy" nie ma definicji.
 
-### Podpowiedź 8/9 niedostępna w grach rankingowych
+### ~~Podpowiedź 8/9 niedostępna w grach rankingowych~~ — zrobione
+
+Wstrzymywana w rankingowych Daily i wracająca, gdy plansza straci kwalifikację. Pilnują tego dwa
+testy w `GameViewModelTest`.
 
 **Zgłoszone:** 2026-08-25. `project.md` §17 kończy się zdaniem: „Funkcja 8/9 jest niedostępna
 w publicznie rankingowanych rozgrywkach Daily."
@@ -274,7 +280,7 @@ Czego nie wolno przy tym zepsuć: `PalettesTest` pilnuje, że stopnie rozdziela 
 kolejności, że wysoki kontrast nigdy nie *zmniejsza* rozdzielenia i że podpowiedź 8/9 zostaje
 cichsza od cyfry gracza (§17). Progi są w L*, nie w luminancji — patrz komentarz w teście.
 
-### Daily Sudoku — etap 2: ranking publiczny
+### ~~Daily Sudoku — etap 2: ranking publiczny~~ — zrobione 2026-08-28
 
 **Zrobiona lokalna połowa** (2026-08-27): wyliczanie wyniku według §29 i tabela własnych wyników
 dnia. Zostaje porównanie z innymi graczami.
@@ -303,7 +309,10 @@ Do zrobienia, gdy aplikacja będzie w Play Console:
 - wysyłanie wyniku po ukończeniu Daily,
 - wybór regionu z listy; decyzje funkcjonalne są podjęte, patrz „Wybór regionu do rankingu".
 
-### Wynik rankingowy Daily
+### ~~Wynik rankingowy Daily~~ — zrobione 2026-08-27
+
+`DailyScore` liczy wynik z wagą poziomu, czasu i błędów. Wzór i czasy odniesienia opisuje
+[OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) §9.
 
 **Do zrobienia razem z Daily.** `project.md` §29 opisuje karę za błędy wprost:
 `wynik × 0.7^liczba_błędów` — trzy błędy to już 34% wyniku. Wzór na sam wynik bazowy zależny od
@@ -378,17 +387,11 @@ procedura jest opisana w nagłówku tego pliku.
 **Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk —
 przeniesione do [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
-### Usunąć kartę „Ranking (debug)" z ekranu Daily
+### ~~Usunąć kartę „Ranking (debug)"~~ — rozstrzygnięte inaczej 2026-08-28
 
-**Zdecydowane 2026-08-28.** Do usunięcia, nie do zachowania.
-
-Powstała reaktywnie, pod jedno śledztwo nad wysyłką wyników, i spełniła zadanie. Została na stałe na
-ekranie Daily w buildach debug — gdzie wygląda jak część interfejsu, a jest narzędziem do jednej
-sprawy. Przy następnej sesji testowej będzie mylić.
-
-Do rozstrzygnięcia przy okazji: czy `RankingLog` znika razem z nią, czy przenosi się w mniej
-natrętne miejsce (Ustawienia, obok numeru wersji). Sam log jest tani i przydał się bardziej niż
-Toasty; natrętna jest karta, nie zapis.
+Karta zniknęła z ekranu Daily, ale sam log **został** i przeniósł się do Ustawień, pod numer wersji,
+wyłącznie w buildach debug. Natrętna była karta na ekranie, na którym się gra, a nie sam zapis — to on
+rozwiązał śledztwo nad wysyłką wyników po tym, jak Toasty zawiodły dwa razy.
 
 ### ~~Rozciąć `GameRepository`~~ — zrobione 2026-08-28
 

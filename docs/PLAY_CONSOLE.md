@@ -10,15 +10,15 @@ Zaznaczaj, co gotowe.
 
 ## 1. Konto dewelopera
 
-- [ ] Konto Google Play Developer — jednorazowa opłata 25 USD, weryfikacja tożsamości potrafi
+- [x] Konto Google Play Developer — jednorazowa opłata 25 USD, weryfikacja tożsamości potrafi
       zająć kilka dni.
 
 Zacznij od tego, bo czas weryfikacji jest poza Twoją kontrolą, a wszystko inne na nim stoi.
 
 ## 2. Aplikacja w konsoli — decyzja nieodwracalna
 
-- [ ] Utwórz aplikację; nazwa, język domyślny, typ „gra", darmowa.
-- [ ] **Potwierdź `applicationId`: `com.przunk.kratkoza`.**
+- [x] Utwórz aplikację; nazwa, język domyślny, typ „gra", darmowa.
+- [x] **Potwierdź `applicationId`: `com.przunk.kratkoza`.**
 
 To ostatni moment. Po pierwszej publikacji identyfikatora nie da się zmienić — zmiana oznacza nową
 aplikację, nową stronę w sklepie i utratę wszystkich instalacji. Jeśli masz jakiekolwiek wątpliwości
@@ -27,7 +27,7 @@ co do nazwy, teraz jest czas.
 ## 3. Klucz podpisujący
 
 - [ ] Klucz upload już masz. **Zrób kopię zapasową poza tym dyskiem.**
-- [ ] Zanotuj odcisk **SHA-1** klucza — będzie potrzebny w punkcie 6:
+- [x] Zanotuj odcisk **SHA-1** klucza — będzie potrzebny w punkcie 6:
 
 ```bash
 /mnt/workspace/.tooling/jdk/bin/keytool -list -v \
@@ -51,8 +51,8 @@ Play nie wpuści aplikacji bez nich, a wypełnić może je tylko właściciel.
 ## 5. Strona w sklepie
 
 - [ ] Krótki i pełny opis, po polsku i angielsku — aplikacja jest w obu językach.
-- [ ] Ikona 512×512 PNG.
-- [ ] Grafika promocyjna 1024×500.
+- [x] Ikona 512×512 PNG.
+- [x] Grafika promocyjna 1024×500.
 - [ ] Zrzuty ekranu telefonu — minimum dwa, przydadzą się: plansza, Daily, statystyki.
 
 ## 6. Play Games Services — to blokuje ranking
@@ -127,12 +127,12 @@ opublikowana, zalogują się wyłącznie konta z tej listy. Bez tego własny bui
 
 - [x] **Utwórz trzy tablice wyników**, po jednej na poziom Daily. Sortowanie: **wynik większy jest
       lepszy**, format liczbowy całkowity.
-- [ ] **Opublikuj konfigurację Play Games** — dopóki jest w wersji roboczej, nie działa nawet dla
+- [x] **Opublikuj konfigurację Play Games** — dopóki jest w wersji roboczej, nie działa nawet dla
       Ciebie.
-- [ ] **Przekaż mi identyfikatory tablic.** Wyglądają jak `CgkI...`. Znajdziesz je przy każdej
+- [x] **Przekaż mi identyfikatory tablic.** Wyglądają jak `CgkI...`. Znajdziesz je przy każdej
       tablicy w Play Games Services → Tablice wyników. Bez nich integracji nie da się napisać
       inaczej niż w ciemno.
-- [ ] **Nazwa trzeciej tablicy.** Nazwałeś ją „Daily – deadly”, a poziom w aplikacji nazywa się
+- [x] **Nazwa trzeciej tablicy.** Nazwałeś ją „Daily – deadly”, a poziom w aplikacji nazywa się
       **Master**. Play pokazuje graczowi nazwę z konsoli, więc albo zmień ją na „Daily – master”,
       albo powiedz, że zostaje — wtedy tak samo nazwiemy poziom w aplikacji. Byle nie zostały dwie
       różne nazwy jednej rzeczy.
@@ -146,9 +146,9 @@ Trzy fakty sprawdzone w dokumentacji, żebyś nie odkrywał ich w konsoli:
 
 ## 7. Pierwsze wysłanie
 
-- [ ] Zbuduj bundle: `./scripts/build-kratkoza-bundle.sh` — sam sprawdzi, czy podpisał kluczem
+- [x] Zbuduj bundle: `./scripts/build-kratkoza-bundle.sh` — sam sprawdzi, czy podpisał kluczem
       upload, i odmówi, jeśli spadł na klucz debug.
-- [ ] Wyślij na **testy zamknięte**, nie od razu do produkcji.
+- [x] Wyślij na **testy zamknięte**, nie od razu do produkcji.
 - [ ] Dołącz `app/build/outputs/mapping/release/mapping.txt`. Bez tego raport awarii z telefonu
       to lista ponumerowanych metod w klasie `a`.
 

@@ -35,6 +35,19 @@ enum class Leaderboard {
     ;
 
     /**
+     * The stretch of time the board is about.
+     *
+     * Play Games keeps every board under three spans at once and its overlay opens on whichever the
+     * viewer last chose — so a daily board could open on all-time and show nothing from today. The
+     * app states the span instead of leaving it to a remembered preference.
+     */
+    val span: Span
+        get() = when (this) {
+            DAILY_EASY, DAILY_HARD, DAILY_MASTER, DAILY_TOTAL -> Span.TODAY
+            ALL_TIME_TOTAL -> Span.ALL_TIME
+        }
+
+    /**
      * Whether this board carries one game's own result rather than a running sum.
      *
      * `publiclyRanked` follows these and not the totals: it records that *this game* reached the
@@ -59,6 +72,9 @@ enum class Leaderboard {
         DAILY_TOTAL -> result.totals?.today
         ALL_TIME_TOTAL -> result.totals?.allTime
     }
+
+    /** How far back a board looks. Named here rather than in Play Games' own terms. */
+    enum class Span { TODAY, ALL_TIME }
 
     companion object {
         /** The board for one Daily level, or `null` for a level Daily does not run. */
