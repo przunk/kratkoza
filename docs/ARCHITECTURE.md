@@ -178,7 +178,14 @@ Każdy nowy przycisk jest okazją, żeby złamać tę regułę, i żadne narzęd
 
 ## 10. Czego jeszcze nie ma
 
-Zgodnie z zakresem pierwszego etapu: Daily, publiczny ranking, Challenge, backend, XP, score,
-podpowiedź 8/9, palety kolorystyczne, tryb wysokiego kontrastu, radial menu.
+**Challenge**, **radial menu** i **własny backend**.
 
-Architektura ich nie blokuje — patrz kolumny bazy w §5 i `GameType` w domenie.
+Reszta pierwotnej listy z tego miejsca zniknęła, bo powstała: Daily, publiczny ranking, XP, wynik
+Daily, podpowiedź 8/9, palety kolorystyczne i tryb wysokiego kontrastu.
+
+Backendu prawdopodobnie nie będzie w tej postaci, w jakiej go tu zapisano. Ranking publiczny działa
+na Play Games Services, które niesie tożsamość gracza i tablice wyników bez żadnego serwera po naszej
+stronie — patrz `data/ranking/`. Własny backend wróciłby do rozmowy dopiero przy rankingach
+regionalnych, których Play Games nie obsługuje.
+
+Architektura pozostałych nie blokuje — patrz kolumny bazy w §5 i `GameType` w domenie.

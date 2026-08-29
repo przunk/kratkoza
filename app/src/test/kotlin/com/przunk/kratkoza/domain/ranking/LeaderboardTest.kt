@@ -65,6 +65,20 @@ class LeaderboardTest {
     }
 
     @Test
+    fun `every board about today opens on today`() {
+        // Play Games remembers the span a viewer last chose, so a daily board could open on all-time
+        // and show nothing from today. Only the lifetime total is genuinely about all time.
+        for (board in Leaderboard.entries) {
+            val expected = if (board == Leaderboard.ALL_TIME_TOTAL) {
+                Leaderboard.Span.ALL_TIME
+            } else {
+                Leaderboard.Span.TODAY
+            }
+            assertEquals("$board opens on the wrong span", expected, board.span)
+        }
+    }
+
+    @Test
     fun `only the level boards carry a game's own result`() {
         // publiclyRanked follows these. A total accepted on a game's behalf is not the same claim,
         // and conflating the two is the bug that made the column necessary in the first place.

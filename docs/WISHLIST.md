@@ -220,6 +220,10 @@ Ma dwie zalety, których wariant z przeskokiem nie ma:
 
 ## 9. Tytuł wtopiony w animację zamiast nagłówka po lewej
 
+**Zrobione 2026-08-28.** Pasek tytułu zniknął, nazwa jest rysowana jako własna geometria wewnątrz
+sceny, przechyla się razem z planszą i rzuca cień na tę samą płaszczyznę co cyfry. Zostaje niżej
+jako zapis rozważanych trudności.
+
 **Zgłoszone:** 2026-08-28.
 
 Dziś ekran główny ma zwykły pasek z tytułem „Kratkoza" wyrównanym do lewej, a pod nim osobny obszar
