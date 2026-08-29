@@ -123,6 +123,31 @@ object GameEngine {
     }
 
     /**
+     * Clears every pencil mark as one undoable action (wishlist item 5).
+     *
+     * [Move.previousCandidates] already holds snapshots for any number of cells, so no second undo
+     * mechanism is needed. The first changed cell is only an anchor for the existing board-shaped
+     * move; its value is recorded unchanged, while the map carries the whole operation.
+     */
+    fun clearAllCandidates(state: GameState): GameState {
+        if (!state.candidates.hasAny) return state
+
+        val candidates = CandidateGrid.EMPTY
+        val previousCandidates = changedCandidates(state.candidates, candidates)
+        val anchor = previousCandidates.keys.first()
+
+        return state.copy(
+            candidates = candidates,
+            undoStack = state.undoStack + Move(
+                index = anchor,
+                previousValue = state.board[anchor],
+                newValue = state.board[anchor],
+                previousCandidates = previousCandidates,
+            ),
+        )
+    }
+
+    /**
      * Empties [index] — the Erase button of project.md section 11.
      *
      * Clears the digit and the pencil marks together. A cell never shows both at once, so "empty

@@ -3,9 +3,13 @@ package com.przunk.kratkoza.ui.game
 import android.content.Context
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.przunk.kratkoza.R
@@ -28,6 +32,9 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -118,6 +125,40 @@ class GameScreenTest {
         compose.onNodeWithText(context.getString(R.string.game_undo)).assertIsEnabled()
     }
 
+    @Test
+    fun `candidate tap still toggles mode`() {
+        candidates(enabled = false).performSemanticsAction(SemanticsActions.OnClick)
+
+        assertTrue(viewModel.uiState.value.candidateMode)
+    }
+
+    @Test
+    fun `candidate long press asks before clearing and undo restores the marks`() {
+        val cell = firstEmptyCell()
+        viewModel.selectCell(cell)
+        viewModel.toggleCandidateMode()
+        viewModel.enterDigit(4)
+        compose.waitForIdle()
+        val beforeClear = viewModel.uiState.value.candidates
+
+        candidates(enabled = true).performSemanticsAction(SemanticsActions.OnLongClick)
+        assertTrue(viewModel.uiState.value.confirmingCandidateClear)
+        compose.onNodeWithText(context.getString(R.string.game_clear_candidates_title))
+            .assertIsDisplayed()
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+
+        compose.onNodeWithText(context.getString(R.string.game_clear_candidates_cancel)).performClick()
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+
+        candidates(enabled = true).performSemanticsAction(SemanticsActions.OnLongClick)
+        compose.onNodeWithText(context.getString(R.string.game_clear_candidates_confirm)).performClick()
+        compose.waitForIdle()
+        assertFalse(viewModel.uiState.value.candidates.hasAny)
+
+        viewModel.undo()
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+    }
+
     // Driven through the ViewModel rather than by tapping the board: what is under test is that the
     // controls follow the state, not that a cell of that size is hittable at this screen density.
     private fun selectFirstEmptyCell() {
@@ -134,4 +175,8 @@ class GameScreenTest {
     private fun eraser() = compose.onNodeWithText(context.getString(R.string.game_erase))
 
     private fun reveal() = compose.onNodeWithText(context.getString(R.string.game_reveal_digit))
+
+    private fun candidates(enabled: Boolean) = compose.onNodeWithContentDescription(
+        context.getString(if (enabled) R.string.game_candidates_on else R.string.game_candidates_off),
+    )
 }

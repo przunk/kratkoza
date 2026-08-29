@@ -86,6 +86,11 @@
     <string name="game_candidates_on">Candidates on</string>
     <string name="game_candidates_off">Candidates off</string>
     <string name="game_candidates">Candidates</string>
+    <string name="game_clear_candidates_action">Clear all candidates</string>
+    <string name="game_clear_candidates_title">Clear all candidates?</string>
+    <string name="game_clear_candidates_message">This removes every pencil mark from the board. You can restore them with one Undo.</string>
+    <string name="game_clear_candidates_confirm">Clear</string>
+    <string name="game_clear_candidates_cancel">Cancel</string>
     <string name="game_loading">Loading…</string>
     <string name="game_solved_title">Solved</string>
     <string name="game_solved_message">%1$s in %2$s, %3$s.</string>

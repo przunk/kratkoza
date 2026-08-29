@@ -84,6 +84,11 @@
     <string name="game_candidates_on">Kandydaci włączeni</string>
     <string name="game_candidates_off">Kandydaci wyłączeni</string>
     <string name="game_candidates">Kandydaci</string>
+    <string name="game_clear_candidates_action">Wyczyść wszystkich kandydatów</string>
+    <string name="game_clear_candidates_title">Wyczyścić wszystkich kandydatów?</string>
+    <string name="game_clear_candidates_message">Wszystkie notatki zostaną usunięte z planszy. Możesz je przywrócić jednym użyciem Cofnij.</string>
+    <string name="game_clear_candidates_confirm">Wyczyść</string>
+    <string name="game_clear_candidates_cancel">Anuluj</string>
     <string name="game_loading">Wczytuję…</string>
     <string name="game_solved_title">Rozwiązane</string>
     <string name="game_solved_message">%1$s w czasie %2$s, %3$s.</string>
