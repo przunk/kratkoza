@@ -369,6 +369,11 @@ techniki, której plansza naprawdę wymaga** — nie pułap, który poziom ma do
 **Daily nie używa pełnej drabinki.** Bierze Łatwy, Trudny i Morderczy, więc jego skoki to **+1,85
 i +5,72** — mniej więcej dwa i cztery razy więcej niż zwykły szczebel.
 
+*Sprostowanie (2026-08-29):* pomiar powstał po tym, jak właściciel odpuścił Trudnego w Daily — ale
+z braku czasu, nie dlatego, że był nieosiągalny. Zapisałem to wtedy jako „za trudny do ukończenia"
+i było to nadinterpretacją. Nierówność drabinki jest zmierzona i broni się sama; powód, dla którego
+zaczęliśmy mierzyć, był łagodniejszy.
+
 **Skok Łatwy → Trudny jest podwójny.** Rośnie nie tylko technika, ale i liczba podpowiedzi: **36 → 24,5**.
 Łatwy jest jedynym poziomem z gęstą planszą; wszystkie pozostałe mają około 24,5. Gracz przechodzący
 w Daily z Łatwego na Trudny dostaje jednocześnie nową technikę i jedenaście podpowiedzi mniej.
