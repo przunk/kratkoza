@@ -363,3 +363,17 @@ byłoby pierwszym wyborem do sprawdzenia.
 **Koszt zapisu:** jedna dodatkowa maska 9-bitowa na komórkę — czyli zmiana formatu zapisanej gry i
 migracja, tyle samo co przy pozycji 12, ale jeden bit zamiast trzech barw. Cofanie musi obejmować
 oznaczenie tak samo jak samych kandydatów.
+
+---
+
+## 13. Archiwum rozwiązanych plansz
+
+**Zgłoszone:** 2026-08-30, przez właściciela.
+
+Zachowywać każdą planszę ukończoną z sukcesem, tak żeby dało się do niej wrócić i obejrzeć.
+
+**Do ustalenia przy realizacji:** co dokładnie ma zostać — sama plansza z rozwiązaniem, czy też
+przebieg (czas, błędy, kolejność wpisów). Historia gier już przechowuje wynik i czas, a `puzzles`
+przechowuje zadanie i rozwiązanie, więc materiał w dużej mierze **już jest w bazie** — brakuje
+ekranu, który by go pokazywał, i decyzji, czy trzymamy planszę w nieskończoność, czy z jakimś
+limitem.
