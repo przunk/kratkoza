@@ -107,6 +107,10 @@ odpowiedzią, więc aplikacja nie musi mieć w tej sprawie ostatniego słowa.
 
 ## 4. Usuwanie kandydatów, które przestały być możliwe
 
+**Istniało od początku.** `project.md` §15 tego wymaga i `GameEngine` to robi przez ustawienie
+`autoRemoveCandidates`. Wpis powstał z nieporozumienia; zostaje jako ostrzeżenie, żeby sprawdzać
+kod przed dopisywaniem zadań.
+
 **Zgłoszone:** 2026-08-26.
 
 Po wpisaniu przez gracza poprawnej cyfry automatycznie usuwać tę cyfrę z kandydatów wszystkich pól
@@ -118,6 +122,8 @@ pozostaje jako punkt do świadomej weryfikacji na urządzeniu oraz ochrony teste
 ---
 
 ## 5. Czyszczenie wszystkich kandydatów
+
+**Zrobione 2026-08-29.** Długim przyciśnięciem, z potwierdzeniem i jednym cofnięciem.
 
 **Zgłoszone:** 2026-08-26.
 

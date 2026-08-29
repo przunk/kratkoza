@@ -1,60 +1,66 @@
-# Task: clear every candidate at once
+# Task: the title artwork in the light theme
 
 > The rules of collaboration — worktree, branches, conventions, who merges — are in
 > `codex_instructions.md`. Read that first. This file describes only the current task.
 >
 > Code and git are written in English, commit messages included. Documents under `docs/` stay Polish.
 
-**Branch:** `feature/clear-candidates` from `develop`.
+**Branch:** `fix/artwork-light-theme` from `develop`.
 
 **Files this task covers:**
-- `domain/game/` — the operation and how it is undone
-- `ui/game/` — the control and its confirmation
-- `res/values*/strings.xml`
-- tests: `domain/game/`, `ui/game/`
+- `ui/home/RotatingBoardArt.kt` — where the scene picks its colours
+- `ui/theme/` — only if the fix belongs there rather than in the scene
 
-I am working on the title artwork's colours and on rendering screenshots from tests — `ui/home/`,
-`ui/theme/` and test infrastructure. **Stay out of those.**
+I am not writing code while you do this, so the area is yours. Note that `ui/home/` also holds the
+wordmark and the motion; **the geometry and the timing are not part of this task** and should come
+out unchanged.
 
 ---
 
-## What is wanted
+## The report
 
-An action on the game screen that removes every candidate from the whole board.
+From the owner, on a device: the artwork looks good in the dark theme, bad in the light one, and
+**worse again in high contrast**.
 
-This is `docs/WISHLIST.md` item 5, not a requirement from `project.md` — so it exists because the
-owner asked for it, and the two conditions he attached are the point of the task rather than
-decoration:
+## The cause, which is already found
 
-- **it must ask for confirmation**, and
-- **it must undo as a single action**, so a mistaken tap does not cost a player their notes.
+The scene lightens all three of its colours **towards white**:
 
-## The undo machinery already does the hard part
+```kotlin
+val digitColor = lerp(colors.enteredDigit, Color.White, DIGIT_COLOR_LIFT)   // 0.62
+val gridColor  = lerp(colors.blockLine,    Color.White, GRID_COLOR_LIFT)    // 0.48
+val boardColor = lerp(background,          Color.White, BOARD_BACKGROUND_LIFT) // 0.13
+```
 
-`Move.previousCandidates` is a `Map<Int, Set<Int>>` — cell to the candidates it held before. One move
-can therefore carry the whole board's marks, and `GameEngine.undo` already walks that map and puts
-them back. Clearing everything is one `Move` with a full map, not a new kind of undo.
+Against a dark background that moves them away from it and the scene glows. Against a light one it
+does the opposite — it pushes everything **towards** the background and washes the contrast out. The
+constant has one sign and the problem has two directions.
 
-Look at how `enterDigit` builds its move through `changedCandidates` before writing anything of your
-own; the shape you need is probably already there.
+**That also explains why high contrast comes out worse rather than better.** That mode exists to widen
+separation; a lift towards white pulls it back. The harder the mode works, the harder the scene works
+against it.
 
-## What not to invent
+## The direction, not the answer
 
-**This costs nothing in the ranking.** `project.md` §18 says plainly that candidates are not a hint.
-Clearing your own notes makes the board harder, not easier, so it must not touch `rankedEligible`.
+Displace **from the background** rather than towards white: in a light theme towards black, in a dark
+one towards white. One constant then means "how far from the background" and holds in both themes and
+in high contrast, instead of meaning "how much whiter".
 
-**The confirmation already has a pattern.** Statistics reset asks before it destroys — reuse that
-shape rather than inventing a second kind of dialogue.
+Whether that belongs in the scene or in `BoardColors` is yours to judge — you have just been through
+those files for the palette work and are better placed than I am to say.
 
-**An empty board must not offer the action.** If there are no candidates to clear, the control
-belongs absent or disabled, not live and silent — `ARCHITECTURE.md` §9. The number pad and the eraser
-were fixed for exactly this a day ago; look at `GameUiState.canEnterDigit` for how that reads.
+## What to be careful of
 
-## On where the action goes
+**Your own high-contrast work is in here.** You separated the palette tiers at distances visible on a
+device; make sure a scene that now displaces from the background does not overshoot in that mode and
+turn the artwork into hard poster colours.
 
-The actions row is already carrying undo, the eraser and the candidate toggle, and it has just gained
-a reveal. Adding a fifth control to that row may be the wrong answer — say what you chose and why. If
-it crowds, that is worth reporting rather than shipping tight.
+**The three lift constants were tuned by eye against a dark theme.** Reused as displacement distances
+they will not mean the same thing. Expect to re-choose them rather than reinterpret them.
+
+**No machine can tell you whether this worked.** There is no assertion for "looks right"; the owner
+judges it on a device, in both themes and in high contrast. Say plainly in the commit that you could
+not check the appearance, and what you would want looked at.
 
 ## Verification
 
@@ -63,6 +69,6 @@ it crowds, that is worth reporting rather than shipping tight.
 ./scripts/lint-kratkoza.sh
 ```
 
-Test the two conditions, not only the clearing: that a single undo restores every cell's marks
-exactly, and that the action cannot be reached without confirming. Say in the commit what you could
-not check by machine.
+Then build a debug APK and hand it over. The store screenshots regenerate on every test run, so a
+change to the artwork's colours will show up as modified files in `store/screenshots/` — commit them
+with the change rather than leaving the assets disagreeing with the app.
