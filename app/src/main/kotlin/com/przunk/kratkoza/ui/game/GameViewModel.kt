@@ -148,6 +148,21 @@ class GameViewModel(
     }
 
     /**
+     * Reveals the selected cell without creating a player move (project.md section 18).
+     *
+     * The UI omits this action from a publicly ranked game, and the same rule is enforced here so
+     * a future caller cannot bypass it. Every reachable reveal therefore starts and remains
+     * non-ranked; no score or mistake penalty is introduced.
+     */
+    fun revealDigit() {
+        val current = game ?: return
+        val index = selection ?: return
+        if (!_uiState.value.canRevealDigit || current.rankedEligible) return
+
+        apply(GameEngine.revealDigit(current.state, index, settings.autoRemoveCandidates))
+    }
+
+    /**
      * Debug builds only: finishes the board as though every remaining digit had been tapped in.
      *
      * It really does tap them in — same selection, same entry, same completion check — rather than
@@ -180,9 +195,9 @@ class GameViewModel(
     /**
      * Takes a game out of the ranking for good, banking the time it had run up.
      *
-     * Nothing calls this yet. It exists because the agreed reason to lose eligibility — using a
-     * hint — is coming, and the switch from wall-clock timing to the banked kind has to happen at
-     * that moment or the elapsed time would jump backwards.
+     * Kept for actions whose contract permits forfeiting an active ranking. A reveal deliberately
+     * does not call it: project.md section 18 forbids revealing while the game still counts rather
+     * than offering the reveal as a way to opt out.
      */
     private fun loseRanking() {
         val current = game?.takeIf { it.rankedEligible } ?: return

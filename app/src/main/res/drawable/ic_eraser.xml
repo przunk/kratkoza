@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A tilted eraser with a visible sleeve division. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:rotation="-35">
+        <path
+            android:fillColor="@android:color/transparent"
+            android:pathData="M6.5,8 H17.5 A2,2 0,0 1,19.5 10 V14 A2,2 0,0 1,17.5 16 H6.5 A2,2 0,0 1,4.5 14 V10 A2,2 0,0 1,6.5 8 Z M13.5,8 V16"
+            android:strokeColor="@android:color/white"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2" />
+    </group>
+</vector>

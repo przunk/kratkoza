@@ -15,6 +15,43 @@ import com.przunk.kratkoza.domain.sudoku.Sudoku
 object GameEngine {
 
     /**
+     * Reveals the solution digit in an empty, non-given cell (project.md section 18).
+     *
+     * A reveal is not a player move: it costs no mistake and is not appended to the undo history.
+     * Existing history is sanitised so an older move cannot later erase the revealed digit,
+     * restore a wrong one, or put pencil marks underneath it. The correct digit is then protected
+     * by the same solution-derived lock as every other correct entry, including after a reload.
+     */
+    fun revealDigit(
+        state: GameState,
+        index: Int,
+        autoRemoveCandidates: Boolean,
+    ): GameState {
+        if (state.isGiven(index)) return state
+        if (!state.board.isEmpty(index)) return state
+
+        val digit = state.puzzle.solution[index]
+        var candidates = state.candidates.cleared(index)
+        if (autoRemoveCandidates) {
+            candidates = candidates.removeDigitFrom(Sudoku.peers[index], digit)
+        }
+
+        val safeUndoStack = state.undoStack.mapNotNull { move ->
+            if (move.index == index) {
+                null
+            } else {
+                move.copy(previousCandidates = move.previousCandidates - index)
+            }
+        }
+
+        return state.copy(
+            board = state.board.withValue(index, digit),
+            candidates = candidates,
+            undoStack = safeUndoStack,
+        )
+    }
+
+    /**
      * Writes [digit] into [index].
      *
      * project.md section 16 counts a mistake for every digit committed that differs from the

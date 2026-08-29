@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -157,12 +158,11 @@ private fun ShareBoardAction(difficulty: Difficulty, code: () -> String?) {
     val context = LocalContext.current
     val label = difficulty.labelRes()
 
-    IconButton(onClick = { code()?.let { shareBoard(context, label, it) } }) {
-        Icon(
-            painter = painterResource(R.drawable.ic_share),
-            contentDescription = stringResource(R.string.saved_games_share),
-        )
-    }
+    LabeledGameAction(
+        label = stringResource(R.string.game_share),
+        iconRes = R.drawable.ic_share,
+        onClick = { code()?.let { shareBoard(context, label, it) } },
+    )
 }
 
 @Composable
@@ -221,8 +221,11 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
         canUndo = state.canUndo,
         // Erasing acts on the selected cell; undo and the candidate toggle do not.
         canErase = state.canEnterDigit,
+        canReveal = state.canRevealDigit,
+        showReveal = state.showRevealDigit,
         candidateMode = state.candidateMode,
         enabled = state.isPlayable,
+        onReveal = viewModel::revealDigit,
         onUndo = viewModel::undo,
         onErase = viewModel::erase,
         onToggleCandidates = viewModel::toggleCandidateMode,
@@ -232,9 +235,8 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
 /**
  * A row of actions above the board.
  *
- * Icons rather than words because there is no room for words beside a 1:1 board, and separate from
- * the app bar because the app bar has one line and this needs to grow — the next action added has
- * somewhere to go.
+ * Compact icons with captions rather than full-width buttons because there is no room for those
+ * beside a 1:1 board. The row stays separate from the app bar, which only has one line.
  *
  * A Daily gets the ranking badge here instead. Sharing and saving are absent for it on purpose;
  * see [GameUiState.canShareAndSave].
@@ -255,24 +257,57 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
         // Debug builds only. Reaching the end of a Daily is otherwise twenty minutes of typing,
         // which is too much to pay every time the ranking needs testing.
         if (state.debugTools && state.phase == GameUiState.Phase.PLAYING) {
-            TextButton(onClick = viewModel::autoSolve) {
-                Text(stringResource(R.string.game_debug_solve))
-            }
+            LabeledGameAction(
+                label = stringResource(R.string.game_debug_solve),
+                iconRes = R.drawable.ic_bulb_filled,
+                onClick = viewModel::autoSolve,
+            )
         }
 
         if (state.canShareAndSave) {
             ShareBoardAction(state.difficulty, viewModel::shareCode)
-            IconButton(
+            LabeledGameAction(
+                label = stringResource(R.string.game_save_and_exit),
+                iconRes = R.drawable.ic_saved_games,
                 onClick = {
                     viewModel.saveAndStop()
                     onLeave()
                 },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_saved_games),
-                    contentDescription = stringResource(R.string.game_save_and_exit),
-                )
-            }
+            )
+        }
+    }
+}
+
+/** A compact icon with a stable caption, shared by every action in the function row. */
+@Composable
+private fun LabeledGameAction(
+    label: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .width(FUNCTION_ACTION_WIDTH_DP.dp)
+            .fillMaxSize(),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(FUNCTION_ACTION_ICON_DP.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }
@@ -410,8 +445,11 @@ private fun PauseCover(onResume: () -> Unit, modifier: Modifier = Modifier) {
 private fun GameActionsRow(
     canUndo: Boolean,
     canErase: Boolean,
+    canReveal: Boolean,
+    showReveal: Boolean,
     candidateMode: Boolean,
     enabled: Boolean,
+    onReveal: () -> Unit,
     onUndo: () -> Unit,
     onErase: () -> Unit,
     onToggleCandidates: () -> Unit,
@@ -420,13 +458,30 @@ private fun GameActionsRow(
         modifier = Modifier.fillMaxWidth().height(ACTION_HEIGHT_DP.dp),
         horizontalArrangement = Arrangement.spacedBy(ACTION_GAP_DP.dp),
     ) {
+        // project.md section 18: absent, not disabled, while a Daily still counts publicly.
+        if (showReveal) {
+            OutlinedButton(
+                onClick = onReveal,
+                enabled = enabled && canReveal,
+                modifier = Modifier.weight(REVEAL_ACTION_WEIGHT).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
+            ) {
+                ActionButtonContent(
+                    label = stringResource(R.string.game_reveal_digit),
+                    iconRes = R.drawable.ic_bulb_outline,
+                )
+            }
+        }
         OutlinedButton(
             onClick = onUndo,
             enabled = enabled && canUndo,
             modifier = Modifier.weight(1f).fillMaxSize(),
             contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {
-            Text(stringResource(R.string.game_undo), style = MaterialTheme.typography.labelMedium)
+            ActionButtonContent(
+                label = stringResource(R.string.game_undo),
+                iconRes = R.drawable.ic_undo,
+            )
         }
         OutlinedButton(
             onClick = onErase,
@@ -434,7 +489,10 @@ private fun GameActionsRow(
             modifier = Modifier.weight(1f).fillMaxSize(),
             contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {
-            Text(stringResource(R.string.game_erase), style = MaterialTheme.typography.labelMedium)
+            ActionButtonContent(
+                label = stringResource(R.string.game_erase),
+                iconRes = R.drawable.ic_eraser,
+            )
         }
         // Filled only while candidate mode is on. Filling it in both states made the button
         // contradict its own label — a filled button reads as "active". Off now matches Undo and
@@ -459,6 +517,27 @@ private fun GameActionsRow(
                 CandidateLabel(candidateMode = false)
             }
         }
+    }
+}
+
+/** Horizontal icon-and-label content used by actions tied to the selected cell. */
+@Composable
+private fun ActionButtonContent(label: String, iconRes: Int) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(ACTION_ICON_GAP_DP.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(ACTION_ICON_DP.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }
 
@@ -525,9 +604,14 @@ private const val SCREEN_PADDING_DP = 12
 private const val SECTION_GAP_DP = 12
 private const val ACTION_HEIGHT_DP = 52
 private const val ACTION_GAP_DP = 8
-private const val FUNCTION_ROW_HEIGHT_DP = 44
+private const val FUNCTION_ROW_HEIGHT_DP = 56
+private const val FUNCTION_ACTION_WIDTH_DP = 64
+private const val FUNCTION_ACTION_ICON_DP = 20
 private const val BADGE_CORNER_DP = 8
 private const val BADGE_ICON_DP = 16
 private const val ACTION_HORIZONTAL_PADDING_DP = 4
 private const val CANDIDATE_ACTION_WEIGHT = 1.7f
+private const val REVEAL_ACTION_WEIGHT = 1.2f
 private const val CANDIDATE_MARKER_GAP_DP = 4
+private const val ACTION_ICON_DP = 18
+private const val ACTION_ICON_GAP_DP = 3
