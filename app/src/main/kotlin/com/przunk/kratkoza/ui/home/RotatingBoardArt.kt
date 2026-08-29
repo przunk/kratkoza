@@ -131,6 +131,16 @@ fun RotatingBoardArt(
         label = "content-phase",
     )
 
+    val sparkPhase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SPARK_CYCLE_MILLIS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "spark-phase",
+    )
+
     val sparks = remember(artSeed) {
         val random = Random(artSeed + 1)
         List(SPARK_COUNT) {
@@ -208,14 +218,14 @@ fun RotatingBoardArt(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(wordHeight + WORDMARK_GAP_DP.dp + side)
-                .padding(top = wordHeight + WORDMARK_GAP_DP.dp),
+                .height(wordHeight + SCENE_GAP_DP.dp + side)
+                .padding(top = wordHeight + SCENE_GAP_DP.dp),
             contentAlignment = Alignment.Center,
         ) {
             SparkField(
                 sparks = sparks,
                 layer = SparkDepthLayer.BEHIND_BOARD,
-                phase = contentPhase,
+                phase = sparkPhase,
                 tilt = tilt,
                 color = digitColor,
                 density = density.density,
@@ -271,7 +281,7 @@ fun RotatingBoardArt(
             SparkField(
                 sparks = sparks,
                 layer = SparkDepthLayer.BETWEEN_BOARD_AND_DIGITS,
-                phase = contentPhase,
+                phase = sparkPhase,
                 tilt = tilt,
                 color = digitColor,
                 density = density.density,
@@ -298,7 +308,7 @@ fun RotatingBoardArt(
             SparkField(
                 sparks = sparks,
                 layer = SparkDepthLayer.IN_FRONT_OF_DIGITS,
-                phase = contentPhase,
+                phase = sparkPhase,
                 tilt = tilt,
                 color = digitColor,
                 density = density.density,
@@ -544,6 +554,16 @@ private const val WOBBLE_CYCLE_MILLIS = 20_000
 /** Digits and vapour use a slower independent clock so faster wobble does not make them frantic. */
 private const val CONTENT_CYCLE_MILLIS = 36_000
 
+/**
+ * A clock of their own, a fifth quicker than the digits'.
+ *
+ * A spark's life is a whole number of trips through its phase, which is what keeps it
+ * continuous when the phase restarts — so its speed cannot be nudged by a fifth through
+ * that count. Giving the particles their own cycle changes their pace without touching
+ * how often a digit turns over.
+ */
+private const val SPARK_CYCLE_MILLIS = 30_000
+
 
 
 private const val CAMERA_DISTANCE = 14f
@@ -567,7 +587,8 @@ private const val MAX_DEPTH_TRAVEL_DP = 6f
 /** Shallower than the digits: the name sits above the board without leaving it behind. */
 private const val WORDMARK_DEPTH = 0.6f
 private const val WORDMARK_WIDTH_FRACTION = 0.82f
-private const val WORDMARK_GAP_DP = 20
+/** Shared with the gap below the board, so the two cannot drift apart. */
+internal const val SCENE_GAP_DP = 24
 private const val WORDMARK_SHADOW_ALPHA = 0.5f
 
 /** More passes spread the shadow further; each one is correspondingly fainter. */
@@ -588,9 +609,15 @@ private const val CELL_STAGGER = 0.37f
 private const val DIGIT_HEIGHT_FRACTION = 0.42f
 private const val DIGIT_MIN_ALPHA = 0.72f
 private const val DIGIT_MAX_ALPHA = 1f
-private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.10f
-private const val DIGIT_CAST_SHADOW_ALPHA = 0.30f
-private const val DIGIT_CAST_SHADOW_BLUR_PX = 12f
+private const val DIGIT_CAST_SHADOW_FILL_ALPHA = 0.22f
+/**
+ * Higher than before the blur widened, not lower.
+ *
+ * Blurring spreads the same ink across a larger area, so tripling the radius and
+ * cutting the alpha at the same time multiplied into a shadow that was not there.
+ */
+private const val DIGIT_CAST_SHADOW_ALPHA = 0.58f
+private const val DIGIT_CAST_SHADOW_BLUR_PX = 10f
 
 /**
  * One drifting spark. Everything is a fraction of the drawing area, so the same description works
