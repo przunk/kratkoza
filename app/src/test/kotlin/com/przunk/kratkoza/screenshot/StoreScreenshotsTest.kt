@@ -9,6 +9,7 @@ import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
+import com.przunk.kratkoza.data.repository.toEntity
 import com.przunk.kratkoza.data.repository.StatisticsRepository
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.settings.GameSettings
@@ -93,13 +94,14 @@ class StoreScreenshotsTest {
     @Test
     fun `every screenshot is written in both themes`() {
         val written = mutableListOf<File>()
+        val puzzleId = preparedBoard()
 
         for (theme in listOf(ThemeMode.DARK, ThemeMode.LIGHT)) {
             val suffix = theme.name.lowercase()
 
             // Built here rather than inside the composable: a ViewModel constructed during
             // composition is rebuilt on every recomposition, and the screens are only being drawn.
-            val game = playedGame()
+            val game = boardOn(puzzleId)
             val daily = DailyViewModel(dailyRepository) { FIXED_DAY }
             val statistics = StatisticsViewModel(statisticsRepository)
 
@@ -141,26 +143,42 @@ class StoreScreenshotsTest {
         }
     }
 
-    /** A board with a few digits in it: an empty grid says nothing about the game. */
-    private fun playedGame(): GameViewModel {
-        val game = runBlocking { repository.startNewGame(Difficulty.NORMAL) }
-        val model = GameViewModel(
-            puzzleId = game.state.puzzle.id,
-            gameRepository = repository,
-            settingsFlow = MutableStateFlow(GameSettings.DEFAULT),
-            debugTools = false,
-            clock = { FIXED_ELAPSED_START },
-        )
+    /**
+     * One board, from a fixed seed, played a little way in.
+     *
+     * Seeded rather than generated freshly, or the screenshots differ on every run and each test
+     * pass shows up as a change to committed files. An empty grid also says nothing about the game,
+     * hence the digits.
+     */
+    private fun preparedBoard(): String {
+        val puzzle = SudokuGenerator().generateFromSeed(Difficulty.NORMAL, BOARD_SEED)
+        val game = runBlocking {
+            puzzleDao.insert(puzzle.toEntity())
+            repository.openGame(puzzle)
+        }
 
+        val model = viewModelFor(puzzle.id)
         val empties = (0 until Sudoku.CELL_COUNT).filter { game.state.puzzle.givens.isEmpty(it) }
         for (cell in empties.take(FILLED_CELLS)) {
             model.selectCell(cell)
             model.enterDigit(game.state.puzzle.solution[cell])
         }
-        // Left on a cell, so the screenshot shows the highlighting rather than a bare grid.
-        model.selectCell(empties[FILLED_CELLS])
-        return model
+        return puzzle.id
     }
+
+    /** The same board again, with a cell chosen so the highlighting shows rather than a bare grid. */
+    private fun boardOn(puzzleId: String): GameViewModel = viewModelFor(puzzleId).apply {
+        val puzzle = runBlocking { repository.loadGame(puzzleId) }!!.state
+        selectCell((0 until Sudoku.CELL_COUNT).first { puzzle.board.isEmpty(it) })
+    }
+
+    private fun viewModelFor(puzzleId: String) = GameViewModel(
+        puzzleId = puzzleId,
+        gameRepository = repository,
+        settingsFlow = MutableStateFlow(GameSettings.DEFAULT),
+        debugTools = false,
+        clock = { FIXED_ELAPSED_START },
+    )
 
     private fun write(name: String, content: @androidx.compose.runtime.Composable () -> Unit): File {
         val bitmap = render(WIDTH_PX, HEIGHT_PX, content = content)
@@ -177,6 +195,9 @@ class StoreScreenshotsTest {
 
         const val FILLED_CELLS = 14
         const val FIXED_ELAPSED_START = 0L
+
+        /** Any fixed value; what matters is that it does not change between runs. */
+        const val BOARD_SEED = 20260829L
         val FIXED_DAY: Instant = LocalDate.parse("2026-08-26").atStartOfDay(java.time.ZoneOffset.UTC)
             .plusHours(12).toInstant()
 
