@@ -35,6 +35,8 @@ data class GameUiState(
     val isPaused: Boolean = false,
     /** Whether the number pad writes pencil marks instead of digits (project.md section 14). */
     val candidateMode: Boolean = false,
+    /** Whether the destructive candidate-clear confirmation is currently visible. */
+    val confirmingCandidateClear: Boolean = false,
     val canUndo: Boolean = false,
     /** How many of each digit 1..9 are still missing; index 0 is unused. */
     val remainingByDigit: List<Int> = List(10) { 0 },
@@ -122,6 +124,9 @@ data class GameUiState(
     /** A reveal targets the selected empty cell; filled cells already have an answer. */
     val canRevealDigit: Boolean
         get() = showRevealDigit && isPlayable && selectedCell?.let(board::isEmpty) == true
+
+    /** Long-press clear is meaningful only while at least one pencil mark exists. */
+    val canClearCandidates: Boolean get() = isPlayable && candidates.hasAny
 
     /** project.md section 28: no pause button while the game still counts. */
     val canPause: Boolean get() = !rankedEligible

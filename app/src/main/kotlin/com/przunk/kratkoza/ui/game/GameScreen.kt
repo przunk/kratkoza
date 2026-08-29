@@ -2,7 +2,10 @@ package com.przunk.kratkoza.ui.game
 
 import android.widget.Toast
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -21,11 +24,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +51,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -142,6 +148,13 @@ fun GameScreen(
         }
     }
 
+    if (state.confirmingCandidateClear) {
+        CandidateClearDialog(
+            onConfirm = viewModel::confirmCandidateClear,
+            onDismiss = viewModel::dismissCandidateClear,
+        )
+    }
+
     if (state.phase == GameUiState.Phase.SOLVED) {
         SolvedDialog(state = state, onBackToMenu = onNavigateBack, onNewGame = onNewGame)
     }
@@ -223,12 +236,14 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
         canErase = state.canEnterDigit,
         canReveal = state.canRevealDigit,
         showReveal = state.showRevealDigit,
+        canClearCandidates = state.canClearCandidates,
         candidateMode = state.candidateMode,
         enabled = state.isPlayable,
         onReveal = viewModel::revealDigit,
         onUndo = viewModel::undo,
         onErase = viewModel::erase,
         onToggleCandidates = viewModel::toggleCandidateMode,
+        onRequestCandidateClear = viewModel::requestCandidateClear,
     )
 }
 
@@ -447,12 +462,14 @@ private fun GameActionsRow(
     canErase: Boolean,
     canReveal: Boolean,
     showReveal: Boolean,
+    canClearCandidates: Boolean,
     candidateMode: Boolean,
     enabled: Boolean,
     onReveal: () -> Unit,
     onUndo: () -> Unit,
     onErase: () -> Unit,
     onToggleCandidates: () -> Unit,
+    onRequestCandidateClear: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(ACTION_HEIGHT_DP.dp),
@@ -494,28 +511,78 @@ private fun GameActionsRow(
                 iconRes = R.drawable.ic_eraser,
             )
         }
-        // Filled only while candidate mode is on. Filling it in both states made the button
-        // contradict its own label — a filled button reads as "active". Off now matches Undo and
-        // Erase beside it, and the label still spells the state out, so it is not carried by colour
-        // alone (project.md section 8).
-        if (candidateMode) {
-            FilledTonalButton(
-                onClick = onToggleCandidates,
+        CandidateModeButton(
+            candidateMode = candidateMode,
+            enabled = enabled,
+            canClearCandidates = canClearCandidates,
+            onToggle = onToggleCandidates,
+            onRequestClear = onRequestCandidateClear,
+            modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
+        )
+    }
+}
+
+/**
+ * Candidate mode on tap, whole-board candidate clear on long press.
+ *
+ * A dedicated surface is used because Material buttons expose clicks only. Pointer gestures and
+ * accessibility actions share the same callbacks, while the marker and fill still communicate
+ * candidate mode independently.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CandidateModeButton(
+    candidateMode: Boolean,
+    enabled: Boolean,
+    canClearCandidates: Boolean,
+    onToggle: () -> Unit,
+    onRequestClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colours = MaterialTheme.colorScheme
+    val clearLabel = stringResource(R.string.game_clear_candidates_action)
+    val description = stringResource(
+        if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
+    )
+    val containerColour = when {
+        !enabled && candidateMode -> colours.onSurface.copy(alpha = DISABLED_CONTAINER_ALPHA)
+        candidateMode -> colours.secondaryContainer
+        else -> Color.Transparent
+    }
+    val contentColour = when {
+        !enabled -> colours.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA)
+        candidateMode -> colours.onSecondaryContainer
+        else -> colours.primary
+    }
+    val border = if (candidateMode) {
+        null
+    } else {
+        BorderStroke(
+            width = 1.dp,
+            color = if (enabled) colours.outline else colours.onSurface.copy(alpha = DISABLED_CONTAINER_ALPHA),
+        )
+    }
+
+    Surface(
+        modifier = modifier
+            .combinedClickable(
                 enabled = enabled,
-                modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
-            ) {
-                CandidateLabel(candidateMode = true)
-            }
-        } else {
-            OutlinedButton(
-                onClick = onToggleCandidates,
-                enabled = enabled,
-                modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
-            ) {
-                CandidateLabel(candidateMode = false)
-            }
+                role = Role.Button,
+                onClick = onToggle,
+                onLongClickLabel = clearLabel.takeIf { canClearCandidates },
+                onLongClick = onRequestClear.takeIf { canClearCandidates },
+            )
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        shape = RoundedCornerShape(50),
+        color = containerColour,
+        contentColor = contentColour,
+        border = border,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CandidateLabel(candidateMode = candidateMode)
         }
     }
 }
@@ -544,12 +611,7 @@ private fun ActionButtonContent(label: String, iconRes: Int) {
 /** A short stable label plus a shape marker, so state never depends on colour or extra prose. */
 @Composable
 private fun CandidateLabel(candidateMode: Boolean) {
-    val description = stringResource(
-        if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
-    )
-
     Row(
-        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(CANDIDATE_MARKER_GAP_DP.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -566,6 +628,25 @@ private fun CandidateLabel(candidateMode: Boolean) {
             textAlign = TextAlign.Center,
         )
     }
+}
+
+@Composable
+private fun CandidateClearDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.game_clear_candidates_title)) },
+        text = { Text(stringResource(R.string.game_clear_candidates_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.game_clear_candidates_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.game_clear_candidates_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -615,3 +696,5 @@ private const val REVEAL_ACTION_WEIGHT = 1.2f
 private const val CANDIDATE_MARKER_GAP_DP = 4
 private const val ACTION_ICON_DP = 18
 private const val ACTION_ICON_GAP_DP = 3
+private const val DISABLED_CONTENT_ALPHA = 0.38f
+private const val DISABLED_CONTAINER_ALPHA = 0.12f

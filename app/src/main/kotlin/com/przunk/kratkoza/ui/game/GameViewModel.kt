@@ -192,6 +192,26 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(candidateMode = !_uiState.value.candidateMode)
     }
 
+    /** Opens confirmation without changing the board. Long press is only a request. */
+    fun requestCandidateClear() {
+        if (!_uiState.value.canClearCandidates) return
+        _uiState.value = _uiState.value.copy(confirmingCandidateClear = true)
+    }
+
+    fun dismissCandidateClear() {
+        if (!_uiState.value.confirmingCandidateClear) return
+        _uiState.value = _uiState.value.copy(confirmingCandidateClear = false)
+    }
+
+    /** Performs the requested clear as one persisted and undoable move. */
+    fun confirmCandidateClear() {
+        if (!_uiState.value.confirmingCandidateClear) return
+        val state = game?.state ?: return
+
+        _uiState.value = _uiState.value.copy(confirmingCandidateClear = false)
+        apply(GameEngine.clearAllCandidates(state))
+    }
+
     /**
      * Takes a game out of the ranking for good, banking the time it had run up.
      *
@@ -402,6 +422,8 @@ class GameViewModel(
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,
             candidateMode = _uiState.value.candidateMode,
+            confirmingCandidateClear = _uiState.value.confirmingCandidateClear &&
+                state.candidates.hasAny && !state.isSolved && runningSince != null,
             canUndo = state.canUndo,
             remainingByDigit = List(10) { digit ->
                 if (digit == 0) 0 else state.remainingCountOf(digit)

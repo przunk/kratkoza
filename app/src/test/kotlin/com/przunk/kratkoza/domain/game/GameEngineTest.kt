@@ -256,6 +256,30 @@ class GameEngineTest {
     }
 
     @Test
+    fun `clearing every candidate is one move and one undo restores the exact grid`() {
+        var state = GameFixtures.newGame()
+        val cells = (0 until Sudoku.CELL_COUNT).filter { state.board.isEmpty(it) }.take(3)
+        state = GameEngine.toggleCandidate(state, cells[0], 2)
+        state = GameEngine.toggleCandidate(state, cells[0], 7)
+        state = GameEngine.toggleCandidate(state, cells[1], 4)
+        state = GameEngine.toggleCandidate(state, cells[2], 9)
+        val beforeClear = state
+
+        val cleared = GameEngine.clearAllCandidates(beforeClear)
+
+        assertFalse(cleared.candidates.hasAny)
+        assertEquals(beforeClear.undoStack.size + 1, cleared.undoStack.size)
+        assertEquals(beforeClear, GameEngine.undo(cleared))
+    }
+
+    @Test
+    fun `clearing an empty candidate grid changes nothing`() {
+        val state = GameFixtures.newGame()
+
+        assertSame(state, GameEngine.clearAllCandidates(state))
+    }
+
+    @Test
     fun `a cell holding a digit takes no pencil marks`() {
         val state = GameEngine.enterDigit(GameFixtures.newGame(), cell, correct, autoRemoveCandidates = false)
         assertSame(state, GameEngine.toggleCandidate(state, cell, 3))

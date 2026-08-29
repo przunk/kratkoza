@@ -253,6 +253,51 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `candidate clear changes nothing until confirmed and one undo restores every mark`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cells = (0 until Sudoku.CELL_COUNT).filter { game.state.board.isEmpty(it) }.take(2)
+
+        viewModel.toggleCandidateMode()
+        viewModel.selectCell(cells[0])
+        viewModel.enterDigit(2)
+        viewModel.enterDigit(7)
+        viewModel.selectCell(cells[1])
+        viewModel.enterDigit(4)
+        val beforeClear = viewModel.uiState.value.candidates
+
+        viewModel.requestCandidateClear()
+        assertTrue(viewModel.uiState.value.confirmingCandidateClear)
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+
+        viewModel.dismissCandidateClear()
+        assertFalse(viewModel.uiState.value.confirmingCandidateClear)
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+
+        viewModel.requestCandidateClear()
+        viewModel.confirmCandidateClear()
+        idle()
+        assertFalse(viewModel.uiState.value.confirmingCandidateClear)
+        assertFalse(viewModel.uiState.value.candidates.hasAny)
+
+        viewModel.undo()
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+    }
+
+    @Test
+    fun `an empty candidate grid cannot open or confirm a clear`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+
+        viewModel.requestCandidateClear()
+        viewModel.confirmCandidateClear()
+
+        assertFalse(viewModel.uiState.value.confirmingCandidateClear)
+        assertEquals(game.state.candidates, viewModel.uiState.value.candidates)
+        assertFalse(viewModel.uiState.value.canUndo)
+    }
+
+    @Test
     fun `a wrong digit is counted and marked`() = gameTest {
         // project.md section 16.
         val game = startGame()
@@ -559,6 +604,24 @@ class GameViewModelTest {
 
         assertTrue(viewModel.uiState.value.board.isEmpty(cell))
         assertTrue(viewModel.uiState.value.rankedEligible)
+    }
+
+    @Test
+    fun `clearing candidates does not cost a daily its ranking`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        val viewModel = viewModelFor(daily)
+        val cell = (0 until Sudoku.CELL_COUNT).first { daily.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        viewModel.toggleCandidateMode()
+        viewModel.enterDigit(3)
+        viewModel.requestCandidateClear()
+        viewModel.confirmCandidateClear()
+        idle()
+
+        assertFalse(viewModel.uiState.value.candidates.hasAny)
+        assertTrue(viewModel.uiState.value.rankedEligible)
+        assertTrue(requireNotNull(repository.loadGame(daily.state.puzzle.id)).rankedEligible)
     }
 
     @Test
