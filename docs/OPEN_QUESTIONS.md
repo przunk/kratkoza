@@ -346,3 +346,59 @@ najlepszy wynik, więc nie da się go nawet obniżyć przez wysłanie zera.
 Wariant 2 jest bliższy temu, o co pytano, i usuwa jedyną realną szkodę. Kosztuje licznik, który
 przeżywa reset, i jedno zdanie w dialogu.
 
+---
+
+## Zmierzona drabinka trudności (2026-08-29)
+
+Sto plansz na poziom, każda oceniona przez `LogicalSolver`. Mierzona jest **ranga najtrudniejszej
+techniki, której plansza naprawdę wymaga** — nie pułap, który poziom ma dozwolony.
+
+| poziom | pułap | średnia wymagana ranga | maks. | kroki | podpowiedzi |
+|---|---|---|---|---|---|
+| Łatwy | 2 | 1,15 | 2 | 45,0 | 36,0 |
+| Normalny | 2 | 1,99 | 2 | 56,5 | 24,5 |
+| Trudny | 3 | 3,00 | 3 | 59,4 | 24,5 |
+| Ekspert | 5 | 4,35 | 5 | 61,8 | 24,6 |
+| Morderczy | 10 | 8,72 | 9 | 61,9 | 24,9 |
+
+### Pięć rzeczy, które z tego wynikają
+
+**Pełna drabinka jest równa na czterech szczeblach i pęka na ostatnim:** +0,84, +1,01, +1,35, a potem
+**+4,37**. Ekspert kończy się na ukrytej parze, Morderczy w 87% wymaga XY-Wing.
+
+**Daily nie używa pełnej drabinki.** Bierze Łatwy, Trudny i Morderczy, więc jego skoki to **+1,85
+i +5,72** — mniej więcej dwa i cztery razy więcej niż zwykły szczebel.
+
+**Skok Łatwy → Trudny jest podwójny.** Rośnie nie tylko technika, ale i liczba podpowiedzi: **36 → 24,5**.
+Łatwy jest jedynym poziomem z gęstą planszą; wszystkie pozostałe mają około 24,5. Gracz przechodzący
+w Daily z Łatwego na Trudny dostaje jednocześnie nową technikę i jedenaście podpowiedzi mniej.
+
+**Łatwy jest bardzo łatwy.** 85 na 100 plansz da się rozwiązać samymi nagimi singlami; ukryty singiel
+bywa potrzebny w 15 przypadkach.
+
+**Pułap Morderczego jest tylko nominalny.** Dozwolony jest Swordfish (ranga 10), ale **żadna ze stu
+plansz go nie wymagała** — najwyższa zaobserwowana ranga to 9. Morderczy jest w praktyce poziomem
+XY-Wing, a Swordfish nie ma zastosowania.
+
+### Co to znaczy dla czasów odniesienia w punktacji
+
+Liczba kroków logicznych rośnie od Normalnego do Morderczego o **10%** (56,5 → 61,9), a czasy
+odniesienia zakładają rozpiętość **pięciokrotną** (5 → 25 minut). Cała różnica musi więc leżeć w czasie
+*wypatrzenia* techniki, a nie w ilości pracy. To potwierdza notatkę przy `targetMinutesFor`, że próba
+wyprowadzenia czasów z licznika kroków zawiodła — ale też pokazuje, że pięciokrotność jest
+oszacowaniem z wyczucia i nic jej nie potwierdza.
+
+### Do decyzji
+
+Skok Trudny → Morderczy w Daily jest ponad czterokrotnie większy niż zwykły szczebel drabinki.
+Możliwe kierunki, żadnego nie wybieram sam:
+
+- **Daily bierze Łatwy / Trudny / Ekspert** — skoki +1,85 i +1,35, czyli górny szczebel przestaje być
+  przepaścią, a wejście dla mniej wprawnych zostaje.
+- **Daily bierze Łatwy / Normalny / Trudny** — najłagodniejsze, ale najtrudniejszy poziom dnia wymaga
+  wtedy tylko locked candidates, co dla wprawnych będzie za mało.
+- **Zostaje jak jest**, ze świadomością, że najtrudniejszy poziom Daily jest dla większości graczy
+  nieosiągalny.
+
+Osobno warto rozważyć **dogęszczenie Łatwego albo rozrzedzenie go do 30 podpowiedzi**, żeby przejście
+do kolejnego poziomu nie było podwójne.
