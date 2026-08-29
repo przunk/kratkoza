@@ -73,6 +73,7 @@
     <string name="game_ranked">Ranked</string>
     <!-- Debug builds only; never reaches a release APK. -->
     <string name="game_debug_solve">Solve</string>
+    <string name="game_reveal_digit">Reveal digit</string>
     <string name="game_unranked">Out of the ranking</string>
     <string name="game_ranking_lost">This game left the ranking — you can finish it as an ordinary one.</string>
     <string name="daily_next_in_at">New boards in %1$s, at %2$s</string>

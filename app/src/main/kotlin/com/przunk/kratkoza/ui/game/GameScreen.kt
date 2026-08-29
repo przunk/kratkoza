@@ -260,6 +260,18 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
             }
         }
 
+        // Absent, not disabled, while the game counts publicly (project.md section 18). Once the
+        // action is allowed it stays visible and dims until an empty cell is selected, so its
+        // target is clear before the player spends the reveal.
+        if (state.showRevealDigit) {
+            TextButton(
+                onClick = viewModel::revealDigit,
+                enabled = state.canRevealDigit,
+            ) {
+                Text(stringResource(R.string.game_reveal_digit))
+            }
+        }
+
         if (state.canShareAndSave) {
             ShareBoardAction(state.difficulty, viewModel::shareCode)
             IconButton(

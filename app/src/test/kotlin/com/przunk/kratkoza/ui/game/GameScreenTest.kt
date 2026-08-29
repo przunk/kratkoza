@@ -93,6 +93,7 @@ class GameScreenTest {
     fun `the pad and the eraser are dimmed until a cell is chosen`() {
         digitKey(1).assertIsNotEnabled()
         eraser().assertIsNotEnabled()
+        reveal().assertIsNotEnabled()
     }
 
     @Test
@@ -101,6 +102,7 @@ class GameScreenTest {
 
         digitKey(1).assertIsEnabled()
         eraser().assertIsEnabled()
+        reveal().assertIsEnabled()
     }
 
     @Test
@@ -130,4 +132,6 @@ class GameScreenTest {
         compose.onNodeWithContentDescription(context.getString(R.string.game_digit, digit))
 
     private fun eraser() = compose.onNodeWithText(context.getString(R.string.game_erase))
+
+    private fun reveal() = compose.onNodeWithText(context.getString(R.string.game_reveal_digit))
 }

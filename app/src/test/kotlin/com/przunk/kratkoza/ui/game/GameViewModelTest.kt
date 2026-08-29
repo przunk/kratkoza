@@ -203,6 +203,31 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a solo reveal fills the selected empty cell and remains non-ranked`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+
+        assertTrue(viewModel.uiState.value.showRevealDigit)
+        assertFalse(viewModel.uiState.value.canRevealDigit)
+
+        viewModel.selectCell(cell)
+        assertTrue(viewModel.uiState.value.canRevealDigit)
+        viewModel.revealDigit()
+        idle()
+
+        val state = viewModel.uiState.value
+        assertEquals(game.state.puzzle.solution[cell], state.board[cell])
+        assertEquals(0, state.mistakeCount)
+        assertFalse(state.canUndo)
+        assertFalse(state.rankedEligible)
+        assertEquals(
+            game.state.puzzle.solution[cell],
+            repository.loadGame(game.state.puzzle.id)?.state?.board?.get(cell),
+        )
+    }
+
+    @Test
     fun `a digit with nothing selected does nothing`() = gameTest {
         val game = startGame()
         val viewModel = viewModelFor(game)
@@ -517,6 +542,40 @@ class GameViewModelTest {
         now = 5_000
         viewModel.setPaused(true)
         assertFalse("the request must be refused, not merely hidden", viewModel.uiState.value.isPaused)
+    }
+
+    @Test
+    fun `a ranked daily exposes no reveal path and refuses a direct request`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        val viewModel = viewModelFor(daily)
+        val cell = (0 until Sudoku.CELL_COUNT).first { daily.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        assertFalse(viewModel.uiState.value.showRevealDigit)
+        assertFalse(viewModel.uiState.value.canRevealDigit)
+
+        viewModel.revealDigit()
+        idle()
+
+        assertTrue(viewModel.uiState.value.board.isEmpty(cell))
+        assertTrue(viewModel.uiState.value.rankedEligible)
+    }
+
+    @Test
+    fun `an unranked daily may reveal and stays unranked`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        repository.save(daily.copy(rankedEligible = false))
+        val viewModel = viewModelFor(daily)
+        val cell = (0 until Sudoku.CELL_COUNT).first { daily.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        assertTrue(viewModel.uiState.value.showRevealDigit)
+        assertTrue(viewModel.uiState.value.canRevealDigit)
+        viewModel.revealDigit()
+        idle()
+
+        assertEquals(daily.state.puzzle.solution[cell], viewModel.uiState.value.board[cell])
+        assertFalse(viewModel.uiState.value.rankedEligible)
     }
 
     @Test
