@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -161,9 +162,22 @@ fun RotatingBoardArt(
     var touchTilt by remember { mutableStateOf(BoardTilt.Zero) }
     val idleTilt = idleBoardTilt(motionPhase)
     val tilt = blendBoardTilt(idleTilt, touchTilt, touchBlend.value)
-    val digitColor = lerp(colors.enteredDigit, Color.White, DIGIT_COLOR_LIFT)
-    val gridColor = lerp(colors.blockLine, Color.White, GRID_COLOR_LIFT)
-    val boardColor = lerp(MaterialTheme.colorScheme.background, Color.White, BOARD_BACKGROUND_LIFT)
+    val background = MaterialTheme.colorScheme.background
+    val digitColor = separateFromBackground(
+        color = colors.enteredDigit,
+        background = background,
+        amount = DIGIT_BACKGROUND_SEPARATION,
+    )
+    val gridColor = separateFromBackground(
+        color = colors.blockLine,
+        background = background,
+        amount = GRID_BACKGROUND_SEPARATION,
+    )
+    val boardColor = separateFromBackground(
+        color = background,
+        background = background,
+        amount = BOARD_BACKGROUND_SEPARATION,
+    )
     val digitShadowOffset = digitShadowOffsetForTilt(tilt, density.density)
 
     BoxWithConstraints(
@@ -545,6 +559,22 @@ private fun parallaxOffset(tilt: BoardTilt, depth: Float, density: Float): Offse
     return Offset(x = -yaw * travel, y = -pitch * travel)
 }
 
+/**
+ * Moves a scene colour towards the ink opposite its background.
+ *
+ * Mixing every layer with white made the dark artwork glow, but washed the same layers into a
+ * light background. Choosing the endpoint from the background keeps one visual rule for light,
+ * dark and their high-contrast variants without making the board palette theme-aware.
+ */
+internal fun separateFromBackground(color: Color, background: Color, amount: Float): Color {
+    val oppositeInk = if (background.luminance() > LIGHT_BACKGROUND_THRESHOLD) {
+        Color.Black
+    } else {
+        Color.White
+    }
+    return lerp(color, oppositeInk, amount.coerceIn(0f, 1f))
+}
+
 internal const val CELLS = Sudoku.BLOCK_SIZE * Sudoku.BLOCK_SIZE
 internal const val TAU = (2 * PI).toFloat()
 
@@ -577,9 +607,10 @@ private const val GRID_ALPHA = 0.46f
 private const val BOARD_EDGE_STROKE_DP = 1.25f
 private const val BOARD_EDGE_ALPHA = 0.22f
 
-private const val BOARD_BACKGROUND_LIFT = 0.13f
-private const val DIGIT_COLOR_LIFT = 0.62f
-private const val GRID_COLOR_LIFT = 0.48f
+private const val BOARD_BACKGROUND_SEPARATION = 0.09f
+private const val DIGIT_BACKGROUND_SEPARATION = 0.38f
+private const val GRID_BACKGROUND_SEPARATION = 0.28f
+private const val LIGHT_BACKGROUND_THRESHOLD = 0.5f
 
 private const val DEPTH_SCALE = 0.025f
 private const val MAX_DEPTH_TRAVEL_DP = 6f
