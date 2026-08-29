@@ -192,6 +192,34 @@ osobny właśnie po to.
 statystyk, ale wtedy „reset statystyk" przestaje znaczyć to, co mówi. Na razie zostaje tak, jak jest,
 a log rankingu mówi wprost, kiedy wynik został przyjęty, ale niczego nie zmienił.
 
+### Tablica Daily ma otwierać się zawsze na „dziś"
+
+**Zgłoszone:** 2026-08-29. Nakładka Play Games zapamiętuje ostatnio wybrany zakres czasu, więc gracz,
+który raz przełączył na „wszech czasów", widzi go już zawsze — także przy tablicy dziennej, gdzie
+sens ma wyłącznie dzisiejszy dzień.
+
+**Da się to wymusić i wiadomo czym.** `LeaderboardsClient` ma przeciążenie
+`getLeaderboardIntent(id, timeSpan)`, a `LeaderboardVariant.TIME_SPAN_DAILY` to zakres dzienny.
+`PlayGamesRanking.show` woła dziś wersję jednoargumentową, która zostawia wybór nakładce.
+
+**Do rozstrzygnięcia przy okazji:** czy wymuszać zakres także dla tablic poziomów i dla sumy wszech
+czasów, czy tylko dla dziennej. Dla sumy wszech czasów zakres dzienny nie miałby sensu.
+
+### Porządki w dokumentacji i skryptach
+
+**Zebrane 2026-08-29.** Drobne, tanie, wszystkie o tym samym: pliki opisują stan, którego już nie ma.
+
+- `test-kratkoza.sh` wypisuje `✅ 0 tests passed`, gdy testy w ogóle nie ruszą. Zielony znaczek przy
+  zerze testów to dokładnie ta cisza, przed którą zabezpiecza `ARCHITECTURE.md` §9 — skrypt powinien
+  traktować brak wyników jako błąd.
+- `ARCHITECTURE.md` §10 „Czego jeszcze nie ma" wymienia jako brakujące Daily, ranking, XP, score,
+  podpowiedź 8/9, palety i tryb wysokiego kontrastu. Wszystkie istnieją.
+- Checkboxy w `PLAY_CONSOLE.md` pokazują jako niezrobione konto dewelopera, aplikację, ikonę,
+  grafikę, identyfikatory tablic i publikację Play Games.
+- Wishlist 9 (tytuł wtopiony w animację) jest zrobiona i nieoznaczona.
+- Pozycja „Usunąć kartę Ranking (debug)" jest nieaktualna — zapadła decyzja, że log zostaje
+  w Ustawieniach.
+
 ## Do zrobienia
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
@@ -455,6 +483,34 @@ inny obrazek — do oceny „czy ładnie" bez znaczenia, do porównań przed/po 
 musiałoby być wstrzykiwalne. I `waitForIdle()` przy nieskończonej animacji **nigdy nie wraca** —
 `autoAdvance` trzeba wyłączyć przed pierwszą kompozycją. Ta sama klasa zawieszenia, którą suite
 złapał już dwa razy.
+
+### Wynik Daily zjadany przez zegar ścienny
+
+**Zgłoszone:** 2026-08-29 — „zrobiłem easy z jednym błędem i dostałem 12 punktów".
+
+**To nie jest wada wzoru, tylko skutek reguły czasu.** Policzone dla obecnych stałych:
+
+| czas gry | 0 błędów | 1 błąd |
+|---|---|---|
+| 2 min | 714 | 500 |
+| 5 min | 500 | 350 |
+| 20 min | 200 | 140 |
+| 3 h | 27 | 19 |
+
+12 punktów przy jednym błędzie odpowiada **około 4,6 godziny na liczniku**. Wzór zachował się
+poprawnie; policzył czas, który naprawdę upłynął.
+
+**Skąd on się bierze.** Rankingowe Daily mierzy czas zegarem ściennym od otwarcia planszy i nie da
+się go zatrzymać (`project.md` §28). Zrobiliśmy to celowo: licznik w aplikacji zatrzymuje się razem
+z procesem, więc gracz, który schowałby aplikację na godzinę, dostałby godzinę darmowego myślenia.
+
+**Napięcie, które to tworzy.** Ta sama reguła karze zachowanie zupełnie zwyczajne — otworzyć
+planszę, odejść, wrócić wieczorem. Dziś kosztuje to cały wynik, bez żadnego ostrzeżenia.
+
+**Czego jeszcze nie wiadomo.** Czy problemem jest reguła, czy jej niewidoczność. Możliwe kierunki:
+powiedzieć wprost przy starcie, że zegar biegnie; ograniczyć czas z góry zamiast rozmywać wynik do
+zera; albo uznać, że Daily rozegrane po godzinach po prostu nie jest wynikiem rankingowym i
+potraktować to jak utratę kwalifikacji, którą widać. Do omówienia razem ze statystykami.
 
 ## Wymaga decyzji
 
