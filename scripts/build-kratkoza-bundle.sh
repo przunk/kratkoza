@@ -32,8 +32,9 @@ collect_signing_configuration() {
     local entered current
 
     if [ -t 0 ]; then
-        current="${KRATKOZA_UPLOAD_KEYSTORE:-}"
+        current="${KRATKOZA_UPLOAD_KEYSTORE:-/mnt/d/Projects/google-play-upload.jks}"
         if [ -n "$current" ]; then
+			#current="${KRATKOZA_UPLOAD_KEYSTORE:-/mnt/d/Projects/google-play-upload.jks}"
             read -r -p "Upload keystore path [$current]: " entered
             KRATKOZA_UPLOAD_KEYSTORE="${entered:-$current}"
         else
@@ -48,7 +49,7 @@ collect_signing_configuration() {
     [ -f "$KRATKOZA_UPLOAD_KEYSTORE" ] || fail "keystore not found: $KRATKOZA_UPLOAD_KEYSTORE"
 
     if [ -t 0 ]; then
-        current="${KRATKOZA_UPLOAD_KEY_ALIAS:-kratkoza}"
+        current="${KRATKOZA_UPLOAD_KEY_ALIAS:-kratkoza-upload}"
         read -r -p "Key alias [$current]: " entered
         KRATKOZA_UPLOAD_KEY_ALIAS="${entered:-$current}"
     fi
