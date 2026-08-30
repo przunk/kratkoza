@@ -283,7 +283,7 @@ tekstem: tam liczy się czytelność i respektowanie ustawień systemowych, a ni
 
 ---
 
-## 11. Punkt przywrócenia do testowania hipotez
+## 11. Punkt przywrócenia do testowania hipotez — ZASTĄPIONE przez pozycję 14
 
 **Zgłoszone:** 2026-08-29, przez znajomego gracza.
 
@@ -305,7 +305,7 @@ więc kwalifikacji rankingowej to nie dotyka.
 
 ---
 
-## 12. Warstwy kandydatów odróżnione kolorem
+## 12. Warstwy kandydatów odróżnione kolorem — ZASTĄPIONE przez pozycję 14
 
 **Zgłoszone:** 2026-08-29, jako rozwinięcie pozycji 11.
 
@@ -335,7 +335,7 @@ cofanie musi objąć wszystkie warstwy, a „porzuć warstwę" ma być jednym co
 poziomie są sytuacją rzadką. Warto zrobić 11, pograć z tym, i dopiero wtedy ocenić, czy 12 nadal jest
 potrzebne — bo jeśli tak, będzie się dokładnie wiedziało, czego brakuje.
 
-### 12a. Zaznaczony kandydat zamiast warstw kolorem
+### 12a. Zaznaczony kandydat zamiast warstw kolorem — ZASTĄPIONE przez pozycję 14
 
 **Zgłoszone:** 2026-08-30, przez właściciela, jako rozwinięcie pozycji 12.
 
@@ -377,3 +377,104 @@ przebieg (czas, błędy, kolejność wpisów). Historia gier już przechowuje wy
 przechowuje zadanie i rozwiązanie, więc materiał w dużej mierze **już jest w bazie** — brakuje
 ekranu, który by go pokazywał, i decyzji, czy trzymamy planszę w nieskończoność, czy z jakimś
 limitem.
+
+---
+
+## 14. Symulacja: poziomy predykcji
+
+**Odłożone 2026-08-30 po trzech nieudanych podejściach.** Kod stoi na gałęzi
+`feature/hypothesis-tools`, niescalony. Ta pozycja zastępuje 11 i 12a — one opisują model, który
+okazał się za ubogi.
+
+### Czego nie zrozumiałem
+
+Zbudowałem „zaznaczenie plus niewidzialna migawka": jest droga powrotna, ale **nie widać, w czym się
+stoi**. Nie da się spojrzeć na planszę i odróżnić kandydatów prawdziwych od tych, którzy są tylko
+konsekwencją założenia — a to jest cały sens symulacji. Optymalizowałem taniość i zgubiłem sens.
+
+### Model właściwy, wg właściciela
+
+Jednostką jest **poziom predykcji**, nie zaznaczenie: założenie *plus wszystko, co z niego wynikło*,
+i to wszystko widoczne. Poziomy tworzą stos.
+
+Przebieg przy jednym poziomie:
+
+1. Gracz utyka i decyduje się na „bezpieczny strzał" kandydatem.
+2. Wpisuje cyfrę w jedno z dwóch możliwych pól; ta cyfra jest wyróżniona jako **pierwsza tego
+   poziomu**.
+3. Dopisuje konsekwencje, aż trafi na sprzeczność.
+4. Cofa **wszystkich kandydatów tego poziomu jednym ruchem**, zostawiając tylko pierwszą cyfrę.
+5. Wpisuje cyfrę rzeczywistą w drugie możliwe pole; oznaczony kandydat znika.
+
+Przy dwóch poziomach dochodzi: otwarcie poziomu drugiego wewnątrz pierwszego, odróżnialność
+kandydatów obu poziomów, a gdy **obie** gałęzie poziomu drugiego są sprzeczne — dowód, że poziom
+pierwszy był błędny, i zejście o piętro.
+
+### Jak to zapisać — i dlaczego to tańsze, niż się wydaje
+
+Poziom = **migawka kandydatów w chwili otwarcia** + cyfra założenia. Przynależność kandydata do
+poziomu **nie wymaga żadnego zapisu per kandydat, bo wynika z różnicy migawek**:
+
+    S1 = stan przy otwarciu poziomu 1
+    S2 = stan przy otwarciu poziomu 2
+
+    baza      = S1
+    poziom 1  = S2 \ S1
+    poziom 2  = teraz \ S2
+
+Cofnięcie poziomu = przywróć jego migawkę i dopisz z powrotem cyfrę założenia.
+
+**Dziura w opisie słownym:** poziom to nie tylko kandydaci *dopisani*. Prawdziwa symulacja tak samo
+często **kasuje** („skoro tu jest 4, to tam 4 być nie może"), a takie skasowanie też należy do
+poziomu i musi wrócić przy cofaniu. Zbiór dopisanych tego nie unieważni — migawka tak. To jest
+dodatkowy argument za migawkami.
+
+### Odróżnianie poziomów wzrokowo
+
+Ograniczenia z wcześniejszych ustaleń: **czerwony odpada** (kolor błędu), **czerwony z zielonym
+odpada** (najgorsza para przy zaburzeniach widzenia barw, ~8% mężczyzn), a tryb wysokiego kontrastu
+musi to unieść.
+
+**Propozycja:** baza bez wyróżnienia, poziom 1 niebieski, poziom 2 pomarańczowy — para bezpieczna
+przy deuteranopii i protanopii. Pierścień zostaje na cyfrze założenia danego poziomu, w kolorze tego
+poziomu, bo niesie inną informację niż sam kolor.
+
+**Przezroczystość rozważona i odrzucona jako kanał główny.** Kandydaci są już najsłabszą i
+najmniejszą rzeczą na planszy (~10 sp, wyciszony kolor) — warstwa jeszcze bledsza wpada w
+niewidzialność. Gorzej: **tryb wysokiego kontrastu robi dokładnie odwrotność**, bo istnieje po to,
+żeby kontrast maksymalizować, a to kodowałoby znaczenie przez jego odbieranie; tam i tak trzeba by
+koloru. Odwrócenie (bieżący poziom pełny, starsze przygaszone) jest lepsze dla skupienia, ale
+przygasza **bazę**, czyli notatki zweryfikowane, którym gracz ufa najbardziej. Nadaje się jako
+wzmocnienie koloru, nie jako jedyny nośnik.
+
+**Dwa poziomy, nie trzy.** Trzeci odcień, który nie kłóci się z czerwienią błędu, z podświetleniami
+i z trybem wysokiego kontrastu, jest bardzo trudny do znalezienia. A `SudokuGenerator` usuwa
+wskazówkę **tylko dopóki `LogicalSolver` domyka planszę** dziesięcioma technikami — czyli żadna nasza
+plansza nie wymaga zgadywania. Symulacja jest wygodą dla gracza, który nie dostrzegł techniki, a nie
+koniecznością; zagnieżdżenie na trzecim poziomie to już przeszukiwanie drzewa, nie rozumowanie.
+
+### Pytania otwarte przed realizacją
+
+- **Poziom, który się sprawdził.** Opis pokrywa tylko porażkę. Jakim gestem poziom „rozpuszcza się"
+  w bazie, gdy założenie okazało się dobre?
+- **Czy wymazanie cyfry założenia zamyka poziom?** Tak wynika z opisu i jest to eleganckie — cyfra
+  założenia byłaby uchwytem poziomu — ale wtedy zamknięcie zawsze znaczy „odrzucam".
+- **Miejsce na ekranie.** Górny rząd ma Solve/Back/Share/Save, dolny Hint/Undo/Erase/Candidates.
+  Potrzeba: otwórz poziom, cofnij poziom, zamknij poziom. Coś musi ustąpić.
+- **Numer migracji.** Gałąź `feature/hypothesis-tools` ma migrację 4→5 na kolumny znaczników, a
+  piątkę zajęło już archiwum plansz. Przy wznowieniu trzeba ją przenumerować.
+
+---
+
+## 15. Zatwierdzenie pojedynczych kandydatów jednym ruchem
+
+**Zgłoszone:** 2026-08-30, przez właściciela, jako część wariantu 3 pozycji 14.
+
+Gdy w każdym pustym polu został **dokładnie jeden** kandydat, przycisk zamieniający ich wszystkich na
+cyfry rzeczywiste — czyli „uznaj to za rozwiązanie".
+
+**Ostrzeżenie, które musi być rozstrzygnięte przed realizacją:** `project.md` §16 liczy błąd za każdą
+błędną cyfrę **w chwili wpisania**. Konwersja całej planszy naraz policzy więc wszystkie błędy w
+jednym momencie, a `MISTAKE_FACTOR = 0.7` sprawia, że już trzy błędy zbijają punktację do 0,34
+wartości. Jedno naciśnięcie może zniszczyć wynik rankingowy. Do decyzji: ostrzegać przed konwersją,
+liczyć te błędy inaczej, czy zostawić bez zabezpieczenia.
