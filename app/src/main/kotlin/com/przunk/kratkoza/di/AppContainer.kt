@@ -83,6 +83,7 @@ class AppContainer(context: Context) {
             dailyPuzzleDao = database.dailyPuzzleDao(),
             savedGameDao = database.savedGameDao(),
             historyDao = database.gameHistoryDao(),
+            solvedBoardDao = database.solvedBoardDao(),
             generator = SudokuGenerator(),
             computationDispatcher = Dispatchers.Default,
         )

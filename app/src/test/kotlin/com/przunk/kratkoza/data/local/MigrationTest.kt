@@ -8,6 +8,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.przunk.kratkoza.domain.model.Difficulty
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -17,7 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The version 1 to version 2 migration, run against a real database.
+ * The version 1 database migrated through every released schema, against a real database.
  *
  * A migration is the one piece of this app that cannot be fixed after the fact: it meets a phone
  * that already holds somebody's half-solved games, exactly once, and a mistake there loses them.
@@ -136,6 +137,15 @@ class MigrationTest {
             assertEquals(1, attempts.size)
             assertEquals(500L, attempts.single().elapsedMillis)
             assertEquals(false, attempts.single().rankedEligible)
+
+            // Version 6 turns successful Solo history already on the phone into a visual archive.
+            // It must carry the result rather than merely prove the new table can be queried.
+            val archive = database.solvedBoardDao().observeAll().first().single()
+            assertEquals("p1", archive.puzzleId)
+            assertEquals(500L, archive.completedAt)
+            assertEquals(500L, archive.elapsedMillis)
+            assertEquals(1, archive.mistakeCount)
+            assertEquals(20, archive.xpEarned)
 
             // And the table added in version 2 has to be usable, not merely present.
             database.dailyPuzzleDao().insert(

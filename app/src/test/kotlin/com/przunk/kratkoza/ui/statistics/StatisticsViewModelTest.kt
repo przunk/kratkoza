@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.repository.StatisticsRepository
 import com.przunk.kratkoza.data.repository.GameRepository
@@ -37,6 +38,7 @@ class StatisticsViewModelTest {
         dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
         generator = SudokuGenerator(),
         computationDispatcher = dispatcher,
     )

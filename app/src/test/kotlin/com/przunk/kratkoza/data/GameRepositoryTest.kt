@@ -45,11 +45,13 @@ class GameRepositoryTest {
     private val DAY: java.time.LocalDate = java.time.LocalDate.parse("2026-08-26")
 
     private val dailyPuzzleDao = FakeDailyPuzzleDao()
+    private val solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao)
     private val repository = GameRepository(
         puzzleDao = puzzleDao,
         dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = solvedBoardDao,
         generator = SudokuGenerator(),
         computationDispatcher = UnconfinedTestDispatcher(),
         clock = { now },
@@ -138,6 +140,68 @@ class GameRepositoryTest {
         assertEquals(95_000L, entry.finishedAt)
         assertEquals(90_000L, entry.elapsedMillis)
         assertNull(repository.loadGame(game.state.puzzle.id))
+    }
+
+    @Test
+    fun `a successful solo game is archived with its original board and result`() = runTest {
+        val game = repository.startNewGame(Difficulty.HARD)
+        val wrongCell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+        val wrong = (1..9).first { it != game.state.puzzle.solution[wrongCell] }
+        val state = GameEngine.enterDigit(
+            game.state,
+            wrongCell,
+            wrong,
+            autoRemoveCandidates = true,
+        )
+        now = 95_000
+
+        repository.finishGame(
+            game.copy(state = state, elapsedMillis = 90_000),
+            completed = true,
+        )
+
+        val archived = repository.solvedBoards.first().single()
+        assertEquals(game.state.puzzle.id, archived.puzzleId)
+        assertEquals(game.state.puzzle.givens, archived.givens)
+        assertEquals(Difficulty.HARD, archived.difficulty)
+        assertEquals(95_000L, archived.completedAt)
+        assertEquals(90_000L, archived.elapsedMillis)
+        assertEquals(1, archived.mistakeCount)
+        assertEquals(PlayerProgress.xpForCompleting(Difficulty.HARD), archived.xpEarned)
+        assertEquals(1, archived.completionCount)
+    }
+
+    @Test
+    fun `unfinished and daily games do not enter the solo archive`() = runTest {
+        val unfinished = repository.startNewGame(Difficulty.EASY)
+        repository.finishGame(unfinished, completed = false)
+
+        dailyRepository.dailySet(DAY)
+        val daily = requireNotNull(dailyRepository.startDaily(DAY, Difficulty.EASY))
+        repository.finishGame(daily.copy(elapsedMillis = 60_000), completed = true)
+
+        assertTrue(repository.solvedBoards.first().isEmpty())
+    }
+
+    @Test
+    fun `replaying a solved board resumes an existing attempt and counts another completion`() = runTest {
+        val original = repository.startNewGame(Difficulty.NORMAL)
+        repository.finishGame(original.copy(elapsedMillis = 60_000), completed = true)
+        val firstArchiveId = repository.solvedBoards.first().single().id
+
+        val replay = requireNotNull(repository.replaySolvedBoard(original.state.puzzle.id))
+        val resumed = requireNotNull(repository.replaySolvedBoard(original.state.puzzle.id))
+        assertEquals(replay.historyId, resumed.historyId)
+        assertEquals(2, historyDao.all.size)
+        assertTrue(repository.solvedBoard(firstArchiveId).first()!!.inProgress)
+
+        now = 9_000
+        repository.finishGame(replay.copy(elapsedMillis = 45_000), completed = true)
+
+        val archive = repository.solvedBoards.first()
+        assertEquals(2, archive.size)
+        assertTrue(archive.all { it.completionCount == 2 })
+        assertFalse(archive.first { it.id == firstArchiveId }.inProgress)
     }
 
     @Test
@@ -234,6 +298,7 @@ class GameRepositoryTest {
         assertEquals(0, statistics.totalMistakes)
         assertTrue(statistics.perDifficulty.all { it.startedCount == 0 })
         assertNotNull("the game in progress must survive", repository.loadGame(second.state.puzzle.id))
+        assertEquals("the solved-board archive is independent of statistics", 1, repository.solvedBoards.first().size)
     }
 
     @Test
@@ -350,6 +415,34 @@ class GameRepositoryTest {
     }
 
     @Test
+    fun `a successfully completed shared board is included in the archive`() = runTest {
+        val original = repository.startNewGame(Difficulty.HARD)
+        val code = BoardCode.encode(
+            original.state.puzzle.givens,
+            original.state.puzzle.generatorVersion,
+        )
+        val receiverPuzzles = FakePuzzleDao()
+        val receiverSaves = FakeSavedGameDao(receiverPuzzles)
+        val receiverArchive = FakeSolvedBoardDao(receiverPuzzles, receiverSaves)
+        val receiver = GameRepository(
+            puzzleDao = receiverPuzzles,
+            dailyPuzzleDao = FakeDailyPuzzleDao(),
+            savedGameDao = receiverSaves,
+            historyDao = FakeGameHistoryDao(receiverSaves),
+            solvedBoardDao = receiverArchive,
+            generator = SudokuGenerator(),
+            computationDispatcher = UnconfinedTestDispatcher(),
+            clock = { now },
+        )
+
+        val ready = receiver.importSharedBoard(code) as BoardImportResult.Ready
+        val imported = requireNotNull(receiver.loadGame(ready.puzzleId))
+        receiver.finishGame(imported.copy(elapsedMillis = 80_000), completed = true)
+
+        assertTrue(receiver.solvedBoards.first().single().imported)
+    }
+
+    @Test
     fun `the difficulty is graded from the board rather than taken on trust`() = runTest {
         val generator = SudokuGenerator()
         for (difficulty in listOf(Difficulty.NORMAL, Difficulty.MASTER, Difficulty.MASTER)) {
@@ -444,6 +537,7 @@ class GameRepositoryTest {
             dailyPuzzleDao = FakeDailyPuzzleDao(),
             savedGameDao = saves,
             historyDao = FakeGameHistoryDao(saves),
+            solvedBoardDao = FakeSolvedBoardDao(puzzles, saves),
             generator = SudokuGenerator(),
             computationDispatcher = UnconfinedTestDispatcher(),
             clock = { now },
@@ -462,6 +556,7 @@ class GameRepositoryTest {
                 dailyPuzzleDao = dailyPuzzles,
                 savedGameDao = saves,
                 historyDao = history,
+                solvedBoardDao = FakeSolvedBoardDao(puzzles, saves),
                 generator = SudokuGenerator(),
                 computationDispatcher = UnconfinedTestDispatcher(),
                 clock = { now },
@@ -546,6 +641,7 @@ class GameRepositoryTest {
                 dailyPuzzleDao = racingDailyPuzzles,
                 savedGameDao = racingSaves,
                 historyDao = racingHistory,
+                solvedBoardDao = FakeSolvedBoardDao(racingPuzzles, racingSaves),
                 generator = SudokuGenerator(),
                 computationDispatcher = Dispatchers.Default,
                 clock = { now },

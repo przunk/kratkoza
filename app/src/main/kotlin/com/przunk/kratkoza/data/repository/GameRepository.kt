@@ -14,6 +14,9 @@ import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
+import com.przunk.kratkoza.data.local.SolvedBoardDao
+import com.przunk.kratkoza.data.local.SolvedBoardEntity
+import com.przunk.kratkoza.data.local.SolvedBoardRow
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailyTotals
 import com.przunk.kratkoza.domain.daily.DailyPuzzles
@@ -25,6 +28,7 @@ import com.przunk.kratkoza.domain.game.FinishedGame
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.game.SavedGameSummary
+import com.przunk.kratkoza.domain.game.SolvedBoard
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
 import com.przunk.kratkoza.domain.model.Puzzle
@@ -62,6 +66,7 @@ class GameRepository(
     private val dailyPuzzleDao: DailyPuzzleDao,
     private val savedGameDao: SavedGameDao,
     private val historyDao: GameHistoryDao,
+    private val solvedBoardDao: SolvedBoardDao,
     private val generator: SudokuGenerator,
     /** Generation is a few tens of milliseconds of pure CPU; it must not run on the main thread. */
     private val computationDispatcher: CoroutineDispatcher,
@@ -267,6 +272,23 @@ class GameRepository(
             )
             game.historyId
         }
+
+        // The archive is a record of boards beaten in ordinary play. Daily already has a results
+        // screen and a ranking, and mixing it in here would make "History" another Daily screen.
+        // A separate row per completion is intentional: replaying the same puzzle is a new memory,
+        // while the list also reports how many archive rows share its puzzle id.
+        if (completed && game.state.puzzle.gameType == GameType.SOLO) {
+            solvedBoardDao.insert(
+                SolvedBoardEntity(
+                    puzzleId = game.state.puzzle.id,
+                    completedAt = now,
+                    elapsedMillis = game.elapsedMillis,
+                    mistakeCount = game.state.mistakeCount,
+                    xpEarned = xp,
+                    score = score,
+                ),
+            )
+        }
         savedGameDao.delete(game.state.puzzle.id)
 
         return FinishedGame(
@@ -297,6 +319,34 @@ class GameRepository(
 
     /** The game the Home screen offers to continue (project.md section 22). */
     val mostRecentSaveId: Flow<String?> = savedGameDao.observeMostRecentId()
+
+    /** Successful Solo completions, independent of statistics and newest first. */
+    val solvedBoards: Flow<List<SolvedBoard>> =
+        solvedBoardDao.observeAll().map { rows -> rows.mapNotNull(SolvedBoardRow::toSolvedBoard) }
+
+    /** One archived completion for its detail screen. */
+    fun solvedBoard(id: Long): Flow<SolvedBoard?> =
+        solvedBoardDao.observeById(id).map { it?.toSolvedBoard() }
+
+    /** The same stable share code used by an active or saved game. */
+    fun shareCodeFor(board: SolvedBoard): String =
+        BoardCode.encode(board.givens, board.generatorVersion)
+
+    /**
+     * Opens a fresh attempt at an archived board, or resumes the one already on the board.
+     *
+     * The mutex closes the double-tap race: without it two concurrent calls can both observe no
+     * save, open two history rows, and have the second save silently replace the first.
+     */
+    suspend fun replaySolvedBoard(puzzleId: String): SavedGame? = replayMutex.withLock {
+        loadGame(puzzleId)?.let { return@withLock it }
+        val puzzle = puzzleDao.byId(puzzleId)?.toPuzzle()
+            ?.takeIf { it.gameType == GameType.SOLO }
+            ?: return@withLock null
+        openGame(puzzle)
+    }
+
+    private val replayMutex = Mutex()
 
 }
 
@@ -362,6 +412,26 @@ private fun SavedGameSummaryRow.toSummary(): SavedGameSummary? = try {
         givens = SudokuBoard.parse(givens),
         solution = SudokuBoard.parse(solution),
         generatorVersion = generatorVersion,
+    )
+} catch (_: IllegalArgumentException) {
+    null
+}
+
+private fun SolvedBoardRow.toSolvedBoard(): SolvedBoard? = try {
+    SolvedBoard(
+        id = id,
+        puzzleId = puzzleId,
+        difficulty = Difficulty.fromStorageName(difficulty) ?: return null,
+        givens = SudokuBoard.parse(givens),
+        generatorVersion = generatorVersion,
+        completedAt = completedAt,
+        elapsedMillis = elapsedMillis,
+        mistakeCount = mistakeCount,
+        xpEarned = xpEarned,
+        score = score,
+        completionCount = completionCount,
+        inProgress = inProgress,
+        imported = seed == null,
     )
 } catch (_: IllegalArgumentException) {
     null
