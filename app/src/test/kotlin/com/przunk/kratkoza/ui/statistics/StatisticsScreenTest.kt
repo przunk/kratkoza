@@ -21,6 +21,7 @@ import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.local.GameHistoryEntity
 import com.przunk.kratkoza.data.local.PuzzleEntity
 import com.przunk.kratkoza.data.local.SavedGameEntity
@@ -36,6 +37,7 @@ import com.przunk.kratkoza.ui.theme.KratkozaTheme
 import java.text.NumberFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,6 +59,7 @@ class StatisticsScreenTest {
         dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
         generator = SudokuGenerator(),
         computationDispatcher = Dispatchers.Unconfined,
     )
@@ -67,7 +70,7 @@ class StatisticsScreenTest {
         showScreen()
 
         scrollToText(context.getString(R.string.statistics_overall))
-        compose.onNodeWithText(NumberFormat.getPercentInstance().format(0f)).assertIsDisplayed()
+        scrollToText(NumberFormat.getPercentInstance().format(0f))
 
         scrollToText(context.getString(R.string.difficulty_easy))
         // The visible Easy card contributes three placeholders; the fourth belongs to the overall
@@ -82,6 +85,18 @@ class StatisticsScreenTest {
         val reset = context.getString(R.string.statistics_reset)
         scrollToText(reset)
         compose.onNodeWithText(reset).assertIsNotEnabled()
+    }
+
+    @Test
+    fun `history action is visible at the top and opens the archive`() {
+        var opened = false
+        showScreen(onOpenHistory = { opened = true })
+
+        compose.onNodeWithText(context.getString(R.string.history_open))
+            .assertIsDisplayed()
+            .performClick()
+
+        assertTrue(opened)
     }
 
     @Test
@@ -175,11 +190,15 @@ class StatisticsScreenTest {
         compose.onAllNodesWithText(context.getString(R.string.statistics_none)).assertCountEquals(3)
     }
 
-    private fun showScreen() {
+    private fun showScreen(onOpenHistory: () -> Unit = {}) {
         val viewModel = StatisticsViewModel(statisticsRepository)
         compose.setContent {
             KratkozaTheme {
-                StatisticsScreen(viewModel = viewModel, onNavigateBack = {})
+                StatisticsScreen(
+                    viewModel = viewModel,
+                    onOpenHistory = onOpenHistory,
+                    onNavigateBack = {},
+                )
             }
         }
         compose.waitForIdle()

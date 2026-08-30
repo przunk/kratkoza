@@ -15,6 +15,7 @@ object Destinations {
     const val DAILY = "daily"
     const val SAVED_GAMES = "saved_games"
     const val STATISTICS = "statistics"
+    const val HISTORY = "history"
     const val SETTINGS = "settings"
 
     private const val GAME_BASE = "game"
@@ -23,5 +24,11 @@ object Destinations {
     /** `game/{puzzleId}` — the board to open, always one already stored. */
     const val GAME = "$GAME_BASE/{$GAME_PUZZLE_ID}"
 
+    private const val HISTORY_DETAIL_BASE = "history_detail"
+    const val HISTORY_ARCHIVE_ID = "archiveId"
+    const val HISTORY_DETAIL = "$HISTORY_DETAIL_BASE/{$HISTORY_ARCHIVE_ID}"
+
     fun game(puzzleId: String): String = "$GAME_BASE/$puzzleId"
+
+    fun historyDetail(archiveId: Long): String = "$HISTORY_DETAIL_BASE/$archiveId"
 }

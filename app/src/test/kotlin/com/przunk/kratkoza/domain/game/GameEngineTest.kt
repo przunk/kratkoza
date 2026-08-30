@@ -60,6 +60,49 @@ class GameEngineTest {
     }
 
     @Test
+    fun `revealing an empty cell writes the solution without a player move or mistake`() {
+        val revealed = GameEngine.revealDigit(
+            GameFixtures.newGame(),
+            cell,
+            autoRemoveCandidates = true,
+        )
+
+        assertEquals(correct, revealed.board[cell])
+        assertEquals(0, revealed.mistakeCount)
+        assertFalse(revealed.canUndo)
+        assertTrue(revealed.incorrectCells.isEmpty())
+    }
+
+    @Test
+    fun `a revealed digit cannot be changed erased or affected by old undo history`() {
+        var state = GameFixtures.newGame()
+        val peer = Sudoku.peers[cell].first { state.board.isEmpty(it) }
+        val peerDigit = state.puzzle.solution[peer]
+
+        // The peer's move remembers the candidate in the future reveal cell. Revealing must remove
+        // both that snapshot and the older candidate move targeting the cell itself.
+        state = GameEngine.toggleCandidate(state, cell, peerDigit)
+        state = GameEngine.enterDigit(state, peer, peerDigit, autoRemoveCandidates = true)
+        state = GameEngine.revealDigit(state, cell, autoRemoveCandidates = true)
+
+        val afterUndo = GameEngine.undo(state)
+
+        assertEquals(correct, afterUndo.board[cell])
+        assertTrue(afterUndo.candidates.isEmpty(cell))
+        assertSame(afterUndo, GameEngine.enterDigit(afterUndo, cell, wrong, autoRemoveCandidates = true))
+        assertSame(afterUndo, GameEngine.clearCell(afterUndo, cell))
+    }
+
+    @Test
+    fun `reveal is refused for a given or a filled cell`() {
+        val fresh = GameFixtures.newGame()
+        val filled = GameEngine.enterDigit(fresh, cell, wrong, autoRemoveCandidates = false)
+
+        assertSame(fresh, GameEngine.revealDigit(fresh, GameFixtures.GIVEN_CELL, true))
+        assertSame(filled, GameEngine.revealDigit(filled, cell, true))
+    }
+
+    @Test
     fun `correcting a wrong digit locks it without changing the recorded mistake`() {
         var state = GameEngine.enterDigit(
             GameFixtures.newGame(),
@@ -210,6 +253,30 @@ class GameEngineTest {
 
         assertEquals(0, state.mistakeCount)
         assertTrue(state.incorrectCells.isEmpty())
+    }
+
+    @Test
+    fun `clearing every candidate is one move and one undo restores the exact grid`() {
+        var state = GameFixtures.newGame()
+        val cells = (0 until Sudoku.CELL_COUNT).filter { state.board.isEmpty(it) }.take(3)
+        state = GameEngine.toggleCandidate(state, cells[0], 2)
+        state = GameEngine.toggleCandidate(state, cells[0], 7)
+        state = GameEngine.toggleCandidate(state, cells[1], 4)
+        state = GameEngine.toggleCandidate(state, cells[2], 9)
+        val beforeClear = state
+
+        val cleared = GameEngine.clearAllCandidates(beforeClear)
+
+        assertFalse(cleared.candidates.hasAny)
+        assertEquals(beforeClear.undoStack.size + 1, cleared.undoStack.size)
+        assertEquals(beforeClear, GameEngine.undo(cleared))
+    }
+
+    @Test
+    fun `clearing an empty candidate grid changes nothing`() {
+        val state = GameFixtures.newGame()
+
+        assertSame(state, GameEngine.clearAllCandidates(state))
     }
 
     @Test

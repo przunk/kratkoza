@@ -35,10 +35,18 @@ object DailyPuzzles {
      * The recipe version. Bump whenever the seed derivation *or* the generator's output for a given
      * seed changes; past Dailies then belong to the previous version.
      */
-    const val RULESET_VERSION = 1
+    /**
+     * Two since 2026-08-29, when Daily's top level moved from Master to Expert.
+     *
+     * The version stands for the whole recipe, and the set of levels is part of it: rows written
+     * under version one describe a day whose hardest board was a Master, which this code would no
+     * longer produce. They are ignored rather than reused, so a day keeps the identity it was
+     * generated with.
+     */
+    const val RULESET_VERSION = 2
 
     /** Easiest, middle, hardest — the three levels agreed for a Daily set. */
-    val DIFFICULTIES: List<Difficulty> = listOf(Difficulty.EASY, Difficulty.HARD, Difficulty.MASTER)
+    val DIFFICULTIES: List<Difficulty> = listOf(Difficulty.EASY, Difficulty.HARD, Difficulty.EXPERT)
 
     /**
      * The seed for one board.

@@ -2,7 +2,10 @@ package com.przunk.kratkoza.ui.game
 
 import android.widget.Toast
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -15,16 +18,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -37,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +51,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -141,6 +148,13 @@ fun GameScreen(
         }
     }
 
+    if (state.confirmingCandidateClear) {
+        CandidateClearDialog(
+            onConfirm = viewModel::confirmCandidateClear,
+            onDismiss = viewModel::dismissCandidateClear,
+        )
+    }
+
     if (state.phase == GameUiState.Phase.SOLVED) {
         SolvedDialog(state = state, onBackToMenu = onNavigateBack, onNewGame = onNewGame)
     }
@@ -157,12 +171,11 @@ private fun ShareBoardAction(difficulty: Difficulty, code: () -> String?) {
     val context = LocalContext.current
     val label = difficulty.labelRes()
 
-    IconButton(onClick = { code()?.let { shareBoard(context, label, it) } }) {
-        Icon(
-            painter = painterResource(R.drawable.ic_share),
-            contentDescription = stringResource(R.string.saved_games_share),
-        )
-    }
+    LabeledGameAction(
+        label = stringResource(R.string.game_share),
+        iconRes = R.drawable.ic_share,
+        onClick = { code()?.let { shareBoard(context, label, it) } },
+    )
 }
 
 @Composable
@@ -221,20 +234,24 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
         canUndo = state.canUndo,
         // Erasing acts on the selected cell; undo and the candidate toggle do not.
         canErase = state.canEnterDigit,
+        canReveal = state.canRevealDigit,
+        showReveal = state.showRevealDigit,
+        canClearCandidates = state.canClearCandidates,
         candidateMode = state.candidateMode,
         enabled = state.isPlayable,
+        onReveal = viewModel::revealDigit,
         onUndo = viewModel::undo,
         onErase = viewModel::erase,
         onToggleCandidates = viewModel::toggleCandidateMode,
+        onRequestCandidateClear = viewModel::requestCandidateClear,
     )
 }
 
 /**
  * A row of actions above the board.
  *
- * Icons rather than words because there is no room for words beside a 1:1 board, and separate from
- * the app bar because the app bar has one line and this needs to grow — the next action added has
- * somewhere to go.
+ * Compact icons with captions rather than full-width buttons because there is no room for those
+ * beside a 1:1 board. The row stays separate from the app bar, which only has one line.
  *
  * A Daily gets the ranking badge here instead. Sharing and saving are absent for it on purpose;
  * see [GameUiState.canShareAndSave].
@@ -255,24 +272,57 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
         // Debug builds only. Reaching the end of a Daily is otherwise twenty minutes of typing,
         // which is too much to pay every time the ranking needs testing.
         if (state.debugTools && state.phase == GameUiState.Phase.PLAYING) {
-            TextButton(onClick = viewModel::autoSolve) {
-                Text(stringResource(R.string.game_debug_solve))
-            }
+            LabeledGameAction(
+                label = stringResource(R.string.game_debug_solve),
+                iconRes = R.drawable.ic_bulb_filled,
+                onClick = viewModel::autoSolve,
+            )
         }
 
         if (state.canShareAndSave) {
             ShareBoardAction(state.difficulty, viewModel::shareCode)
-            IconButton(
+            LabeledGameAction(
+                label = stringResource(R.string.game_save_and_exit),
+                iconRes = R.drawable.ic_saved_games,
                 onClick = {
                     viewModel.saveAndStop()
                     onLeave()
                 },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_saved_games),
-                    contentDescription = stringResource(R.string.game_save_and_exit),
-                )
-            }
+            )
+        }
+    }
+}
+
+/** A compact icon with a stable caption, shared by every action in the function row. */
+@Composable
+private fun LabeledGameAction(
+    label: String,
+    iconRes: Int,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .width(FUNCTION_ACTION_WIDTH_DP.dp)
+            .fillMaxSize(),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(FUNCTION_ACTION_ICON_DP.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }
@@ -410,23 +460,45 @@ private fun PauseCover(onResume: () -> Unit, modifier: Modifier = Modifier) {
 private fun GameActionsRow(
     canUndo: Boolean,
     canErase: Boolean,
+    canReveal: Boolean,
+    showReveal: Boolean,
+    canClearCandidates: Boolean,
     candidateMode: Boolean,
     enabled: Boolean,
+    onReveal: () -> Unit,
     onUndo: () -> Unit,
     onErase: () -> Unit,
     onToggleCandidates: () -> Unit,
+    onRequestCandidateClear: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().height(ACTION_HEIGHT_DP.dp),
         horizontalArrangement = Arrangement.spacedBy(ACTION_GAP_DP.dp),
     ) {
+        // project.md section 18: absent, not disabled, while a Daily still counts publicly.
+        if (showReveal) {
+            OutlinedButton(
+                onClick = onReveal,
+                enabled = enabled && canReveal,
+                modifier = Modifier.weight(REVEAL_ACTION_WEIGHT).fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
+            ) {
+                ActionButtonContent(
+                    label = stringResource(R.string.game_reveal_digit),
+                    iconRes = R.drawable.ic_bulb_outline,
+                )
+            }
+        }
         OutlinedButton(
             onClick = onUndo,
             enabled = enabled && canUndo,
             modifier = Modifier.weight(1f).fillMaxSize(),
             contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {
-            Text(stringResource(R.string.game_undo), style = MaterialTheme.typography.labelMedium)
+            ActionButtonContent(
+                label = stringResource(R.string.game_undo),
+                iconRes = R.drawable.ic_undo,
+            )
         }
         OutlinedButton(
             onClick = onErase,
@@ -434,43 +506,112 @@ private fun GameActionsRow(
             modifier = Modifier.weight(1f).fillMaxSize(),
             contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
         ) {
-            Text(stringResource(R.string.game_erase), style = MaterialTheme.typography.labelMedium)
+            ActionButtonContent(
+                label = stringResource(R.string.game_erase),
+                iconRes = R.drawable.ic_eraser,
+            )
         }
-        // Filled only while candidate mode is on. Filling it in both states made the button
-        // contradict its own label — a filled button reads as "active". Off now matches Undo and
-        // Erase beside it, and the label still spells the state out, so it is not carried by colour
-        // alone (project.md section 8).
-        if (candidateMode) {
-            FilledTonalButton(
-                onClick = onToggleCandidates,
+        CandidateModeButton(
+            candidateMode = candidateMode,
+            enabled = enabled,
+            canClearCandidates = canClearCandidates,
+            onToggle = onToggleCandidates,
+            onRequestClear = onRequestCandidateClear,
+            modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
+        )
+    }
+}
+
+/**
+ * Candidate mode on tap, whole-board candidate clear on long press.
+ *
+ * A dedicated surface is used because Material buttons expose clicks only. Pointer gestures and
+ * accessibility actions share the same callbacks, while the marker and fill still communicate
+ * candidate mode independently.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CandidateModeButton(
+    candidateMode: Boolean,
+    enabled: Boolean,
+    canClearCandidates: Boolean,
+    onToggle: () -> Unit,
+    onRequestClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colours = MaterialTheme.colorScheme
+    val clearLabel = stringResource(R.string.game_clear_candidates_action)
+    val description = stringResource(
+        if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
+    )
+    val containerColour = when {
+        !enabled && candidateMode -> colours.onSurface.copy(alpha = DISABLED_CONTAINER_ALPHA)
+        candidateMode -> colours.secondaryContainer
+        else -> Color.Transparent
+    }
+    val contentColour = when {
+        !enabled -> colours.onSurface.copy(alpha = DISABLED_CONTENT_ALPHA)
+        candidateMode -> colours.onSecondaryContainer
+        else -> colours.primary
+    }
+    val border = if (candidateMode) {
+        null
+    } else {
+        BorderStroke(
+            width = 1.dp,
+            color = if (enabled) colours.outline else colours.onSurface.copy(alpha = DISABLED_CONTAINER_ALPHA),
+        )
+    }
+
+    Surface(
+        modifier = modifier
+            .combinedClickable(
                 enabled = enabled,
-                modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
-            ) {
-                CandidateLabel(candidateMode = true)
-            }
-        } else {
-            OutlinedButton(
-                onClick = onToggleCandidates,
-                enabled = enabled,
-                modifier = Modifier.weight(CANDIDATE_ACTION_WEIGHT).fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
-            ) {
-                CandidateLabel(candidateMode = false)
-            }
+                role = Role.Button,
+                onClick = onToggle,
+                onLongClickLabel = clearLabel.takeIf { canClearCandidates },
+                onLongClick = onRequestClear.takeIf { canClearCandidates },
+            )
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        shape = RoundedCornerShape(50),
+        color = containerColour,
+        contentColor = contentColour,
+        border = border,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(horizontal = ACTION_HORIZONTAL_PADDING_DP.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CandidateLabel(candidateMode = candidateMode)
         }
+    }
+}
+
+/** Horizontal icon-and-label content used by actions tied to the selected cell. */
+@Composable
+private fun ActionButtonContent(label: String, iconRes: Int) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(ACTION_ICON_GAP_DP.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(ACTION_ICON_DP.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }
 
 /** A short stable label plus a shape marker, so state never depends on colour or extra prose. */
 @Composable
 private fun CandidateLabel(candidateMode: Boolean) {
-    val description = stringResource(
-        if (candidateMode) R.string.game_candidates_on else R.string.game_candidates_off,
-    )
-
     Row(
-        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(CANDIDATE_MARKER_GAP_DP.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -487,6 +628,25 @@ private fun CandidateLabel(candidateMode: Boolean) {
             textAlign = TextAlign.Center,
         )
     }
+}
+
+@Composable
+private fun CandidateClearDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.game_clear_candidates_title)) },
+        text = { Text(stringResource(R.string.game_clear_candidates_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.game_clear_candidates_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.game_clear_candidates_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -525,9 +685,16 @@ private const val SCREEN_PADDING_DP = 12
 private const val SECTION_GAP_DP = 12
 private const val ACTION_HEIGHT_DP = 52
 private const val ACTION_GAP_DP = 8
-private const val FUNCTION_ROW_HEIGHT_DP = 44
+private const val FUNCTION_ROW_HEIGHT_DP = 56
+private const val FUNCTION_ACTION_WIDTH_DP = 64
+private const val FUNCTION_ACTION_ICON_DP = 20
 private const val BADGE_CORNER_DP = 8
 private const val BADGE_ICON_DP = 16
 private const val ACTION_HORIZONTAL_PADDING_DP = 4
 private const val CANDIDATE_ACTION_WEIGHT = 1.7f
+private const val REVEAL_ACTION_WEIGHT = 1.2f
 private const val CANDIDATE_MARKER_GAP_DP = 4
+private const val ACTION_ICON_DP = 18
+private const val ACTION_ICON_GAP_DP = 3
+private const val DISABLED_CONTENT_ALPHA = 0.38f
+private const val DISABLED_CONTAINER_ALPHA = 0.12f

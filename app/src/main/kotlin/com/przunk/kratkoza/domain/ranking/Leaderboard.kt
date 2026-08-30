@@ -18,7 +18,7 @@ import com.przunk.kratkoza.domain.model.Difficulty
 enum class Leaderboard {
     DAILY_EASY,
     DAILY_HARD,
-    DAILY_MASTER,
+    DAILY_EXPERT,
 
     /**
      * Today's three boards added together.
@@ -35,6 +35,19 @@ enum class Leaderboard {
     ;
 
     /**
+     * The stretch of time the board is about.
+     *
+     * Play Games keeps every board under three spans at once and its overlay opens on whichever the
+     * viewer last chose — so a daily board could open on all-time and show nothing from today. The
+     * app states the span instead of leaving it to a remembered preference.
+     */
+    val span: Span
+        get() = when (this) {
+            DAILY_EASY, DAILY_HARD, DAILY_EXPERT, DAILY_TOTAL -> Span.TODAY
+            ALL_TIME_TOTAL -> Span.ALL_TIME
+        }
+
+    /**
      * Whether this board carries one game's own result rather than a running sum.
      *
      * `publiclyRanked` follows these and not the totals: it records that *this game* reached the
@@ -42,7 +55,7 @@ enum class Leaderboard {
      */
     val carriesOwnResult: Boolean
         get() = when (this) {
-            DAILY_EASY, DAILY_HARD, DAILY_MASTER -> true
+            DAILY_EASY, DAILY_HARD, DAILY_EXPERT -> true
             DAILY_TOTAL, ALL_TIME_TOTAL -> false
         }
 
@@ -53,20 +66,23 @@ enum class Leaderboard {
     fun valueFor(result: DailyResult): Long? = when (this) {
         // Compared through forDaily rather than matched again, so the difficulty-to-board mapping
         // exists once and cannot disagree with itself.
-        DAILY_EASY, DAILY_HARD, DAILY_MASTER ->
+        DAILY_EASY, DAILY_HARD, DAILY_EXPERT ->
             result.score.toLong().takeIf { forDaily(result.difficulty) == this }
 
         DAILY_TOTAL -> result.totals?.today
         ALL_TIME_TOTAL -> result.totals?.allTime
     }
 
+    /** How far back a board looks. Named here rather than in Play Games' own terms. */
+    enum class Span { TODAY, ALL_TIME }
+
     companion object {
         /** The board for one Daily level, or `null` for a level Daily does not run. */
         fun forDaily(difficulty: Difficulty): Leaderboard? = when (difficulty) {
             Difficulty.EASY -> DAILY_EASY
             Difficulty.HARD -> DAILY_HARD
-            Difficulty.MASTER -> DAILY_MASTER
-            Difficulty.NORMAL, Difficulty.EXPERT -> null
+            Difficulty.EXPERT -> DAILY_EXPERT
+            Difficulty.NORMAL, Difficulty.MASTER -> null
         }
     }
 }

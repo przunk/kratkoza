@@ -48,7 +48,10 @@ class PlayGamesRanking(
         val activity = activities.current()
             ?: return LeaderboardOutcome.Failed("no activity attached")
 
-        val request = PlayGames.getLeaderboardsClient(activity).getLeaderboardIntent(leaderboard)
+        // The overload that takes a span, not the one that leaves it to whatever the viewer last
+        // looked at — which is how a daily board came to open on all-time.
+        val request = PlayGames.getLeaderboardsClient(activity)
+            .getLeaderboardIntent(leaderboard, timeSpanOf(board))
         val intent = request.awaitOrNull()
             ?: return LeaderboardOutcome.Failed(describe(request.exception, leaderboard))
 
@@ -154,6 +157,11 @@ class PlayGamesRanking(
             .submitScoreImmediate(leaderboard, value)
         request.awaitOrNull()
         return request
+    }
+
+    private fun timeSpanOf(board: Leaderboard): Int = when (board.span) {
+        Leaderboard.Span.TODAY -> LeaderboardVariant.TIME_SPAN_DAILY
+        Leaderboard.Span.ALL_TIME -> LeaderboardVariant.TIME_SPAN_ALL_TIME
     }
 
     private fun statusCodeOf(cause: Exception?): Int? = (cause as? ApiException)?.statusCode

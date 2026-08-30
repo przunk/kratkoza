@@ -71,6 +71,8 @@
     <string name="game_ranked">Rankingowa</string>
     <!-- Debug builds only; never reaches a release APK. -->
     <string name="game_debug_solve">Rozwiąż</string>
+    <string name="game_reveal_digit">Pokaż</string>
+    <string name="game_share">Wyślij</string>
     <string name="game_unranked">Poza rankingiem</string>
     <string name="game_ranking_lost">Ta gra wypadła z rankingu — możesz ją dokończyć jako zwykłą.</string>
     <string name="daily_next_in_at">Nowe plansze za %1$s, o %2$s</string>
@@ -82,6 +84,11 @@
     <string name="game_candidates_on">Kandydaci włączeni</string>
     <string name="game_candidates_off">Kandydaci wyłączeni</string>
     <string name="game_candidates">Kandydaci</string>
+    <string name="game_clear_candidates_action">Wyczyść wszystkich kandydatów</string>
+    <string name="game_clear_candidates_title">Wyczyścić wszystkich kandydatów?</string>
+    <string name="game_clear_candidates_message">Wszystkie notatki zostaną usunięte z planszy. Możesz je przywrócić jednym użyciem Cofnij.</string>
+    <string name="game_clear_candidates_confirm">Wyczyść</string>
+    <string name="game_clear_candidates_cancel">Anuluj</string>
     <string name="game_loading">Wczytuję…</string>
     <string name="game_solved_title">Rozwiązane</string>
     <string name="game_solved_message">%1$s w czasie %2$s, %3$s.</string>
@@ -106,6 +113,22 @@
     <string name="saved_games_delete_confirm">USUŃ</string>
     <string name="saved_games_delete_armed">Potwierdź usunięcie tej gry</string>
     <string name="saved_games_preview">Podgląd planszy</string>
+
+    <!-- Historia rozwiązanych plansz -->
+    <string name="history_title">Rozwiązane plansze</string>
+    <string name="history_open">Historia rozwiązanych plansz</string>
+    <string name="history_empty">Tutaj pojawią się rozwiązane plansze z gry solo.</string>
+    <string name="history_preview">Początkowa plansza sudoku</string>
+    <string name="history_result">%1$s · %2$s · %3$d XP</string>
+    <string name="history_share">Udostępnij</string>
+    <string name="history_detail_title">Rozwiązana plansza</string>
+    <string name="history_missing">Ten wpis historii nie jest już dostępny.</string>
+    <string name="history_completed_at">Ukończono</string>
+    <string name="history_time">Czas</string>
+    <string name="history_xp">XP</string>
+    <string name="history_completions">Ta plansza</string>
+    <string name="history_solve_again">Rozwiąż ponownie</string>
+    <string name="history_continue">Kontynuuj</string>
 
     <!-- Statystyki -->
     <string name="statistics_title">Statystyki</string>
@@ -166,7 +189,7 @@
     <string name="duration_minutes_seconds">%1$d:%2$02d</string>
     <string name="statistics_reset">Resetuj statystyki</string>
     <string name="statistics_reset_title">Zresetować statystyki?</string>
-    <string name="statistics_reset_message">Wszystkie liczniki wrócą do zera — łącznie z XP i poziomem — i nie da się tego cofnąć. Gry będące w toku zostaną na miejscu i można je dokończyć.</string>
+    <string name="statistics_reset_message">Wszystkie liczniki wrócą do zera — łącznie z XP i poziomem — i nie da się tego cofnąć. Gry będące w toku zostaną na miejscu i można je dokończyć. Historia rozwiązanych plansz również pozostanie.</string>
     <string name="statistics_reset_confirm">Resetuj</string>
     <string name="statistics_reset_cancel">Anuluj</string>
     <string name="settings_language">Język</string>
@@ -180,5 +203,11 @@
         <item quantity="few">%1$d błędy</item>
         <item quantity="many">%1$d błędów</item>
         <item quantity="other">%1$d błędu</item>
+    </plurals>
+    <plurals name="history_solved_count">
+        <item quantity="one">Rozwiązana %1$d raz</item>
+        <item quantity="few">Rozwiązana %1$d razy</item>
+        <item quantity="many">Rozwiązana %1$d razy</item>
+        <item quantity="other">Rozwiązana %1$d raza</item>
     </plurals>
 </resources>

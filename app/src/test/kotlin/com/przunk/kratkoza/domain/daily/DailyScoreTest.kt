@@ -1,6 +1,7 @@
 package com.przunk.kratkoza.domain.daily
 
 import com.przunk.kratkoza.domain.model.Difficulty
+import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -10,22 +11,37 @@ class DailyScoreTest {
     private fun minutes(count: Double) = (count * 60_000).toLong()
 
     @Test
-    fun `hitting the target scores exactly the level's base`() {
-        // The meaning of the target: a yardstick, not a deadline. Hit it and you score what the
-        // level is worth.
+    fun `solving the board is paid for however long it takes`() {
+        // The property the whole shape exists for. Time adds to the score and cannot eat it, so a
+        // board solved over a whole day is still worth what solving it is worth. Under the previous
+        // formula the same solve came back as twelve points.
         for (difficulty in Difficulty.entries) {
-            val target = minutes(DailyScore.targetMinutesFor(difficulty).toDouble())
             assertEquals(
-                "$difficulty",
+                "$difficulty after a day",
                 DailyScore.baseFor(difficulty),
-                DailyScore.of(difficulty, target, mistakeCount = 0),
+                DailyScore.of(difficulty, minutes(1440.0), mistakeCount = 0),
             )
         }
     }
 
     @Test
+    fun `the bonus halves over each target time`() {
+        // What the target means now: not a deadline and not a par score, but the time over which
+        // the speed bonus halves.
+        val target = minutes(DailyScore.targetMinutesFor(Difficulty.HARD).toDouble())
+        val solving = DailyScore.baseFor(Difficulty.HARD)
+
+        val instant = DailyScore.of(Difficulty.HARD, 0, mistakeCount = 0) - solving
+        val onTarget = DailyScore.of(Difficulty.HARD, target, mistakeCount = 0) - solving
+        val twice = DailyScore.of(Difficulty.HARD, target * 2, mistakeCount = 0) - solving
+
+        assertEquals(instant / 2.0, onTarget.toDouble(), 1.0)
+        assertEquals(onTarget / 2.0, twice.toDouble(), 1.0)
+    }
+
+    @Test
     fun `a harder board is worth more than an easier one played equally well`() {
-        // The thing the previous formula got wrong: it scored performance relative to the level, so
+        // What an even earlier formula got wrong: it scored performance relative to the level, so
         // the level itself disappeared from the answer and a flawless Easy beat a good Master.
         val atTarget = Difficulty.entries.map {
             DailyScore.of(it, minutes(DailyScore.targetMinutesFor(it).toDouble()), mistakeCount = 0)
@@ -38,22 +54,18 @@ class DailyScoreTest {
     }
 
     @Test
-    fun `speed is worth at most double, never more`() {
+    fun `speed adds two thirds at most, never more`() {
         // Bounded on purpose: an unbounded bonus would make a suspiciously fast time worth any
-        // number of ordinary ones.
+        // number of ordinary ones. The spread between the fastest and the slowest solve of a level
+        // is therefore about five to three.
         for (difficulty in Difficulty.entries) {
+            val solving = DailyScore.baseFor(difficulty)
             assertEquals(
                 "$difficulty",
-                DailyScore.baseFor(difficulty) * 2,
+                (solving * 5.0 / 3.0).roundToInt(),
                 DailyScore.of(difficulty, elapsedMillis = 0, mistakeCount = 0),
             )
         }
-    }
-
-    @Test
-    fun `twice the target scores two thirds of the base`() {
-        val target = minutes(DailyScore.targetMinutesFor(Difficulty.HARD).toDouble())
-        assertEquals(667, DailyScore.of(Difficulty.HARD, target * 2, mistakeCount = 0))
     }
 
     @Test
@@ -81,13 +93,11 @@ class DailyScoreTest {
     fun `mistakes cost what project md section 29 says they cost`() {
         val target = minutes(DailyScore.targetMinutesFor(Difficulty.EASY).toDouble())
 
-        assertEquals(500, DailyScore.of(Difficulty.EASY, target, mistakeCount = 0))
-        assertEquals(350, DailyScore.of(Difficulty.EASY, target, mistakeCount = 1))
-        assertEquals(245, DailyScore.of(Difficulty.EASY, target, mistakeCount = 2))
-        // 171, not the 172 that 500 × 0.7³ gives on paper: 0.7³ is a shade under 0.343 in binary
-        // floating point, so the product lands just below the halfway point and rounds down. Pinned
-        // rather than papered over, because a score that quietly shifts by one is worth noticing.
-        assertEquals(171, DailyScore.of(Difficulty.EASY, target, mistakeCount = 3))
+        // Easy at its target time is 667: 500 for solving plus half of the 333-point bonus.
+        assertEquals(667, DailyScore.of(Difficulty.EASY, target, mistakeCount = 0))
+        assertEquals(467, DailyScore.of(Difficulty.EASY, target, mistakeCount = 1))
+        assertEquals(327, DailyScore.of(Difficulty.EASY, target, mistakeCount = 2))
+        assertEquals(229, DailyScore.of(Difficulty.EASY, target, mistakeCount = 3))
     }
 
     @Test

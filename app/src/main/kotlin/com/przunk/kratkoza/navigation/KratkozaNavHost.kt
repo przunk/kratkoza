@@ -19,6 +19,10 @@ import com.przunk.kratkoza.ui.game.GameScreen
 import com.przunk.kratkoza.ui.game.GameViewModel
 import com.przunk.kratkoza.ui.home.HomeScreen
 import com.przunk.kratkoza.ui.home.HomeViewModel
+import com.przunk.kratkoza.ui.history.SolvedBoardDetailScreen
+import com.przunk.kratkoza.ui.history.SolvedBoardDetailViewModel
+import com.przunk.kratkoza.ui.history.SolvedBoardHistoryScreen
+import com.przunk.kratkoza.ui.history.SolvedBoardHistoryViewModel
 import com.przunk.kratkoza.ui.newgame.NewGameScreen
 import com.przunk.kratkoza.ui.newgame.NewGameViewModel
 import com.przunk.kratkoza.ui.saves.SavedGamesScreen
@@ -120,6 +124,36 @@ fun KratkozaNavHost(
         composable(Destinations.STATISTICS) {
             StatisticsScreen(
                 viewModel = viewModel(factory = factory { StatisticsViewModel(container.statisticsRepository) }),
+                onOpenHistory = { navController.navigate(Destinations.HISTORY) },
+                onNavigateBack = navController::navigateBackOnce,
+            )
+        }
+
+        composable(Destinations.HISTORY) {
+            SolvedBoardHistoryScreen(
+                viewModel = viewModel(
+                    factory = factory { SolvedBoardHistoryViewModel(container.gameRepository) },
+                ),
+                onOpenDetail = { navController.navigate(Destinations.historyDetail(it)) },
+                onNavigateBack = navController::navigateBackOnce,
+            )
+        }
+
+        composable(
+            route = Destinations.HISTORY_DETAIL,
+            arguments = listOf(
+                navArgument(Destinations.HISTORY_ARCHIVE_ID) { type = NavType.LongType },
+            ),
+        ) { entry ->
+            val archiveId = entry.arguments?.getLong(Destinations.HISTORY_ARCHIVE_ID) ?: -1L
+            SolvedBoardDetailScreen(
+                viewModel = viewModel(
+                    key = archiveId.toString(),
+                    factory = factory {
+                        SolvedBoardDetailViewModel(archiveId, container.gameRepository)
+                    },
+                ),
+                onOpenGame = { navController.navigate(Destinations.game(it)) },
                 onNavigateBack = navController::navigateBackOnce,
             )
         }

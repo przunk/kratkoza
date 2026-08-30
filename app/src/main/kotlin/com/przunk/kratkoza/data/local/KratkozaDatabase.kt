@@ -13,8 +13,8 @@ import androidx.sqlite.execSQL
  *
  * Version 1 already carried the columns Daily and public ranking would need — game type, ranked
  * eligibility, score, XP, ruleset version. They were cheap to carry and expensive to retrofit: a
- * migration cannot invent the game type of a row written before the column existed. Version 2 adds
- * the one thing that could not be foreseen that way, the Daily calendar.
+ * migration cannot invent the game type of a row written before the column existed. Later versions
+ * add the Daily calendar, ranking eligibility, a versioned Daily key and the solved-board archive.
  */
 @Database(
     entities = [
@@ -22,8 +22,9 @@ import androidx.sqlite.execSQL
         SavedGameEntity::class,
         GameHistoryEntity::class,
         DailyPuzzleEntity::class,
+        SolvedBoardEntity::class,
     ],
-    version = 3,
+    version = 5,
     exportSchema = true,
 )
 abstract class KratkozaDatabase : RoomDatabase() {
@@ -35,6 +36,8 @@ abstract class KratkozaDatabase : RoomDatabase() {
     abstract fun savedGameDao(): SavedGameDao
 
     abstract fun gameHistoryDao(): GameHistoryDao
+
+    abstract fun solvedBoardDao(): SolvedBoardDao
 
     companion object {
         private const val NAME = "kratkoza.db"
@@ -83,11 +86,109 @@ abstract class KratkozaDatabase : RoomDatabase() {
             }
         }
 
-        fun migrations(): Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        /**
+         * Puts `rulesetVersion` into the key of the Daily calendar.
+         *
+         * The recipe for a Daily board is allowed to change — that is the entire purpose of
+         * `RULESET_VERSION` — and on the day of such an update the normal case is a phone that has
+         * already opened today under the old recipe. The key was `(date, difficulty)`, so the new
+         * day's Easy and Hard collided with the old day's Easy and Hard and were dropped on insert,
+         * while a difficulty the old recipe had not used landed unopposed. The player was left
+         * looking at a single board.
+         *
+         * A board's identity is the day, the difficulty *and* the recipe it was made under. The old
+         * rows are kept: nothing reads them any more, and deleting somebody's history to tidy up
+         * would be a poor trade for a few bytes.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `daily_puzzles_new` (" +
+                        "`date` TEXT NOT NULL, " +
+                        "`difficulty` TEXT NOT NULL, " +
+                        "`puzzleId` TEXT NOT NULL, " +
+                        "`rulesetVersion` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`date`, `difficulty`, `rulesetVersion`), " +
+                        "FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                connection.execSQL(
+                    "INSERT INTO `daily_puzzles_new` " +
+                        "(`date`, `difficulty`, `puzzleId`, `rulesetVersion`) " +
+                        "SELECT `date`, `difficulty`, `puzzleId`, `rulesetVersion` " +
+                        "FROM `daily_puzzles`",
+                )
+                connection.execSQL("DROP TABLE `daily_puzzles`")
+                connection.execSQL("ALTER TABLE `daily_puzzles_new` RENAME TO `daily_puzzles`")
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_daily_puzzles_puzzleId` " +
+                        "ON `daily_puzzles` (`puzzleId`)",
+                )
+            }
+        }
 
-        fun create(context: Context): KratkozaDatabase =
-            Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, NAME)
+        /**
+         * Adds the solved-board archive and backfills successful Solo games already on the phone.
+         *
+         * The archive is deliberately separate from `game_history`: resetting statistics deletes
+         * that table, while the owner explicitly wants the visual record of solved boards to stay.
+         * Backfilling makes the first History screen truthful on upgrade rather than starting the
+         * player's past at the day this feature shipped.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `solved_boards` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`puzzleId` TEXT NOT NULL, " +
+                        "`completedAt` INTEGER NOT NULL, " +
+                        "`elapsedMillis` INTEGER NOT NULL, " +
+                        "`mistakeCount` INTEGER NOT NULL, " +
+                        "`xpEarned` INTEGER NOT NULL, " +
+                        "`score` INTEGER, " +
+                        "FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_solved_boards_puzzleId` " +
+                        "ON `solved_boards` (`puzzleId`)",
+                )
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_solved_boards_completedAt` " +
+                        "ON `solved_boards` (`completedAt`)",
+                )
+                connection.execSQL(
+                    "INSERT INTO `solved_boards` " +
+                        "(`puzzleId`, `completedAt`, `elapsedMillis`, `mistakeCount`, " +
+                        "`xpEarned`, `score`) " +
+                        "SELECT h.`puzzleId`, h.`finishedAt`, h.`elapsedMillis`, h.`mistakeCount`, " +
+                        "h.`xpEarned`, h.`score` FROM `game_history` h " +
+                        "JOIN `puzzles` p ON p.`puzzleId` = h.`puzzleId` " +
+                        "WHERE h.`gameType` = 'SOLO' AND h.`completed` = 1 " +
+                        "AND h.`finishedAt` IS NOT NULL",
+                )
+            }
+        }
+
+        fun migrations(): Array<Migration> =
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+
+        /**
+         * [name] is a parameter so tests open the database exactly as the app does. A configuration
+         * that only production uses is a configuration nothing checks.
+         *
+         * Going *down* a version wipes the database rather than refusing to open it. Room's default
+         * there is to throw, and it throws on every launch for ever, so the player is left with an
+         * app that cannot start until they clear its data by hand — which loses the same games the
+         * wipe would, and leaves them to work out why. Play never installs an older build over a
+         * newer one, so this is reached only by sideloading, which is what testing this app is made
+         * of; it happened here when a build from an abandoned branch left a phone holding a schema
+         * numbered above anything that would ever ship.
+         */
+        fun create(context: Context, name: String = NAME): KratkozaDatabase =
+            Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, name)
                 .addMigrations(*migrations())
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
     }
 }

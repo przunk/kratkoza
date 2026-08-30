@@ -192,6 +192,37 @@ osobny właśnie po to.
 statystyk, ale wtedy „reset statystyk" przestaje znaczyć to, co mówi. Na razie zostaje tak, jak jest,
 a log rankingu mówi wprost, kiedy wynik został przyjęty, ale niczego nie zmienił.
 
+### ~~Tablica Daily ma otwierać się zawsze na „dziś"~~ — zrobione 2026-08-29
+
+**Zgłoszone:** 2026-08-29. Nakładka Play Games zapamiętuje ostatnio wybrany zakres czasu, więc gracz,
+który raz przełączył na „wszech czasów", widzi go już zawsze — także przy tablicy dziennej, gdzie
+sens ma wyłącznie dzisiejszy dzień.
+
+**Da się to wymusić i wiadomo czym.** `LeaderboardsClient` ma przeciążenie
+`getLeaderboardIntent(id, timeSpan)`, a `LeaderboardVariant.TIME_SPAN_DAILY` to zakres dzienny.
+`PlayGamesRanking.show` woła dziś wersję jednoargumentową, która zostawia wybór nakładce.
+
+**Do rozstrzygnięcia przy okazji:** czy wymuszać zakres także dla tablic poziomów i dla sumy wszech
+czasów, czy tylko dla dziennej. Dla sumy wszech czasów zakres dzienny nie miałby sensu.
+
+### ~~Porządki w dokumentacji i skryptach~~ — zrobione 2026-08-29
+
+**Zebrane 2026-08-29.** Drobne, tanie, wszystkie o tym samym: pliki opisują stan, którego już nie ma.
+
+- `test-kratkoza.sh` wypisuje `✅ 0 tests passed`, gdy testy w ogóle nie ruszą. Zielony znaczek przy
+  zerze testów to dokładnie ta cisza, przed którą zabezpiecza `ARCHITECTURE.md` §9 — skrypt powinien
+  traktować brak wyników jako błąd.
+- `ARCHITECTURE.md` §10 „Czego jeszcze nie ma" wymienia jako brakujące Daily, ranking, XP, score,
+  podpowiedź 8/9, palety i tryb wysokiego kontrastu. Wszystkie istnieją.
+- Checkboxy w `PLAY_CONSOLE.md` pokazują jako niezrobione konto dewelopera, aplikację, ikonę,
+  grafikę, identyfikatory tablic i publikację Play Games.
+- Wishlist 9 (tytuł wtopiony w animację) jest zrobiona i nieoznaczona.
+- Pozycja „Usunąć kartę Ranking (debug)" jest nieaktualna — zapadła decyzja, że log zostaje
+  w Ustawieniach.
+
+Wszystkie odhaczone. `PLAY_CONSOLE.md` ma jeszcze osiem pozycji otwartych i wszystkie są prawdziwe:
+kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` przy wysyłce.
+
 ## Do zrobienia
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
@@ -212,7 +243,10 @@ Do ustalenia: jak wyliczyć „najlepszy" przy różnej liczbie błędów. `proj
 mnożnikową `wynik × 0.7^błędy`, ale wzoru na wynik bazowy zależny od czasu jeszcze nie ma — bez
 niego „najlepszy czas uwzględniający błędy" nie ma definicji.
 
-### Podpowiedź 8/9 niedostępna w grach rankingowych
+### ~~Podpowiedź 8/9 niedostępna w grach rankingowych~~ — zrobione
+
+Wstrzymywana w rankingowych Daily i wracająca, gdy plansza straci kwalifikację. Pilnują tego dwa
+testy w `GameViewModelTest`.
 
 **Zgłoszone:** 2026-08-25. `project.md` §17 kończy się zdaniem: „Funkcja 8/9 jest niedostępna
 w publicznie rankingowanych rozgrywkach Daily."
@@ -246,7 +280,7 @@ Czego nie wolno przy tym zepsuć: `PalettesTest` pilnuje, że stopnie rozdziela 
 kolejności, że wysoki kontrast nigdy nie *zmniejsza* rozdzielenia i że podpowiedź 8/9 zostaje
 cichsza od cyfry gracza (§17). Progi są w L*, nie w luminancji — patrz komentarz w teście.
 
-### Daily Sudoku — etap 2: ranking publiczny
+### ~~Daily Sudoku — etap 2: ranking publiczny~~ — zrobione 2026-08-28
 
 **Zrobiona lokalna połowa** (2026-08-27): wyliczanie wyniku według §29 i tabela własnych wyników
 dnia. Zostaje porównanie z innymi graczami.
@@ -275,7 +309,10 @@ Do zrobienia, gdy aplikacja będzie w Play Console:
 - wysyłanie wyniku po ukończeniu Daily,
 - wybór regionu z listy; decyzje funkcjonalne są podjęte, patrz „Wybór regionu do rankingu".
 
-### Wynik rankingowy Daily
+### ~~Wynik rankingowy Daily~~ — zrobione 2026-08-27
+
+`DailyScore` liczy wynik z wagą poziomu, czasu i błędów. Wzór i czasy odniesienia opisuje
+[OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) §9.
 
 **Do zrobienia razem z Daily.** `project.md` §29 opisuje karę za błędy wprost:
 `wynik × 0.7^liczba_błędów` — trzy błędy to już 34% wyniku. Wzór na sam wynik bazowy zależny od
@@ -315,7 +352,7 @@ Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudno
 w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
 poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
 
-### Podpowiedź dla gracza
+### ~~Podpowiedź dla gracza~~ — zrobione 2026-08-29
 
 **Zgłoszone:** 2026-08-26. `project.md` §18 zostawia tę funkcję do ustalenia.
 
@@ -350,17 +387,11 @@ procedura jest opisana w nagłówku tego pliku.
 **Zostaje do rozstrzygnięcia:** czy suma wszech czasów ma dalej iść za resetem statystyk —
 przeniesione do [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
-### Usunąć kartę „Ranking (debug)" z ekranu Daily
+### ~~Usunąć kartę „Ranking (debug)"~~ — rozstrzygnięte inaczej 2026-08-28
 
-**Zdecydowane 2026-08-28.** Do usunięcia, nie do zachowania.
-
-Powstała reaktywnie, pod jedno śledztwo nad wysyłką wyników, i spełniła zadanie. Została na stałe na
-ekranie Daily w buildach debug — gdzie wygląda jak część interfejsu, a jest narzędziem do jednej
-sprawy. Przy następnej sesji testowej będzie mylić.
-
-Do rozstrzygnięcia przy okazji: czy `RankingLog` znika razem z nią, czy przenosi się w mniej
-natrętne miejsce (Ustawienia, obok numeru wersji). Sam log jest tani i przydał się bardziej niż
-Toasty; natrętna jest karta, nie zapis.
+Karta zniknęła z ekranu Daily, ale sam log **został** i przeniósł się do Ustawień, pod numer wersji,
+wyłącznie w buildach debug. Natrętna była karta na ekranie, na którym się gra, a nie sam zapis — to on
+rozwiązał śledztwo nad wysyłką wyników po tym, jak Toasty zawiodły dwa razy.
 
 ### ~~Rozciąć `GameRepository`~~ — zrobione 2026-08-28
 
@@ -427,7 +458,7 @@ dokładnie wzdłuż tej granicy. Wyniesienie ich zostawia w pliku samo rysowanie
 każde uruchomienie daje inny obrazek. Wizualnie bez znaczenia — ale blokuje taśmę klatek do oceny
 animacji (patrz niżej) i każde porównanie „przed/po".
 
-### Generowanie zrzutów ekranu z testów Compose
+### ~~Generowanie zrzutów ekranu z testów Compose~~ — zrobione 2026-08-29
 
 **Zapisane 2026-08-28 jako pomysł wart sprawdzenia.**
 
@@ -455,6 +486,35 @@ inny obrazek — do oceny „czy ładnie" bez znaczenia, do porównań przed/po 
 musiałoby być wstrzykiwalne. I `waitForIdle()` przy nieskończonej animacji **nigdy nie wraca** —
 `autoAdvance` trzeba wyłączyć przed pierwszą kompozycją. Ta sama klasa zawieszenia, którą suite
 złapał już dwa razy.
+
+### ~~Wynik Daily zjadany przez zegar ścienny~~ — rozstrzygnięte 2026-08-29
+
+**Zgłoszone:** 2026-08-29 — „zrobiłem easy z jednym błędem i dostałem 12 punktów".
+
+**To nie jest wada wzoru, tylko skutek reguły czasu.** Policzone dla obecnych stałych:
+
+| czas gry | 0 błędów | 1 błąd |
+|---|---|---|
+| 2 min | 714 | 500 |
+| 5 min | 500 | 350 |
+| 20 min | 200 | 140 |
+| 3 h | 27 | 19 |
+
+12 punktów przy jednym błędzie odpowiada **około 4,6 godziny na liczniku**. Wzór zachował się
+poprawnie; policzył czas, który naprawdę upłynął.
+
+**Skąd on się bierze.** Rankingowe Daily mierzy czas zegarem ściennym od otwarcia planszy i nie da
+się go zatrzymać (`project.md` §28). Zrobiliśmy to celowo: licznik w aplikacji zatrzymuje się razem
+z procesem, więc gracz, który schowałby aplikację na godzinę, dostałby godzinę darmowego myślenia.
+
+**Napięcie, które to tworzy.** Ta sama reguła karze zachowanie zupełnie zwyczajne — otworzyć
+planszę, odejść, wrócić wieczorem. Dziś kosztuje to cały wynik, bez żadnego ostrzeżenia.
+
+**Co postanowiono.** Żadne z powyższych. Zamiast ograniczać czas albo odbierać kwalifikację — jedno
+i drugie odrzucone jako sprzeczne z założeniem, że gracz robi sudoku na luzie — zmieniono kształt
+wzoru: czas **dodaje** do wyniku, zamiast go mnożyć. Rozwiązana plansza jest zawsze warta punktów za
+rozwiązanie, a szybkość dokłada bonus, który połowi się co czas docelowy. Szczegóły i liczby
+w [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) §9.
 
 ## Wymaga decyzji
 

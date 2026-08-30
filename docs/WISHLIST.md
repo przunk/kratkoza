@@ -107,6 +107,10 @@ odpowiedzią, więc aplikacja nie musi mieć w tej sprawie ostatniego słowa.
 
 ## 4. Usuwanie kandydatów, które przestały być możliwe
 
+**Istniało od początku.** `project.md` §15 tego wymaga i `GameEngine` to robi przez ustawienie
+`autoRemoveCandidates`. Wpis powstał z nieporozumienia; zostaje jako ostrzeżenie, żeby sprawdzać
+kod przed dopisywaniem zadań.
+
 **Zgłoszone:** 2026-08-26.
 
 Po wpisaniu przez gracza poprawnej cyfry automatycznie usuwać tę cyfrę z kandydatów wszystkich pól
@@ -118,6 +122,8 @@ pozostaje jako punkt do świadomej weryfikacji na urządzeniu oraz ochrony teste
 ---
 
 ## 5. Czyszczenie wszystkich kandydatów
+
+**Zrobione 2026-08-29.** Długim przyciśnięciem, z potwierdzeniem i jednym cofnięciem.
 
 **Zgłoszone:** 2026-08-26.
 
@@ -220,6 +226,10 @@ Ma dwie zalety, których wariant z przeskokiem nie ma:
 
 ## 9. Tytuł wtopiony w animację zamiast nagłówka po lewej
 
+**Zrobione 2026-08-28.** Pasek tytułu zniknął, nazwa jest rysowana jako własna geometria wewnątrz
+sceny, przechyla się razem z planszą i rzuca cień na tę samą płaszczyznę co cyfry. Zostaje niżej
+jako zapis rozważanych trudności.
+
 **Zgłoszone:** 2026-08-28.
 
 Dziś ekran główny ma zwykły pasek z tytułem „Kratkoza" wyrównanym do lewej, a pod nim osobny obszar
@@ -271,3 +281,200 @@ grafiki, czy zaczyna wyglądać jak wyświetlacz kalkulatora.
 **Uwaga o zasięgu.** Dotyczy wyłącznie cyfr w grafice tytułowej. Cyfry na planszy zostają zwykłym
 tekstem: tam liczy się czytelność i respektowanie ustawień systemowych, a nie efekt.
 
+---
+
+## 11. Punkt przywrócenia do testowania hipotez — ZASTĄPIONE przez pozycję 14
+
+**Zgłoszone:** 2026-08-29, przez znajomego gracza.
+
+Akcja „zapamiętaj ten stan" i druga „wróć do zapamiętanego". Gracz dochodzi do pola z dwiema
+możliwościami, zapisuje stan, wybiera jedną i gra ją dalej zwykłymi kandydatami. Gdy okaże się
+sprzeczna, wraca jednym ruchem.
+
+**Wartość nie leży w samym cofnięciu.** Przy wyborze jeden z dwóch **nieudana gałąź dowodzi drugiej**
+— gracz wraca i wpisuje pewną już cyfrę. Zwykłe cofanie doprowadzi go w to samo miejsce, ale nie
+powie mu, że drugi wariant jest teraz pewny; potrzebna jest wyraźna granica, od której zaczęło się
+założenie.
+
+**Dlaczego to jest tanie:** jeden zapamiętany stan zamiast rozbudowy struktury kandydatów, zero
+budżetu wizualnego w polu, brak kolizji z podświetleniami, brak zmian w rysowaniu. Działa też dla
+wpisanych cyfr, nie tylko dla kandydatów — a hipoteza zwykle zaczyna się właśnie od wpisania cyfry.
+
+**To nie jest podpowiedź** w rozumieniu `project.md` §18: całe rozumowanie zostaje po stronie gracza,
+więc kwalifikacji rankingowej to nie dotyka.
+
+---
+
+## 12. Warstwy kandydatów odróżnione kolorem — ZASTĄPIONE przez pozycję 14
+
+**Zgłoszone:** 2026-08-29, jako rozwinięcie pozycji 11.
+
+Czasem jeden poziom przewidywania nie wystarcza i wewnątrz założenia trzeba przyjąć kolejne. Wtedy
+przydaje się druga warstwa kandydatów, odróżniona kolorem — proponowano do trzech warstw. Kolor
+mówiłby wówczas, **od którego założenia dany zapis zależy**, a porzucenie warstwy porzucałoby tylko
+to, co pod nią powstało.
+
+**Miejsca w polu to nie kosztuje** — kolorowanie istniejących cyfr nie zajmuje dodatkowej
+powierzchni. Wcześniejsza notatka twierdziła inaczej i była błędna.
+
+**Kosztuje za to budżet kolorów, a ten jest ciasny:**
+
+- **Czerwony odpada.** Jest już kolorem błędu, a `project.md` §8 wymaga czytelnego oznaczenia błędów.
+  Warstwa hipotez w czerwieni zderza się z jedyną rzeczą, która musi być na planszy nie do pomylenia.
+- **Czerwony z zielonym to najgorsza możliwa para** przy zaburzeniach widzenia barw — dotyczy około
+  8% mężczyzn. §8 wprost prosi o czytelność dla osób o słabszym wzroku, więc warstwy potrzebowałyby
+  barw dobranych pod deuteranopię **i drugiej wskazówki poza kolorem**.
+- **Tryb wysokiego kontrastu** musiałby unieść trzy dodatkowe barwy ponad warstwami podświetleń,
+  które dopiero co udało się od siebie odsunąć.
+
+**Reszta kosztów:** `CandidateGrid` to jedna maska bitowa na pole, więc trzy warstwy potrajają zapis
+i zmieniają format zapisanej gry — czyli migracja. `Move.previousCandidates` to jedna mapa, więc
+cofanie musi objąć wszystkie warstwy, a „porzuć warstwę" ma być jednym cofnięciem.
+
+**Kolejność ma znaczenie.** Pozycja 11 jest samodzielna i tania, a zagnieżdżone hipotezy na trzecim
+poziomie są sytuacją rzadką. Warto zrobić 11, pograć z tym, i dopiero wtedy ocenić, czy 12 nadal jest
+potrzebne — bo jeśli tak, będzie się dokładnie wiedziało, czego brakuje.
+
+### 12a. Zaznaczony kandydat zamiast warstw kolorem — ZASTĄPIONE przez pozycję 14
+
+**Zgłoszone:** 2026-08-30, przez właściciela, jako rozwinięcie pozycji 12.
+
+Zamiast odróżniać warstwy kolorem — wyróżnić pojedynczego kandydata **kształtem**: kółkiem,
+podkreśleniem albo pogrubieniem. Jeden wyróżniony kandydat w komórce znaczy „to jest cyfra, którą
+zakładam".
+
+**To jest jednowarstwowa wersja pozycji 12, która nie kosztuje ani jednego koloru** — a więc omija
+wszystkie zastrzeżenia stamtąd: nie zderza się z czerwienią błędu, nie zależy od rozróżniania barw i
+nie dokłada nic trybowi wysokiego kontrastu. Razem z pozycją 11 domyka cały przepływ: zaznacz
+założenie, zapisz stan, graj dalej, wróć.
+
+**Nie automatycznie po kolejności wpisywania.** Pierwotna propozycja mówiła o „pierwszym wpisanym
+kandydacie", ale kolejność notowania kandydatów jest przypadkowa — skanuje się wiersz i zapisuje, co
+widać. Automatyczne kółko wyróżniałoby więc szum, a nie decyzję gracza, i miałoby brzydkie przypadki
+brzegowe (wyczyszczenie i ponowne wpisanie przesuwa oznaczenie). Zaznaczenie musi być świadomym
+gestem gracza.
+
+**Miejsce jest ciasne, ale wystarczające.** Przy szerokości 360 dp komórka ma około 38 dp, kratka
+kandydata około 12,7 dp, a glif rysuje się przy `CANDIDATE_HEIGHT_FRACTION = 0.26f`, czyli około
+10 sp. Kółko potrzebuje wtedy 11–12 dp średnicy i wchodzi praktycznie bez marginesu, dotykając
+sąsiadów. **Podkreślenie albo pogrubienie glifu kosztuje mniej miejsca przy tej samej czytelności** i
+byłoby pierwszym wyborem do sprawdzenia.
+
+**Koszt zapisu:** jedna dodatkowa maska 9-bitowa na komórkę — czyli zmiana formatu zapisanej gry i
+migracja, tyle samo co przy pozycji 12, ale jeden bit zamiast trzech barw. Cofanie musi obejmować
+oznaczenie tak samo jak samych kandydatów.
+
+---
+
+## 13. Archiwum rozwiązanych plansz
+
+**Zgłoszone:** 2026-08-30, przez właściciela.
+
+Zachowywać każdą planszę ukończoną z sukcesem, tak żeby dało się do niej wrócić i obejrzeć.
+
+**Do ustalenia przy realizacji:** co dokładnie ma zostać — sama plansza z rozwiązaniem, czy też
+przebieg (czas, błędy, kolejność wpisów). Historia gier już przechowuje wynik i czas, a `puzzles`
+przechowuje zadanie i rozwiązanie, więc materiał w dużej mierze **już jest w bazie** — brakuje
+ekranu, który by go pokazywał, i decyzji, czy trzymamy planszę w nieskończoność, czy z jakimś
+limitem.
+
+---
+
+## 14. Symulacja: poziomy predykcji
+
+**Odłożone 2026-08-30 po trzech nieudanych podejściach.** Kod stoi na gałęzi
+`feature/hypothesis-tools`, niescalony. Ta pozycja zastępuje 11 i 12a — one opisują model, który
+okazał się za ubogi.
+
+### Czego nie zrozumiałem
+
+Zbudowałem „zaznaczenie plus niewidzialna migawka": jest droga powrotna, ale **nie widać, w czym się
+stoi**. Nie da się spojrzeć na planszę i odróżnić kandydatów prawdziwych od tych, którzy są tylko
+konsekwencją założenia — a to jest cały sens symulacji. Optymalizowałem taniość i zgubiłem sens.
+
+### Model właściwy, wg właściciela
+
+Jednostką jest **poziom predykcji**, nie zaznaczenie: założenie *plus wszystko, co z niego wynikło*,
+i to wszystko widoczne. Poziomy tworzą stos.
+
+Przebieg przy jednym poziomie:
+
+1. Gracz utyka i decyduje się na „bezpieczny strzał" kandydatem.
+2. Wpisuje cyfrę w jedno z dwóch możliwych pól; ta cyfra jest wyróżniona jako **pierwsza tego
+   poziomu**.
+3. Dopisuje konsekwencje, aż trafi na sprzeczność.
+4. Cofa **wszystkich kandydatów tego poziomu jednym ruchem**, zostawiając tylko pierwszą cyfrę.
+5. Wpisuje cyfrę rzeczywistą w drugie możliwe pole; oznaczony kandydat znika.
+
+Przy dwóch poziomach dochodzi: otwarcie poziomu drugiego wewnątrz pierwszego, odróżnialność
+kandydatów obu poziomów, a gdy **obie** gałęzie poziomu drugiego są sprzeczne — dowód, że poziom
+pierwszy był błędny, i zejście o piętro.
+
+### Jak to zapisać — i dlaczego to tańsze, niż się wydaje
+
+Poziom = **migawka kandydatów w chwili otwarcia** + cyfra założenia. Przynależność kandydata do
+poziomu **nie wymaga żadnego zapisu per kandydat, bo wynika z różnicy migawek**:
+
+    S1 = stan przy otwarciu poziomu 1
+    S2 = stan przy otwarciu poziomu 2
+
+    baza      = S1
+    poziom 1  = S2 \ S1
+    poziom 2  = teraz \ S2
+
+Cofnięcie poziomu = przywróć jego migawkę i dopisz z powrotem cyfrę założenia.
+
+**Dziura w opisie słownym:** poziom to nie tylko kandydaci *dopisani*. Prawdziwa symulacja tak samo
+często **kasuje** („skoro tu jest 4, to tam 4 być nie może"), a takie skasowanie też należy do
+poziomu i musi wrócić przy cofaniu. Zbiór dopisanych tego nie unieważni — migawka tak. To jest
+dodatkowy argument za migawkami.
+
+### Odróżnianie poziomów wzrokowo
+
+Ograniczenia z wcześniejszych ustaleń: **czerwony odpada** (kolor błędu), **czerwony z zielonym
+odpada** (najgorsza para przy zaburzeniach widzenia barw, ~8% mężczyzn), a tryb wysokiego kontrastu
+musi to unieść.
+
+**Propozycja:** baza bez wyróżnienia, poziom 1 niebieski, poziom 2 pomarańczowy — para bezpieczna
+przy deuteranopii i protanopii. Pierścień zostaje na cyfrze założenia danego poziomu, w kolorze tego
+poziomu, bo niesie inną informację niż sam kolor.
+
+**Przezroczystość rozważona i odrzucona jako kanał główny.** Kandydaci są już najsłabszą i
+najmniejszą rzeczą na planszy (~10 sp, wyciszony kolor) — warstwa jeszcze bledsza wpada w
+niewidzialność. Gorzej: **tryb wysokiego kontrastu robi dokładnie odwrotność**, bo istnieje po to,
+żeby kontrast maksymalizować, a to kodowałoby znaczenie przez jego odbieranie; tam i tak trzeba by
+koloru. Odwrócenie (bieżący poziom pełny, starsze przygaszone) jest lepsze dla skupienia, ale
+przygasza **bazę**, czyli notatki zweryfikowane, którym gracz ufa najbardziej. Nadaje się jako
+wzmocnienie koloru, nie jako jedyny nośnik.
+
+**Dwa poziomy, nie trzy.** Trzeci odcień, który nie kłóci się z czerwienią błędu, z podświetleniami
+i z trybem wysokiego kontrastu, jest bardzo trudny do znalezienia. A `SudokuGenerator` usuwa
+wskazówkę **tylko dopóki `LogicalSolver` domyka planszę** dziesięcioma technikami — czyli żadna nasza
+plansza nie wymaga zgadywania. Symulacja jest wygodą dla gracza, który nie dostrzegł techniki, a nie
+koniecznością; zagnieżdżenie na trzecim poziomie to już przeszukiwanie drzewa, nie rozumowanie.
+
+### Pytania otwarte przed realizacją
+
+- **Poziom, który się sprawdził.** Opis pokrywa tylko porażkę. Jakim gestem poziom „rozpuszcza się"
+  w bazie, gdy założenie okazało się dobre?
+- **Czy wymazanie cyfry założenia zamyka poziom?** Tak wynika z opisu i jest to eleganckie — cyfra
+  założenia byłaby uchwytem poziomu — ale wtedy zamknięcie zawsze znaczy „odrzucam".
+- **Miejsce na ekranie.** Górny rząd ma Solve/Back/Share/Save, dolny Hint/Undo/Erase/Candidates.
+  Potrzeba: otwórz poziom, cofnij poziom, zamknij poziom. Coś musi ustąpić.
+- **Numer migracji.** Gałąź `feature/hypothesis-tools` ma migrację 4→5 na kolumny znaczników, a
+  piątkę zajęło już archiwum plansz. Przy wznowieniu trzeba ją przenumerować.
+
+---
+
+## 15. Zatwierdzenie pojedynczych kandydatów jednym ruchem
+
+**Zgłoszone:** 2026-08-30, przez właściciela, jako część wariantu 3 pozycji 14.
+
+Gdy w każdym pustym polu został **dokładnie jeden** kandydat, przycisk zamieniający ich wszystkich na
+cyfry rzeczywiste — czyli „uznaj to za rozwiązanie".
+
+**Ostrzeżenie, które musi być rozstrzygnięte przed realizacją:** `project.md` §16 liczy błąd za każdą
+błędną cyfrę **w chwili wpisania**. Konwersja całej planszy naraz policzy więc wszystkie błędy w
+jednym momencie, a `MISTAKE_FACTOR = 0.7` sprawia, że już trzy błędy zbijają punktację do 0,34
+wartości. Jedno naciśnięcie może zniszczyć wynik rankingowy. Do decyzji: ostrzegać przed konwersją,
+liczyć te błędy inaczej, czy zostawić bez zabezpieczenia.

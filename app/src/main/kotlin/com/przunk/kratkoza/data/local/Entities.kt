@@ -41,7 +41,7 @@ data class PuzzleEntity(
  */
 @Entity(
     tableName = "daily_puzzles",
-    primaryKeys = ["date", "difficulty"],
+    primaryKeys = ["date", "difficulty", "rulesetVersion"],
     foreignKeys = [
         ForeignKey(
             entity = PuzzleEntity::class,
@@ -152,4 +152,35 @@ data class GameHistoryEntity(
      */
     val autoRemoveCandidates: Boolean,
     val rulesetVersion: Int,
+)
+
+/**
+ * One successful completion kept independently of statistics.
+ *
+ * Statistics can be reset; a board the player remembers solving cannot. Keeping this as a separate
+ * archive means a reset can continue to delete [GameHistoryEntity] rows without quietly deleting
+ * the library the player came here to browse. Only successful solo games are inserted — Daily has
+ * its own results screen and public ranking.
+ */
+@Entity(
+    tableName = "solved_boards",
+    foreignKeys = [
+        ForeignKey(
+            entity = PuzzleEntity::class,
+            parentColumns = ["puzzleId"],
+            childColumns = ["puzzleId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("puzzleId"), Index("completedAt")],
+)
+data class SolvedBoardEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val puzzleId: String,
+    val completedAt: Long,
+    val elapsedMillis: Long,
+    val mistakeCount: Int,
+    val xpEarned: Int,
+    /** Reserved for a future personal Solo score; XP is what the current UI reports. */
+    val score: Int?,
 )

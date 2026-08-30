@@ -1,6 +1,5 @@
 package com.przunk.kratkoza.ui.game
 
-import com.przunk.kratkoza.BuildConfig
 import androidx.compose.runtime.Immutable
 import com.przunk.kratkoza.domain.game.CandidateGrid
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -35,6 +34,8 @@ data class GameUiState(
     val isPaused: Boolean = false,
     /** Whether the number pad writes pencil marks instead of digits (project.md section 14). */
     val candidateMode: Boolean = false,
+    /** Whether the destructive candidate-clear confirmation is currently visible. */
+    val confirmingCandidateClear: Boolean = false,
     val canUndo: Boolean = false,
     /** How many of each digit 1..9 are still missing; index 0 is unused. */
     val remainingByDigit: List<Int> = List(10) { 0 },
@@ -61,6 +62,15 @@ data class GameUiState(
      * not replay an animation.
      */
     val lastMove: MoveEcho? = null,
+    /**
+     * Whether to show the debug-only shortcuts.
+     *
+     * Carried from the ViewModel rather than read from BuildConfig here. Read separately, the two
+     * drifted apart the moment anything passed the flag explicitly: the shortcut stopped working
+     * while its button stayed on screen — which is how a debug control turned up in a store
+     * screenshot.
+     */
+    val debugTools: Boolean = false,
 ) {
     /** What the board should react to after a move. Purely decorative; nothing waits on it. */
     @Immutable
@@ -116,6 +126,16 @@ data class GameUiState(
      */
     val canEnterDigit: Boolean get() = isPlayable && selectedCell != null
 
+    /** project.md section 18: a publicly ranked game must not expose a reveal control at all. */
+    val showRevealDigit: Boolean get() = !rankedEligible
+
+    /** A reveal targets the selected empty cell; filled cells already have an answer. */
+    val canRevealDigit: Boolean
+        get() = showRevealDigit && isPlayable && selectedCell?.let(board::isEmpty) == true
+
+    /** Long-press clear is meaningful only while at least one pencil mark exists. */
+    val canClearCandidates: Boolean get() = isPlayable && candidates.hasAny
+
     /** project.md section 28: no pause button while the game still counts. */
     val canPause: Boolean get() = !rankedEligible
 
@@ -128,9 +148,4 @@ data class GameUiState(
      */
     val canShareAndSave: Boolean get() = gameType != GameType.DAILY
 
-    /**
-     * Whether to show the debug-only shortcuts. Follows the build type, so the control cannot
-     * appear in a release APK.
-     */
-    val debugTools: Boolean get() = BuildConfig.DEBUG
 }

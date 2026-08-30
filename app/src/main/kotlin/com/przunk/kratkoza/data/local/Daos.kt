@@ -95,6 +95,68 @@ interface SavedGameDao {
 }
 
 @Dao
+interface SolvedBoardDao {
+
+    @Insert
+    suspend fun insert(entry: SolvedBoardEntity): Long
+
+    /**
+     * Every successful Solo completion, newest first, with the original board and replay state.
+     *
+     * `completionCount` deliberately counts attempts rather than distinct boards: each row is one
+     * memory, while the count says how often this particular puzzle has been beaten. The save join
+     * lets the detail action say Continue instead of offering to overwrite an existing replay.
+     */
+    @Query(
+        """
+        SELECT a.id AS id,
+               a.puzzleId AS puzzleId,
+               a.completedAt AS completedAt,
+               a.elapsedMillis AS elapsedMillis,
+               a.mistakeCount AS mistakeCount,
+               a.xpEarned AS xpEarned,
+               a.score AS score,
+               p.difficulty AS difficulty,
+               p.givens AS givens,
+               p.generatorVersion AS generatorVersion,
+               p.seed AS seed,
+               (SELECT COUNT(*) FROM solved_boards counted
+                WHERE counted.puzzleId = a.puzzleId) AS completionCount,
+               EXISTS(SELECT 1 FROM saved_games s
+                      WHERE s.puzzleId = a.puzzleId) AS inProgress
+        FROM solved_boards a
+        JOIN puzzles p ON p.puzzleId = a.puzzleId
+        ORDER BY a.completedAt DESC, a.id DESC
+        """,
+    )
+    fun observeAll(): Flow<List<SolvedBoardRow>>
+
+    @Query(
+        """
+        SELECT a.id AS id,
+               a.puzzleId AS puzzleId,
+               a.completedAt AS completedAt,
+               a.elapsedMillis AS elapsedMillis,
+               a.mistakeCount AS mistakeCount,
+               a.xpEarned AS xpEarned,
+               a.score AS score,
+               p.difficulty AS difficulty,
+               p.givens AS givens,
+               p.generatorVersion AS generatorVersion,
+               p.seed AS seed,
+               (SELECT COUNT(*) FROM solved_boards counted
+                WHERE counted.puzzleId = a.puzzleId) AS completionCount,
+               EXISTS(SELECT 1 FROM saved_games s
+                      WHERE s.puzzleId = a.puzzleId) AS inProgress
+        FROM solved_boards a
+        JOIN puzzles p ON p.puzzleId = a.puzzleId
+        WHERE a.id = :id
+        """,
+    )
+    fun observeById(id: Long): Flow<SolvedBoardRow?>
+}
+
+@Dao
 abstract class GameHistoryDao {
 
     @Insert
@@ -280,6 +342,23 @@ data class SavedGameSummaryRow(
     val givens: String,
     val solution: String,
     val generatorVersion: Int,
+)
+
+/** Projection shared by the archive list and one completion's detail screen. */
+data class SolvedBoardRow(
+    val id: Long,
+    val puzzleId: String,
+    val completedAt: Long,
+    val elapsedMillis: Long,
+    val mistakeCount: Int,
+    val xpEarned: Int,
+    val score: Int?,
+    val difficulty: String,
+    val givens: String,
+    val generatorVersion: Int,
+    val seed: Long?,
+    val completionCount: Int,
+    val inProgress: Boolean,
 )
 
 /** Projection for per-level statistics; the aggregates are null until something is completed. */

@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
@@ -46,6 +47,7 @@ class DailyViewModelTest {
         dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
         generator = SudokuGenerator(),
         computationDispatcher = Dispatchers.Unconfined,
     )
@@ -131,9 +133,9 @@ class DailyViewModelTest {
         val viewModel = viewModelWith(ranking)
         viewModel.uiState.first { !it.isLoading }
 
-        viewModel.showLeaderboard(Difficulty.MASTER)
+        viewModel.showLeaderboard(Difficulty.EXPERT)
 
-        assertEquals(listOf(Leaderboard.DAILY_MASTER), ranking.shown)
+        assertEquals(listOf(Leaderboard.DAILY_EXPERT), ranking.shown)
     }
 
     @Test

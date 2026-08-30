@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.game.SavedGame
@@ -53,6 +54,7 @@ class GameViewModelTest {
         dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
         generator = SudokuGenerator(),
         computationDispatcher = dispatcher,
         clock = { now },
@@ -203,6 +205,31 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a solo reveal fills the selected empty cell and remains non-ranked`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+
+        assertTrue(viewModel.uiState.value.showRevealDigit)
+        assertFalse(viewModel.uiState.value.canRevealDigit)
+
+        viewModel.selectCell(cell)
+        assertTrue(viewModel.uiState.value.canRevealDigit)
+        viewModel.revealDigit()
+        idle()
+
+        val state = viewModel.uiState.value
+        assertEquals(game.state.puzzle.solution[cell], state.board[cell])
+        assertEquals(0, state.mistakeCount)
+        assertFalse(state.canUndo)
+        assertFalse(state.rankedEligible)
+        assertEquals(
+            game.state.puzzle.solution[cell],
+            repository.loadGame(game.state.puzzle.id)?.state?.board?.get(cell),
+        )
+    }
+
+    @Test
     fun `a digit with nothing selected does nothing`() = gameTest {
         val game = startGame()
         val viewModel = viewModelFor(game)
@@ -225,6 +252,51 @@ class GameViewModelTest {
         assertTrue(state.candidateMode)
         assertTrue(state.board.isEmpty(cell))
         assertEquals(setOf(4), state.candidates[cell])
+    }
+
+    @Test
+    fun `candidate clear changes nothing until confirmed and one undo restores every mark`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cells = (0 until Sudoku.CELL_COUNT).filter { game.state.board.isEmpty(it) }.take(2)
+
+        viewModel.toggleCandidateMode()
+        viewModel.selectCell(cells[0])
+        viewModel.enterDigit(2)
+        viewModel.enterDigit(7)
+        viewModel.selectCell(cells[1])
+        viewModel.enterDigit(4)
+        val beforeClear = viewModel.uiState.value.candidates
+
+        viewModel.requestCandidateClear()
+        assertTrue(viewModel.uiState.value.confirmingCandidateClear)
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+
+        viewModel.dismissCandidateClear()
+        assertFalse(viewModel.uiState.value.confirmingCandidateClear)
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+
+        viewModel.requestCandidateClear()
+        viewModel.confirmCandidateClear()
+        idle()
+        assertFalse(viewModel.uiState.value.confirmingCandidateClear)
+        assertFalse(viewModel.uiState.value.candidates.hasAny)
+
+        viewModel.undo()
+        assertEquals(beforeClear, viewModel.uiState.value.candidates)
+    }
+
+    @Test
+    fun `an empty candidate grid cannot open or confirm a clear`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+
+        viewModel.requestCandidateClear()
+        viewModel.confirmCandidateClear()
+
+        assertFalse(viewModel.uiState.value.confirmingCandidateClear)
+        assertEquals(game.state.candidates, viewModel.uiState.value.candidates)
+        assertFalse(viewModel.uiState.value.canUndo)
     }
 
     @Test
@@ -520,6 +592,58 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `a ranked daily exposes no reveal path and refuses a direct request`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        val viewModel = viewModelFor(daily)
+        val cell = (0 until Sudoku.CELL_COUNT).first { daily.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        assertFalse(viewModel.uiState.value.showRevealDigit)
+        assertFalse(viewModel.uiState.value.canRevealDigit)
+
+        viewModel.revealDigit()
+        idle()
+
+        assertTrue(viewModel.uiState.value.board.isEmpty(cell))
+        assertTrue(viewModel.uiState.value.rankedEligible)
+    }
+
+    @Test
+    fun `clearing candidates does not cost a daily its ranking`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        val viewModel = viewModelFor(daily)
+        val cell = (0 until Sudoku.CELL_COUNT).first { daily.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        viewModel.toggleCandidateMode()
+        viewModel.enterDigit(3)
+        viewModel.requestCandidateClear()
+        viewModel.confirmCandidateClear()
+        idle()
+
+        assertFalse(viewModel.uiState.value.candidates.hasAny)
+        assertTrue(viewModel.uiState.value.rankedEligible)
+        assertTrue(requireNotNull(repository.loadGame(daily.state.puzzle.id)).rankedEligible)
+    }
+
+    @Test
+    fun `an unranked daily may reveal and stays unranked`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        repository.save(daily.copy(rankedEligible = false))
+        val viewModel = viewModelFor(daily)
+        val cell = (0 until Sudoku.CELL_COUNT).first { daily.state.board.isEmpty(it) }
+
+        viewModel.selectCell(cell)
+        assertTrue(viewModel.uiState.value.showRevealDigit)
+        assertTrue(viewModel.uiState.value.canRevealDigit)
+        viewModel.revealDigit()
+        idle()
+
+        assertEquals(daily.state.puzzle.solution[cell], viewModel.uiState.value.board[cell])
+        assertFalse(viewModel.uiState.value.rankedEligible)
+    }
+
+    @Test
     fun `going to the background keeps a daily ranked and keeps its clock running`() = gameTest {
         // The rule project.md section 28 states was relaxed on 2026-08-26: minimising no longer
         // costs the ranking, because a clock that keeps running already denies the free thinking
@@ -581,7 +705,7 @@ class GameViewModelTest {
     fun `the screen can tell a daily from a solo game`() = gameTest {
         val day = java.time.LocalDate.parse("2026-08-26")
         dailyRepository.dailySet(day)
-        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.MASTER))
+        val daily = requireNotNull(dailyRepository.startDaily(day, com.przunk.kratkoza.domain.model.Difficulty.EXPERT))
 
         assertEquals(GameType.DAILY, viewModelFor(daily).uiState.value.gameType)
         assertEquals(GameType.SOLO, viewModelFor(startGame()).uiState.value.gameType)

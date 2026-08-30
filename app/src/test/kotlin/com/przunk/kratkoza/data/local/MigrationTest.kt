@@ -8,16 +8,18 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.przunk.kratkoza.domain.model.Difficulty
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The version 1 to version 2 migration, run against a real database.
+ * The version 1 database migrated through every released schema, against a real database.
  *
  * A migration is the one piece of this app that cannot be fixed after the fact: it meets a phone
  * that already holds somebody's half-solved games, exactly once, and a mistake there loses them.
@@ -55,12 +57,47 @@ class MigrationTest {
         "CREATE INDEX IF NOT EXISTS `index_game_history_completed` ON `game_history` (`completed`)",
     )
 
-    private fun createVersionOneDatabase(): SupportSQLiteDatabase {
+    /** The schema exactly as version 3 shipped it, taken from `app/schemas/…/3.json`. */
+    private val versionThreeDdl = listOf(
+        "CREATE TABLE IF NOT EXISTS `puzzles` (`puzzleId` TEXT NOT NULL, `generatorVersion` INTEGER NOT NULL, `difficulty` TEXT NOT NULL, `gameType` TEXT NOT NULL, `givens` TEXT NOT NULL, `solution` TEXT NOT NULL, `seed` INTEGER, PRIMARY KEY(`puzzleId`))",
+        "CREATE TABLE IF NOT EXISTS `saved_games` (`puzzleId` TEXT NOT NULL, `historyId` INTEGER NOT NULL, `startedAt` INTEGER NOT NULL, `lastPlayedAt` INTEGER NOT NULL, `elapsedMillis` INTEGER NOT NULL, `board` TEXT NOT NULL, `candidates` TEXT NOT NULL, `undoHistory` TEXT NOT NULL, `mistakeCount` INTEGER NOT NULL, `rankedEligible` INTEGER NOT NULL, PRIMARY KEY(`puzzleId`), FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_saved_games_lastPlayedAt` ON `saved_games` (`lastPlayedAt`)",
+        "CREATE INDEX IF NOT EXISTS `index_saved_games_historyId` ON `saved_games` (`historyId`)",
+        "CREATE TABLE IF NOT EXISTS `game_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `puzzleId` TEXT NOT NULL, `gameType` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, `finishedAt` INTEGER, `elapsedMillis` INTEGER NOT NULL, `mistakeCount` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `score` INTEGER, `xpEarned` INTEGER NOT NULL, `publiclyRanked` INTEGER NOT NULL, `rankedEligible` INTEGER NOT NULL, `autoRemoveCandidates` INTEGER NOT NULL, `rulesetVersion` INTEGER NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_puzzleId` ON `game_history` (`puzzleId`)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_startedAt` ON `game_history` (`startedAt`)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_completed` ON `game_history` (`completed`)",
+        "CREATE TABLE IF NOT EXISTS `daily_puzzles` (`date` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `puzzleId` TEXT NOT NULL, `rulesetVersion` INTEGER NOT NULL, PRIMARY KEY(`date`, `difficulty`), FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_daily_puzzles_puzzleId` ON `daily_puzzles` (`puzzleId`)",
+    )
+
+    /**
+     * A schema that was never released: the assumption tools numbered 5, with the solved-board
+     * archive stacked on top as 6. One test phone ended up holding it, and nothing that ships will
+     * ever be numbered that high.
+     */
+    private val orphanedVersionSixDdl = listOf(
+        "CREATE TABLE IF NOT EXISTS `puzzles` (`puzzleId` TEXT NOT NULL, `generatorVersion` INTEGER NOT NULL, `difficulty` TEXT NOT NULL, `gameType` TEXT NOT NULL, `givens` TEXT NOT NULL, `solution` TEXT NOT NULL, `seed` INTEGER, PRIMARY KEY(`puzzleId`))",
+        "CREATE TABLE IF NOT EXISTS `saved_games` (`puzzleId` TEXT NOT NULL, `historyId` INTEGER NOT NULL, `startedAt` INTEGER NOT NULL, `lastPlayedAt` INTEGER NOT NULL, `elapsedMillis` INTEGER NOT NULL, `board` TEXT NOT NULL, `candidates` TEXT NOT NULL, `undoHistory` TEXT NOT NULL, `mistakeCount` INTEGER NOT NULL, `rankedEligible` INTEGER NOT NULL, `markedCandidates` TEXT, `restoreCandidates` TEXT, `restoreMarks` TEXT, PRIMARY KEY(`puzzleId`), FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_saved_games_lastPlayedAt` ON `saved_games` (`lastPlayedAt`)",
+        "CREATE INDEX IF NOT EXISTS `index_saved_games_historyId` ON `saved_games` (`historyId`)",
+        "CREATE TABLE IF NOT EXISTS `game_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `puzzleId` TEXT NOT NULL, `gameType` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, `finishedAt` INTEGER, `elapsedMillis` INTEGER NOT NULL, `mistakeCount` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `score` INTEGER, `xpEarned` INTEGER NOT NULL, `publiclyRanked` INTEGER NOT NULL, `rankedEligible` INTEGER NOT NULL, `autoRemoveCandidates` INTEGER NOT NULL, `rulesetVersion` INTEGER NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_puzzleId` ON `game_history` (`puzzleId`)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_startedAt` ON `game_history` (`startedAt`)",
+        "CREATE INDEX IF NOT EXISTS `index_game_history_completed` ON `game_history` (`completed`)",
+        "CREATE TABLE IF NOT EXISTS `daily_puzzles` (`date` TEXT NOT NULL, `difficulty` TEXT NOT NULL, `puzzleId` TEXT NOT NULL, `rulesetVersion` INTEGER NOT NULL, PRIMARY KEY(`date`, `difficulty`, `rulesetVersion`), FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_daily_puzzles_puzzleId` ON `daily_puzzles` (`puzzleId`)",
+        "CREATE TABLE IF NOT EXISTS `solved_boards` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `puzzleId` TEXT NOT NULL, `completedAt` INTEGER NOT NULL, `elapsedMillis` INTEGER NOT NULL, `mistakeCount` INTEGER NOT NULL, `xpEarned` INTEGER NOT NULL, `score` INTEGER, FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "CREATE INDEX IF NOT EXISTS `index_solved_boards_puzzleId` ON `solved_boards` (`puzzleId`)",
+        "CREATE INDEX IF NOT EXISTS `index_solved_boards_completedAt` ON `solved_boards` (`completedAt`)",
+    )
+
+    private fun createDatabaseAt(version: Int, ddl: List<String>): SupportSQLiteDatabase {
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(name)
-            .callback(object : SupportSQLiteOpenHelper.Callback(1) {
+            .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                 override fun onCreate(db: SupportSQLiteDatabase) {
-                    versionOneDdl.forEach(db::execSQL)
+                    ddl.forEach(db::execSQL)
                     db.execSQL(
                         "CREATE TABLE IF NOT EXISTS room_master_table " +
                             "(id INTEGER PRIMARY KEY, identity_hash TEXT)",
@@ -72,6 +109,11 @@ class MigrationTest {
             .build()
         return FrameworkSQLiteOpenHelperFactory().create(configuration).writableDatabase
     }
+
+    private fun createVersionOneDatabase(): SupportSQLiteDatabase =
+        createDatabaseAt(version = 1, ddl = versionOneDdl)
+
+    private fun openWithRoom(): KratkozaDatabase = KratkozaDatabase.create(context, name)
 
     @Test
     fun `a version one database migrates through every step and keeps what was in it`() = runTest {
@@ -115,11 +157,87 @@ class MigrationTest {
             assertEquals(500L, attempts.single().elapsedMillis)
             assertEquals(false, attempts.single().rankedEligible)
 
+            // Version 6 turns successful Solo history already on the phone into a visual archive.
+            // It must carry the result rather than merely prove the new table can be queried.
+            val archive = database.solvedBoardDao().observeAll().first().single()
+            assertEquals("p1", archive.puzzleId)
+            assertEquals(500L, archive.completedAt)
+            assertEquals(500L, archive.elapsedMillis)
+            assertEquals(1, archive.mistakeCount)
+            assertEquals(20, archive.xpEarned)
+
             // And the table added in version 2 has to be usable, not merely present.
             database.dailyPuzzleDao().insert(
                 listOf(DailyPuzzleEntity("2026-08-26", Difficulty.EASY.name, "p1", 1)),
             )
             assertEquals(1, database.dailyPuzzleDao().forDate("2026-08-26", 1).size)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `rekeying the daily calendar keeps the days already in it`() = runTest {
+        createDatabaseAt(version = 3, ddl = versionThreeDdl).use { db ->
+            db.execSQL(
+                "INSERT INTO puzzles VALUES ('d1', 1, ?, 'DAILY', ?, ?, 99)",
+                arrayOf(Difficulty.HARD.name, ".".repeat(81), "1".repeat(81)),
+            )
+            db.execSQL(
+                "INSERT INTO daily_puzzles VALUES ('2026-08-26', ?, 'd1', 1)",
+                arrayOf(Difficulty.HARD.name),
+            )
+            db.version = 3
+        }
+
+        val database = openWithRoom()
+        try {
+            val kept = database.dailyPuzzleDao().forDate("2026-08-26", rulesetVersion = 1).single()
+            assertEquals("d1", kept.puzzleId)
+            assertEquals(Difficulty.HARD.name, kept.difficulty)
+
+            // And the point of the rekeying: the same day and difficulty under a newer recipe is a
+            // separate board, and it has to be able to land beside the one already there.
+            database.puzzleDao().insert(puzzleEntity("d2", difficulty = Difficulty.HARD))
+            database.dailyPuzzleDao().insert(
+                listOf(DailyPuzzleEntity("2026-08-26", Difficulty.HARD.name, "d2", 2)),
+            )
+            assertEquals(
+                "d2",
+                database.dailyPuzzleDao().forDate("2026-08-26", rulesetVersion = 2).single().puzzleId,
+            )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `a database numbered above anything that ships is wiped, not left unopenable`() = runTest {
+        // Room's default is to throw here, and to throw on every launch afterwards, leaving an app
+        // that cannot start until its data is cleared by hand — which loses the same games this
+        // does, and leaves the player to work out why.
+        createDatabaseAt(version = 6, ddl = orphanedVersionSixDdl).use { db ->
+            db.execSQL(
+                "INSERT INTO puzzles VALUES ('p1', 1, ?, 'SOLO', ?, ?, NULL)",
+                arrayOf(Difficulty.HARD.name, ".".repeat(81), "1".repeat(81)),
+            )
+            db.execSQL(
+                "INSERT INTO saved_games VALUES ('p1', 7, 0, 0, 1234, ?, ?, '', 2, 0, NULL, NULL, NULL)",
+                arrayOf(".".repeat(81), "000".repeat(81)),
+            )
+            db.version = 6
+        }
+
+        val database = openWithRoom()
+        try {
+            assertNull(
+                "a save written against a schema that no longer exists cannot come back",
+                database.savedGameDao().byId("p1"),
+            )
+
+            // What actually matters: the app runs.
+            database.puzzleDao().insert(puzzleEntity("p2"))
+            assertNotNull(database.puzzleDao().byId("p2"))
         } finally {
             database.close()
         }

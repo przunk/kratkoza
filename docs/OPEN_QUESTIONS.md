@@ -232,7 +232,41 @@ całkowite zabezpieczenie Sudoku przed drugim urządzeniem nie istnieje.
 
 ---
 
-## 9. Wzór na wynik Daily i czasy odniesienia poziomów
+## 9. ~~Wzór na wynik Daily~~ — rozstrzygnięte 2026-08-29
+
+**Wynik = (punkty za rozwiązanie + bonus za czas) × 0.7 ^ błędy**, gdzie bonus wynosi ⅔ punktów za
+rozwiązanie i **połowi się co czas docelowy** poziomu.
+
+Poprzedni wzór **mnożył** przez czas, więc zegar mógł zjeść wszystko: na Łatwym rozpiętość między
+szybkim a bardzo wolnym ukończeniem wynosiła **44,6×**. Zgłoszone z urządzenia jako rozwiązana plansza
+warta 12 punktów — wzór policzył poprawnie 4,6 godziny na liczniku.
+
+To była wada kształtu, nie stałych. Zegar Daily biegnie od otwarcia i nie da się go zatrzymać (§28),
+więc „wolno" najczęściej zapisuje **odejście od telefonu**, a nie długie myślenie. Odejście nie
+powinno unieważniać rozwiązanej planszy.
+
+**Co daje nowy kształt:**
+
+| | natychmiast | czas docelowy | dwukrotność | doba |
+|---|---|---|---|---|
+| Łatwy | 833 | 667 | 583 | 500 |
+| Trudny | 1667 | 1333 | 1167 | 1000 |
+
+Rozpiętość szybki/wolny to teraz **5:3**, a nie kilkadziesiąt razy. Bonus nigdy nie znika całkiem, więc
+nie ma progu, po którym szybkość przestaje się liczyć — i nie ma widocznego limitu czasu, co było
+warunkiem: gracz ma robić sudoku na luzie.
+
+**Kara za błędy bez zmian** — §29 ustala ją wprost i tylko wynik bazowy zależny od czasu był otwarty.
+
+**Konsekwencja dla tablic wyników.** Wyniki zapisane starym wzorem nie są porównywalne z nowymi:
+wolne partie są teraz warte znacznie więcej. Tablice i tak mają zostać wymienione na świeże przed
+premierą, więc rozwiązuje się to samo — ale gdyby ta decyzja upadła, stare wyniki trzeba by uznać za
+nieporównywalne.
+
+**Czasy odniesienia poziomów** (5/9/15/20/25 minut) zostają i mają teraz inne znaczenie: nie są parą
+ani terminem, tylko czasem, w którym bonus spada o połowę.
+
+## 9a. Czasy odniesienia poziomów — nadal wybrane z wyczucia
 
 **Stan: 🟡 wstępnie przyjęte 2026-08-27.** `project.md` §39 zostawia wzór na wynik bazowy otwarty;
 §29 ustala jedynie karę za błędy.
@@ -312,3 +346,96 @@ najlepszy wynik, więc nie da się go nawet obniżyć przez wysłanie zera.
 Wariant 2 jest bliższy temu, o co pytano, i usuwa jedyną realną szkodę. Kosztuje licznik, który
 przeżywa reset, i jedno zdanie w dialogu.
 
+---
+
+## Zmierzona drabinka trudności (2026-08-29)
+
+Sto plansz na poziom, każda oceniona przez `LogicalSolver`. Mierzona jest **ranga najtrudniejszej
+techniki, której plansza naprawdę wymaga** — nie pułap, który poziom ma dozwolony.
+
+| poziom | pułap | średnia wymagana ranga | maks. | kroki | podpowiedzi |
+|---|---|---|---|---|---|
+| Łatwy | 2 | 1,15 | 2 | 45,0 | 36,0 |
+| Normalny | 2 | 1,99 | 2 | 56,5 | 24,5 |
+| Trudny | 3 | 3,00 | 3 | 59,4 | 24,5 |
+| Ekspert | 5 | 4,35 | 5 | 61,8 | 24,6 |
+| Morderczy | 10 | 8,72 | 9 | 61,9 | 24,9 |
+
+### Pięć rzeczy, które z tego wynikają
+
+**Pełna drabinka jest równa na czterech szczeblach i pęka na ostatnim:** +0,84, +1,01, +1,35, a potem
+**+4,37**. Ekspert kończy się na ukrytej parze, Morderczy w 87% wymaga XY-Wing.
+
+**Daily nie używa pełnej drabinki.** Bierze Łatwy, Trudny i Morderczy, więc jego skoki to **+1,85
+i +5,72** — mniej więcej dwa i cztery razy więcej niż zwykły szczebel.
+
+*Sprostowanie (2026-08-29):* pomiar powstał po tym, jak właściciel odpuścił Trudnego w Daily — ale
+z braku czasu, nie dlatego, że był nieosiągalny. Zapisałem to wtedy jako „za trudny do ukończenia"
+i było to nadinterpretacją. Nierówność drabinki jest zmierzona i broni się sama; powód, dla którego
+zaczęliśmy mierzyć, był łagodniejszy.
+
+**Skok Łatwy → Trudny jest podwójny.** Rośnie nie tylko technika, ale i liczba podpowiedzi: **36 → 24,5**.
+Łatwy jest jedynym poziomem z gęstą planszą; wszystkie pozostałe mają około 24,5. Gracz przechodzący
+w Daily z Łatwego na Trudny dostaje jednocześnie nową technikę i jedenaście podpowiedzi mniej.
+
+**Łatwy jest bardzo łatwy.** 85 na 100 plansz da się rozwiązać samymi nagimi singlami; ukryty singiel
+bywa potrzebny w 15 przypadkach.
+
+**Pułap Morderczego jest tylko nominalny.** Dozwolony jest Swordfish (ranga 10), ale **żadna ze stu
+plansz go nie wymagała** — najwyższa zaobserwowana ranga to 9. Morderczy jest w praktyce poziomem
+XY-Wing, a Swordfish nie ma zastosowania.
+
+### Co to znaczy dla czasów odniesienia w punktacji
+
+Liczba kroków logicznych rośnie od Normalnego do Morderczego o **10%** (56,5 → 61,9), a czasy
+odniesienia zakładają rozpiętość **pięciokrotną** (5 → 25 minut). Cała różnica musi więc leżeć w czasie
+*wypatrzenia* techniki, a nie w ilości pracy. To potwierdza notatkę przy `targetMinutesFor`, że próba
+wyprowadzenia czasów z licznika kroków zawiodła — ale też pokazuje, że pięciokrotność jest
+oszacowaniem z wyczucia i nic jej nie potwierdza.
+
+### Co z tym zrobiono (2026-08-29)
+
+**Daily bierze teraz Łatwy / Trudny / Ekspert**, a Łatwy został rozrzedzony z 36 do 30 podpowiedzi.
+Zmierzone ponownie po zmianie:
+
+| | przed | po |
+|---|---|---|
+| podpowiedzi w Łatwym | 36,0 | 30,0 |
+| średnia wymagana ranga | 1,15 | 1,71 |
+| kroki | 45,0 | 51,0 |
+| plansz na samych nagich singlach | 85% | 29% |
+
+Rozrzedzenie zmieniło Łatwy **w rodzaju, nie tylko w długości**: ukryty singiel jest teraz potrzebny
+w 71 planszach na 100 zamiast w 15. Pułap się nie zmienił, więc poziom dalej jest „na singlach" — po
+prostu przestał być planszą, którą wypełnia się bez patrzenia.
+
+**Skoki w Daily po obu zmianach:**
+
+| | przed | po |
+|---|---|---|
+| pierwszy szczebel | +1,85 | **+1,29** |
+| drugi szczebel | +5,72 | **+1,35** |
+
+Drabinka dnia jest teraz równa i mieści się w rozstępie zwykłego szczebla pełnej drabinki
+(+0,84 … +1,35). Przepaść przed najtrudniejszym poziomem zniknęła.
+
+**`RULESET_VERSION` podbite do 2**, bo zestaw poziomów jest częścią przepisu: wiersze zapisane pod
+jedynką opisują dzień, którego najtrudniejszą planszą był Morderczy, i są pomijane zamiast używane.
+
+**Morderczy zostaje jako poziom gry solo.** Nie jest już poziomem Daily, ale nadal istnieje — i nadal
+nigdy nie wymaga Swordfisha.
+
+### Do decyzji
+
+Skok Trudny → Morderczy w Daily jest ponad czterokrotnie większy niż zwykły szczebel drabinki.
+Możliwe kierunki, żadnego nie wybieram sam:
+
+- **Daily bierze Łatwy / Trudny / Ekspert** — skoki +1,85 i +1,35, czyli górny szczebel przestaje być
+  przepaścią, a wejście dla mniej wprawnych zostaje.
+- **Daily bierze Łatwy / Normalny / Trudny** — najłagodniejsze, ale najtrudniejszy poziom dnia wymaga
+  wtedy tylko locked candidates, co dla wprawnych będzie za mało.
+- **Zostaje jak jest**, ze świadomością, że najtrudniejszy poziom Daily jest dla większości graczy
+  nieosiągalny.
+
+Osobno warto rozważyć **dogęszczenie Łatwego albo rozrzedzenie go do 30 podpowiedzi**, żeby przejście
+do kolejnego poziomu nie było podwójne.

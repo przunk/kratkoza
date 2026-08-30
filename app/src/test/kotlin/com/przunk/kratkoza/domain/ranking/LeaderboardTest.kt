@@ -20,7 +20,7 @@ class LeaderboardTest {
 
         assertEquals(407L, Leaderboard.DAILY_EASY.valueFor(result))
         assertNull(Leaderboard.DAILY_HARD.valueFor(result))
-        assertNull(Leaderboard.DAILY_MASTER.valueFor(result))
+        assertNull(Leaderboard.DAILY_EXPERT.valueFor(result))
     }
 
     @Test
@@ -62,6 +62,20 @@ class LeaderboardTest {
         assertEquals(407L, Leaderboard.DAILY_EASY.valueFor(result))
         assertNull(Leaderboard.DAILY_TOTAL.valueFor(result))
         assertNull(Leaderboard.ALL_TIME_TOTAL.valueFor(result))
+    }
+
+    @Test
+    fun `every board about today opens on today`() {
+        // Play Games remembers the span a viewer last chose, so a daily board could open on all-time
+        // and show nothing from today. Only the lifetime total is genuinely about all time.
+        for (board in Leaderboard.entries) {
+            val expected = if (board == Leaderboard.ALL_TIME_TOTAL) {
+                Leaderboard.Span.ALL_TIME
+            } else {
+                Leaderboard.Span.TODAY
+            }
+            assertEquals("$board opens on the wrong span", expected, board.span)
+        }
     }
 
     @Test
