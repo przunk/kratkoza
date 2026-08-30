@@ -1,6 +1,7 @@
 # Kratkoza — stan realizacji
 
-Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb Sudoku solo.
+**Wersja 0.31.0 (50), na Play w kanale wewnętrznym.** Gra solo i Daily z publicznym rankingiem
+działają na urządzeniu; 393 testy, lint czysty.
 
 ## Gotowe
 
@@ -40,6 +41,22 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Obracająca się grafika 3×3 na ekranie głównym
 - [x] Timer, pauza ręczna i przy przejściu w tło, zasłonięcie planszy (§20)
 - [x] Automatyczny zapis po każdym istotnym ruchu (§21)
+- [x] Podpowiedź odsłaniająca zaznaczoną cyfrę, niedostępna w grach rankingowych (§18)
+- [x] Wyczyszczenie wszystkich kandydatów jednym długim przyciśnięciem
+
+### Daily
+- [x] Jedna plansza dzienna na poziom, deterministyczna z daty i `RULESET_VERSION`
+- [x] Trzy poziomy: Łatwy, Trudny, Ekspert — drabinka wyrównana pomiarem stu plansz na poziom
+- [x] Zmiana dnia o 08:00 czasu warszawskiego, jedno podejście do planszy
+- [x] Punktacja addytywna: stała za rozwiązanie plus premia za czas, kara mnożnikowa za błędy (§29)
+- [x] Kwalifikacja rankingowa — utrata przy podpowiedzi, zachowana przy minimalizacji (§28)
+
+### Ranking publiczny
+- [x] Play Games Services v2: logowanie, nakładka z tablicami, wysyłanie wyników
+- [x] Pięć tablic: trzy dzienne po poziomach, suma dzienna, suma wszech czasów
+- [x] Ponowienie przy `CLIENT_RECONNECT_REQUIRED`, potem wysyłka bezzwrotna jako zapas
+- [x] Wysyłka na zakresie aplikacji, więc przeżywa opuszczenie ekranu gry
+- [x] Dodanie tablicy wymusza uzupełnienie w trzech miejscach — inaczej kod się nie kompiluje
 
 ### Dane
 - [x] Zapisywanie i wznawianie rozgrywek, lista z podglądem planszy (§22)
@@ -53,27 +70,33 @@ Stan na koniec pierwszego etapu: fundament projektu i w pełni działający tryb
 - [x] Cztery palety kolorystyczne z podglądem i tryb wysokiego kontrastu (§9, §35)
 - [x] Wybór języka w aplikacji: systemowy / EN / PL (§4)
 - [x] Reset statystyk — wszystkie liczniki do zera, gry w toku zostają grywalne
+- [x] Archiwum rozwiązanych plansz, trzymane osobno od statystyk, żeby reset go nie zabierał
+- [x] Baza z wersji wyższej niż bieżąca jest kasowana, a nie blokuje uruchomienia
+
+### Ekran główny i sklep
+- [x] Napis „Kratkoza" rysowany w scenie jako kształty, nie czcionką
+- [x] Grafika 3×3 z przechyłem, iskrami i cieniem cyfr, czytelna w obu motywach
+- [x] Ikona i grafika promocyjna generowane skryptem, zrzuty ekranu renderowane z testów
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 309 testów jednostkowych: walidacja, solver, unikalność, generator, klasyfikacja trudności,
-      kandydaci, Undo, wykrywanie błędów, zapis/odtworzenie sesji, repozytorium, ViewModele
+- [x] 393 testy: walidacja, solver, unikalność, generator, klasyfikacja trudności, kandydaci,
+      Undo, wykrywanie błędów, zapis/odtworzenie sesji, migracje po prawdziwym SQLite,
+      repozytoria, ViewModele, ekrany Compose na Robolectriku
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
 
 ## Czego *nie* zweryfikowano
 
-Aplikacja nie została uruchomiona na urządzeniu ani emulatorze — w tym środowisku WSL nie ma
-emulatora, a `.tooling/android-sdk` nie zawiera obrazów systemu. Zweryfikowane są: kompilacja,
-lint, testy jednostkowe całej logiki, warstwy danych i ViewModeli oraz zbudowanie podpisanego APK.
-Zachowanie samego UI na ekranie — układ, czytelność planszy, dotyk — wymaga wgrania APK
-i sprawdzenia ręcznie.
+Aplikacja **jest** sprawdzana na urządzeniu — właściciel gra na buildach z tej gałęzi, a wersja
+0.31.0 (50) stoi na Play w kanale wewnętrznym. To, czego nie da się zamknąć tutaj, to emulator: w
+tym środowisku WSL go nie ma, więc każde zachowanie na ekranie potwierdza dopiero wgrany plik.
 
-Testy Compose UI **już są** i chodzą na JVM przez Robolectrica: Ustawienia, Statystyki, Zapisane gry
-i Nowa gra. Bez pokrycia zostają ekrany, które zmieniały się najpóźniej — gra, Daily i ekran
-główny.
+Praktyczny wniosek z tej sesji: **wstrzykiwany dotyk nie dociera w testach do klawiszy klawiatury
+cyfr** — zwykłe kliknięcie też nie ląduje — więc gesty na niej sprawdza się przez akcje semantyki.
+Test, który „potwierdzał" gest dotykiem, potwierdzał tylko własną bezsilność.
 
-Warstwa Roomu **nie jest już** taką dziurą. Zapytania agregujące, transakcja resetu, JOIN listy
-zapisanych gier i kaskada kluczy obcych chodzą w testach po prawdziwym SQLite na Robolectriku.
+Pokryte testami Compose: Ustawienia, Statystyki, Zapisane gry, Nowa gra, Gra, Archiwum plansz.
+Warstwa Roomu chodzi po prawdziwym SQLite, razem z każdą migracją od wersji 1.
 
 ## Świadomie poza pierwszym etapem
 
@@ -90,10 +113,18 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Znane usterki
 
+**Nic otwartego.** Wszystko zgłoszone z urządzenia jest naprawione; jedyna niewykreślona pozycja
+niżej opisuje zachowanie, które łatwo wziąć za usterkę, a nią nie jest.
+
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
-### Grafika tytułowa jest zrobiona pod ciemny motyw
+### ~~Grafika tytułowa jest zrobiona pod ciemny motyw~~ — naprawione 2026-08-28
+
+Naprawione przez Codexa w `71211a2` dokładnie w kierunku opisanym niżej: rozjaśnianie ku bieli
+zastąpione przesunięciem **od tła** (`oppositeInk`), więc jedna stała działa w obu motywach i nie
+walczy z wysokim kontrastem. Analiza zostaje, bo tłumaczy, dlaczego tryb wysokiego kontrastu
+wypadał *gorzej*, a nie lepiej.
 
 **Zgłoszone:** 2026-08-28 z urządzenia. W ciemnym motywie wygląda dobrze, w jasnym źle, a w trybie
 wysokiego kontrastu jeszcze gorzej.
@@ -222,6 +253,19 @@ czasów, czy tylko dla dziennej. Dla sumy wszech czasów zakres dzienny nie mia�
 
 Wszystkie odhaczone. `PLAY_CONSOLE.md` ma jeszcze osiem pozycji otwartych i wszystkie są prawdziwe:
 kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` przy wysyłce.
+
+## Gałęzie
+
+- **`master`** — `b1c0d29`, równy developowi, 0.31.0 (50). Aktualizowany rzadko, decyzją właściciela.
+- **`develop`** — gałąź główna, wszystko wchodzi tutaj i stąd wychodzi.
+- **`feature/hypothesis-tools`** — **odłożona**. Narzędzia do symulacji założeń; trzy podejścia
+  wróciły z urządzenia zepsute, model właściwy opisuje pozycja 14 w [WISHLIST.md](WISHLIST.md).
+  Jej migracja rości sobie prawo do wersji 5, którą zajęło archiwum plansz — przy wznowieniu trzeba
+  ją przenumerować.
+- **`feature/solved-board-history`** — **martwa**. Praca Codexa jest już na developie, przeniesiona
+  z przenumerowaniem migracji na 4→5. Worktree `/mnt/workspace/Kratkoza-codex` dalej na niej stoi i
+  musi się przestawić na developa, zanim ruszy dalej.
+- **`docs/full-code-review`**, **`measure/difficulty-ladder`** — stare, niescalone.
 
 ## Do zrobienia
 
