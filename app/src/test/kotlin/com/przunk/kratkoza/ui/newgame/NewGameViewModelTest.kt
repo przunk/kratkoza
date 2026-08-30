@@ -4,6 +4,7 @@ import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
@@ -44,6 +45,7 @@ class NewGameViewModelTest {
         dailyPuzzleDao = FakeDailyPuzzleDao(),
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
         generator = generator,
         computationDispatcher = dispatcher,
     )
@@ -84,6 +86,7 @@ class NewGameViewModelTest {
             dailyPuzzleDao = FakeDailyPuzzleDao(),
             savedGameDao = sourceSaves,
             historyDao = FakeGameHistoryDao(sourceSaves),
+            solvedBoardDao = FakeSolvedBoardDao(sourcePuzzles, sourceSaves),
             generator = SudokuGenerator(),
             computationDispatcher = dispatcher,
         )

@@ -13,10 +13,14 @@ import com.przunk.kratkoza.data.local.SavedGameDao
 import com.przunk.kratkoza.data.local.SavedGameEntity
 import com.przunk.kratkoza.data.local.InProgressCountRow
 import com.przunk.kratkoza.data.local.SavedGameSummaryRow
+import com.przunk.kratkoza.data.local.SolvedBoardDao
+import com.przunk.kratkoza.data.local.SolvedBoardEntity
+import com.przunk.kratkoza.data.local.SolvedBoardRow
 import com.przunk.kratkoza.domain.game.NO_HISTORY_ROW
 import com.przunk.kratkoza.domain.model.GameType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -117,6 +121,57 @@ class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
         current.values.maxByOrNull { it.lastPlayedAt }?.puzzleId
     }
 
+    fun observePuzzleIds(): Flow<Set<String>> = saves.map { it.keys }
+}
+
+/** In-memory archive with the same joined projections as [SolvedBoardDao]. */
+class FakeSolvedBoardDao(
+    private val puzzleDao: FakePuzzleDao,
+    private val savedGameDao: FakeSavedGameDao,
+) : SolvedBoardDao {
+    private val entries = MutableStateFlow<List<SolvedBoardEntity>>(emptyList())
+    private val writeLock = Any()
+
+    val all: List<SolvedBoardEntity> get() = entries.value
+
+    override suspend fun insert(entry: SolvedBoardEntity): Long = synchronized(writeLock) {
+        val id = (entries.value.maxOfOrNull { it.id } ?: 0L) + 1L
+        entries.value = entries.value + entry.copy(id = id)
+        id
+    }
+
+    override fun observeAll(): Flow<List<SolvedBoardRow>> =
+        combine(entries, savedGameDao.observePuzzleIds()) { archive, saves ->
+            archive.sortedWith(
+                compareByDescending<SolvedBoardEntity> { it.completedAt }
+                    .thenByDescending { it.id },
+            )
+                .mapNotNull { it.toRow(saves) }
+        }
+
+    override fun observeById(id: Long): Flow<SolvedBoardRow?> =
+        combine(entries, savedGameDao.observePuzzleIds()) { archive, saves ->
+            archive.firstOrNull { it.id == id }?.toRow(saves)
+        }
+
+    private fun SolvedBoardEntity.toRow(saves: Set<String>): SolvedBoardRow? {
+        val puzzle = puzzleDao.puzzles[puzzleId] ?: return null
+        return SolvedBoardRow(
+            id = id,
+            puzzleId = puzzleId,
+            completedAt = completedAt,
+            elapsedMillis = elapsedMillis,
+            mistakeCount = mistakeCount,
+            xpEarned = xpEarned,
+            score = score,
+            difficulty = puzzle.difficulty,
+            givens = puzzle.givens,
+            generatorVersion = puzzle.generatorVersion,
+            seed = puzzle.seed,
+            completionCount = entries.value.count { it.puzzleId == puzzleId },
+            inProgress = puzzleId in saves,
+        )
+    }
 }
 
 /**

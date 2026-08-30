@@ -13,8 +13,8 @@ import androidx.sqlite.execSQL
  *
  * Version 1 already carried the columns Daily and public ranking would need — game type, ranked
  * eligibility, score, XP, ruleset version. They were cheap to carry and expensive to retrofit: a
- * migration cannot invent the game type of a row written before the column existed. Version 2 adds
- * the one thing that could not be foreseen that way, the Daily calendar.
+ * migration cannot invent the game type of a row written before the column existed. Later versions
+ * add the Daily calendar, ranking eligibility, a versioned Daily key and the solved-board archive.
  */
 @Database(
     entities = [
@@ -22,8 +22,9 @@ import androidx.sqlite.execSQL
         SavedGameEntity::class,
         GameHistoryEntity::class,
         DailyPuzzleEntity::class,
+        SolvedBoardEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class KratkozaDatabase : RoomDatabase() {
@@ -35,6 +36,8 @@ abstract class KratkozaDatabase : RoomDatabase() {
     abstract fun savedGameDao(): SavedGameDao
 
     abstract fun gameHistoryDao(): GameHistoryDao
+
+    abstract fun solvedBoardDao(): SolvedBoardDao
 
     companion object {
         private const val NAME = "kratkoza.db"
@@ -124,7 +127,51 @@ abstract class KratkozaDatabase : RoomDatabase() {
             }
         }
 
-        fun migrations(): Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        /**
+         * Adds the solved-board archive and backfills successful Solo games already on the phone.
+         *
+         * The archive is deliberately separate from `game_history`: resetting statistics deletes
+         * that table, while the owner explicitly wants the visual record of solved boards to stay.
+         * Backfilling makes the first History screen truthful on upgrade rather than starting the
+         * player's past at the day this feature shipped.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `solved_boards` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`puzzleId` TEXT NOT NULL, " +
+                        "`completedAt` INTEGER NOT NULL, " +
+                        "`elapsedMillis` INTEGER NOT NULL, " +
+                        "`mistakeCount` INTEGER NOT NULL, " +
+                        "`xpEarned` INTEGER NOT NULL, " +
+                        "`score` INTEGER, " +
+                        "FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_solved_boards_puzzleId` " +
+                        "ON `solved_boards` (`puzzleId`)",
+                )
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_solved_boards_completedAt` " +
+                        "ON `solved_boards` (`completedAt`)",
+                )
+                connection.execSQL(
+                    "INSERT INTO `solved_boards` " +
+                        "(`puzzleId`, `completedAt`, `elapsedMillis`, `mistakeCount`, " +
+                        "`xpEarned`, `score`) " +
+                        "SELECT h.`puzzleId`, h.`finishedAt`, h.`elapsedMillis`, h.`mistakeCount`, " +
+                        "h.`xpEarned`, h.`score` FROM `game_history` h " +
+                        "JOIN `puzzles` p ON p.`puzzleId` = h.`puzzleId` " +
+                        "WHERE h.`gameType` = 'SOLO' AND h.`completed` = 1 " +
+                        "AND h.`finishedAt` IS NOT NULL",
+                )
+            }
+        }
+
+        fun migrations(): Array<Migration> =
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
         fun create(context: Context): KratkozaDatabase =
             Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, NAME)

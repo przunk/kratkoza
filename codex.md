@@ -1,74 +1,61 @@
-# Task: the title artwork in the light theme
+# Task: archive of solved Solo boards
 
-> The rules of collaboration — worktree, branches, conventions, who merges — are in
-> `codex_instructions.md`. Read that first. This file describes only the current task.
->
-> Code and git are written in English, commit messages included. Documents under `docs/` stay Polish.
+> Follow `codex_instructions.md`. This task was refined and approved by the owner on 2026-08-30.
 
-**Branch:** `fix/artwork-light-theme` from `develop`.
+**Branch:** `feature/solved-board-history`, rebased onto the current assumption-tools work so the
+two independently developed Room changes have a single migration sequence.
 
-**Files this task covers:**
-- `ui/home/RotatingBoardArt.kt` — where the scene picks its colours
-- `ui/theme/` — only if the fix belongs there rather than in the scene
+## Product contract
 
-I am not writing code while you do this, so the area is yours. Note that `ui/home/` also holds the
-wordmark and the motion; **the geometry and the timing are not part of this task** and should come
-out unchanged.
+- Archive every successfully completed `SOLO` game, including generated and imported/shared boards.
+- Never archive Daily games or unfinished attempts.
+- Keep one archive entry per successful completion. Replaying and completing the same `puzzleId`
+  creates another entry, and the UI reports how many times that board has been solved.
+- A statistics reset must preserve the archive. Archived entries are a read-only record and must not
+  affect statistics, XP, Daily eligibility, scores, or public rankings.
+- Show the initial board (`givens`), not the filled result, in the thumbnail and detail preview.
+- A history row shows the thumbnail, difficulty, completion date/time, elapsed time, mistakes, XP,
+  and completion count for that unique `puzzleId`.
+- Offer quick Share directly from the list.
+- Tapping a row opens a dedicated detail/preview screen.
+- The detail screen offers Share and an icon-led "Solve again" action. If the same puzzle already
+  has a save, the action becomes "Continue" and resumes it instead of replacing progress.
+- Open History from an icon-led button at the top of Statistics. Do not change the Home menu or the
+  placement/styling of Daily in this task.
+- Prefer icon plus short caption for actions. Do not introduce text-only action buttons where an
+  established icon-led pattern fits.
 
----
+## Storage design
 
-## The report
+- Add a dedicated Room archive table with its own generated completion id and a foreign key to
+  `puzzles`.
+- Store immutable completion metadata: `puzzleId`, completion timestamp, elapsed time, mistakes,
+  XP, and optional score for forward compatibility.
+- Keep assumption tools as schema 5, then add a 5→6 migration that creates the table and backfills
+  existing completed `SOLO` rows from `game_history` whose `finishedAt` is present.
+- Statistics reset continues to clear `game_history`; it never touches the archive table.
+- Archive insertion happens only on a successful Solo completion.
 
-From the owner, on a device: the artwork looks good in the dark theme, bad in the light one, and
-**worse again in high contrast**.
+## Files in scope
 
-## The cause, which is already found
-
-The scene lightens all three of its colours **towards white**:
-
-```kotlin
-val digitColor = lerp(colors.enteredDigit, Color.White, DIGIT_COLOR_LIFT)   // 0.62
-val gridColor  = lerp(colors.blockLine,    Color.White, GRID_COLOR_LIFT)    // 0.48
-val boardColor = lerp(background,          Color.White, BOARD_BACKGROUND_LIFT) // 0.13
-```
-
-Against a dark background that moves them away from it and the scene glows. Against a light one it
-does the opposite — it pushes everything **towards** the background and washes the contrast out. The
-constant has one sign and the problem has two directions.
-
-**That also explains why high contrast comes out worse rather than better.** That mode exists to widen
-separation; a lift towards white pulls it back. The harder the mode works, the harder the scene works
-against it.
-
-## The direction, not the answer
-
-Displace **from the background** rather than towards white: in a light theme towards black, in a dark
-one towards white. One constant then means "how far from the background" and holds in both themes and
-in high contrast, instead of meaning "how much whiter".
-
-Whether that belongs in the scene or in `BoardColors` is yours to judge — you have just been through
-those files for the palette work and are better placed than I am to say.
-
-## What to be careful of
-
-**Your own high-contrast work is in here.** You separated the palette tiers at distances visible on a
-device; make sure a scene that now displaces from the background does not overshoot in that mode and
-turn the artwork into hard poster colours.
-
-**The three lift constants were tuned by eye against a dark theme.** Reused as displacement distances
-they will not mean the same thing. Expect to re-choose them rather than reinterpret them.
-
-**No machine can tell you whether this worked.** There is no assertion for "looks right"; the owner
-judges it on a device, in both themes and in high contrast. Say plainly in the commit that you could
-not check the appearance, and what you would want looked at.
+- `codex.md`
+- `app/src/main/kotlin/com/przunk/kratkoza/data/local/`
+- `app/src/main/kotlin/com/przunk/kratkoza/data/repository/GameRepository.kt`
+- `app/src/main/kotlin/com/przunk/kratkoza/di/AppContainer.kt`
+- `app/src/main/kotlin/com/przunk/kratkoza/domain/game/`
+- `app/src/main/kotlin/com/przunk/kratkoza/navigation/`
+- `app/src/main/kotlin/com/przunk/kratkoza/ui/history/` (new)
+- `app/src/main/kotlin/com/przunk/kratkoza/ui/statistics/`
+- `app/src/main/res/drawable/` for local vector icons
+- `app/src/main/res/values*/strings.xml`
+- focused tests and exported Room schemas required by the change
 
 ## Verification
 
-```bash
-./scripts/test-kratkoza.sh
-./scripts/lint-kratkoza.sh
-```
-
-Then build a debug APK and hand it over. The store screenshots regenerate on every test run, so a
-change to the artwork's colours will show up as modified files in `store/screenshots/` — commit them
-with the change rather than leaving the assets disagreeing with the app.
+- Focused domain/repository/DAO/migration/ViewModel/Compose tests while implementing.
+- `scripts/test-kratkoza.sh`
+- `scripts/lint-kratkoza.sh`
+- `scripts/build-kratkoza-release.sh`
+- Copy the final APK to `/mnt/workspace/Kratkoza/dist/`.
+- Device verification remains the owner's responsibility; explicitly call out the History list,
+  detail layout, icons, Share chooser, and Solve again/Continue behavior for manual review.

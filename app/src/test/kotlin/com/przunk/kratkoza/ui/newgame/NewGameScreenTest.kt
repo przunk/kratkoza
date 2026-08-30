@@ -17,6 +17,7 @@ import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.share.BoardCode
@@ -60,6 +61,7 @@ class NewGameScreenTest {
                 dailyPuzzleDao = FakeDailyPuzzleDao(),
                 savedGameDao = savedGameDao,
                 historyDao = FakeGameHistoryDao(savedGameDao),
+                solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
                 generator = SudokuGenerator(),
                 computationDispatcher = dispatcher,
             ),

@@ -7,6 +7,7 @@ import com.przunk.kratkoza.data.FakeDailyPuzzleDao
 import com.przunk.kratkoza.data.FakeGameHistoryDao
 import com.przunk.kratkoza.data.FakePuzzleDao
 import com.przunk.kratkoza.data.FakeSavedGameDao
+import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
 import com.przunk.kratkoza.data.repository.toEntity
@@ -71,6 +72,7 @@ class StoreScreenshotsTest {
         dailyPuzzleDao = dailyPuzzleDao,
         savedGameDao = savedGameDao,
         historyDao = historyDao,
+        solvedBoardDao = FakeSolvedBoardDao(puzzleDao, savedGameDao),
         generator = SudokuGenerator(),
         computationDispatcher = dispatcher,
     )
@@ -131,6 +133,7 @@ class StoreScreenshotsTest {
                 KratkozaTheme(themeMode = theme) {
                     StatisticsScreen(
                         viewModel = statistics,
+                        onOpenHistory = {},
                         onNavigateBack = {},
                         modifier = Modifier,
                     )
