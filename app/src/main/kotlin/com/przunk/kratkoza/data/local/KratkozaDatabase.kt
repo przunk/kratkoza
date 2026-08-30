@@ -173,9 +173,22 @@ abstract class KratkozaDatabase : RoomDatabase() {
         fun migrations(): Array<Migration> =
             arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
-        fun create(context: Context): KratkozaDatabase =
-            Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, NAME)
+        /**
+         * [name] is a parameter so tests open the database exactly as the app does. A configuration
+         * that only production uses is a configuration nothing checks.
+         *
+         * Going *down* a version wipes the database rather than refusing to open it. Room's default
+         * there is to throw, and it throws on every launch for ever, so the player is left with an
+         * app that cannot start until they clear its data by hand — which loses the same games the
+         * wipe would, and leaves them to work out why. Play never installs an older build over a
+         * newer one, so this is reached only by sideloading, which is what testing this app is made
+         * of; it happened here when a build from an abandoned branch left a phone holding a schema
+         * numbered above anything that would ever ship.
+         */
+        fun create(context: Context, name: String = NAME): KratkozaDatabase =
+            Room.databaseBuilder(context.applicationContext, KratkozaDatabase::class.java, name)
                 .addMigrations(*migrations())
+                .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
                 .build()
     }
 }
