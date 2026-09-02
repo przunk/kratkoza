@@ -78,6 +78,9 @@ class GameViewModel(
     /** Play time banked before the current run; the clock is the sum of this and the current run. */
     private var bankedMillis: Long = 0
 
+    /** End of this board's Daily cycle, or `null` when the game is not currently ranked. */
+    private var rankingDeadlineMillis: Long? = null
+
     private var ticker: Job? = null
 
     init {
@@ -104,12 +107,19 @@ class GameViewModel(
 
         game = loaded
         bankedMillis = loaded.elapsedMillis
+        val rankingExpired = if (loaded.rankedEligible) {
+            rankingDeadlineMillis = gameRepository.dailyRankingDeadline(puzzleId)
+            expireRankingIfNeeded(clock())
+        } else {
+            false
+        }
         // The clock starts before the first render, not after it. `isPaused` is derived from
         // whether the clock is running, so rendering first would raise the pause cover over a game
         // that is in fact running, and nothing would take it down until the player touched
         // something.
         if (!loaded.state.isSolved) resumeClock()
         render(loaded.state)
+        if (rankingExpired) snapshot()?.let { gameRepository.save(it) }
     }
 
     fun selectCell(index: Int) {
@@ -212,20 +222,6 @@ class GameViewModel(
         apply(GameEngine.clearAllCandidates(state))
     }
 
-    /**
-     * Takes a game out of the ranking for good, banking the time it had run up.
-     *
-     * Kept for actions whose contract permits forfeiting an active ranking. A reveal deliberately
-     * does not call it: project.md section 18 forbids revealing while the game still counts rather
-     * than offering the reveal as a way to opt out.
-     */
-    private fun loseRanking() {
-        val current = game?.takeIf { it.rankedEligible } ?: return
-        bankedMillis = elapsedMillis()
-        runningSince = clock()
-        game = current.copy(rankedEligible = false)
-    }
-
     /** The pause button (project.md section 20). */
     fun setPaused(paused: Boolean) {
         if (_uiState.value.phase == GameUiState.Phase.SOLVED) return
@@ -278,6 +274,7 @@ class GameViewModel(
 
     /** Applies a move: renders it, banks the clock and writes the save (project.md section 21). */
     private fun apply(state: GameState) {
+        expireRankingIfNeeded(clock())
         val current = game ?: return
         if (state === current.state) return
 
@@ -353,10 +350,14 @@ class GameViewModel(
     }
 
     /** The game with the clock read at this instant, ready to be stored. */
-    private fun snapshot(): SavedGame? = game?.copy(
-        elapsedMillis = elapsedMillis(),
-        lastPlayedAt = clock(),
-    )
+    private fun snapshot(): SavedGame? {
+        val now = clock()
+        expireRankingIfNeeded(now)
+        return game?.copy(
+            elapsedMillis = elapsedMillisAt(now),
+            lastPlayedAt = now,
+        )
+    }
 
     /**
      * How long this game has been going.
@@ -368,12 +369,39 @@ class GameViewModel(
      *
      * Everything else accumulates the usual way, banking time whenever the clock stops.
      */
-    private fun elapsedMillis(): Long {
+    private fun elapsedMillis(): Long = elapsedMillisAt(clock())
+
+    private fun elapsedMillisAt(now: Long): Long {
         val current = game
         if (current != null && current.rankedEligible) {
-            return (clock() - current.startedAt).coerceAtLeast(0)
+            return (now - current.startedAt).coerceAtLeast(0)
         }
-        return bankedMillis + (runningSince?.let { clock() - it } ?: 0)
+        return bankedMillis + (runningSince?.let { now - it } ?: 0)
+    }
+
+    /**
+     * Converts an expired Daily into an ordinary game without losing or inventing play time.
+     *
+     * If the screen was open at the boundary, ordinary play continues from that exact instant. If
+     * the process was absent, only time up to the boundary is banked and the ordinary clock starts
+     * on resume — once ranking is gone, background time should no longer count as play time.
+     * Missing Daily metadata fails closed: an attempt with no provable deadline cannot be ranked.
+     */
+    private fun expireRankingIfNeeded(now: Long): Boolean {
+        val current = game?.takeIf { it.rankedEligible } ?: return false
+        val deadline = rankingDeadlineMillis
+        if (deadline != null && now < deadline) return false
+
+        val wasRunning = runningSince != null
+        val rankedUntil = deadline?.coerceAtMost(now) ?: now
+        bankedMillis = maxOf(
+            bankedMillis,
+            (rankedUntil - current.startedAt).coerceAtLeast(0),
+        )
+        runningSince = if (wasRunning) rankedUntil else null
+        rankingDeadlineMillis = null
+        game = current.copy(rankedEligible = false)
+        return true
     }
 
     private fun resumeClock() {
@@ -383,7 +411,12 @@ class GameViewModel(
         ticker = viewModelScope.launch {
             while (isActive) {
                 delay(TICK_MILLIS)
-                _uiState.value = _uiState.value.copy(elapsedMillis = elapsedMillis())
+                if (expireRankingIfNeeded(clock())) {
+                    game?.let { render(it.state) }
+                    persist()
+                } else {
+                    _uiState.value = _uiState.value.copy(elapsedMillis = elapsedMillis())
+                }
             }
         }
     }

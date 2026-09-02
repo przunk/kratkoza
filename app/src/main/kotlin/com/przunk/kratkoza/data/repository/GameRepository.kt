@@ -20,6 +20,7 @@ import com.przunk.kratkoza.data.local.SolvedBoardRow
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailyTotals
 import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.daily.DailyScore
 import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.game.CandidateGrid
@@ -214,6 +215,18 @@ class GameRepository(
             null
         }
     }
+
+    /**
+     * The instant after which this Daily can no longer produce a ranked result.
+     *
+     * The date comes from the persisted Daily mapping rather than from `now`: after the changeover
+     * the current date describes the new board, not the saved board the player is resuming.
+     */
+    suspend fun dailyRankingDeadline(puzzleId: String): Long? =
+        dailyPuzzleDao.dateOfPuzzle(puzzleId)
+            ?.let(LocalDate::parse)
+            ?.let(DailySchedule::endOf)
+            ?.toEpochMilli()
 
     /**
      * Closes a game out: records the result and drops the save.

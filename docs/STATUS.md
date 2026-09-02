@@ -47,9 +47,10 @@ działają na urządzeniu; 393 testy, lint czysty.
 ### Daily
 - [x] Jedna plansza dzienna na poziom, deterministyczna z daty i `RULESET_VERSION`
 - [x] Trzy poziomy: Łatwy, Trudny, Ekspert — drabinka wyrównana pomiarem stu plansz na poziom
-- [x] Zmiana dnia o 08:00 czasu warszawskiego, jedno podejście do planszy
+- [x] Zmiana dnia o 07:00 UTC (08:00/09:00 w Warszawie), jedno podejście do planszy
 - [x] Punktacja addytywna: stała za rozwiązanie plus premia za czas, kara mnożnikowa za błędy (§29)
-- [x] Kwalifikacja rankingowa — utrata przy podpowiedzi, zachowana przy minimalizacji (§28)
+- [x] Kwalifikacja rankingowa — zachowana przy minimalizacji, wygasa razem z cyklem planszy
+- [x] Wygasłe Daily pozostaje grywalne jako nierankingowe i odzyskuje zwykłe funkcje pomocy
 
 ### Ranking publiczny
 - [x] Play Games Services v2: logowanie, nakładka z tablicami, wysyłanie wyników

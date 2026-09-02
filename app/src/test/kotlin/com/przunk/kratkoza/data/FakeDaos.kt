@@ -60,6 +60,9 @@ class FakeDailyPuzzleDao : DailyPuzzleDao {
     override suspend fun dateOf(puzzleId: String, rulesetVersion: Int): String? =
         rows.values.firstOrNull { it.puzzleId == puzzleId && it.rulesetVersion == rulesetVersion }?.date
 
+    override suspend fun dateOfPuzzle(puzzleId: String): String? =
+        rows.values.filter { it.puzzleId == puzzleId }.maxByOrNull { it.rulesetVersion }?.date
+
 }
 
 class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {

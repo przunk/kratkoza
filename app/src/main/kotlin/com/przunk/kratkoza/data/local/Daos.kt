@@ -32,6 +32,18 @@ interface DailyPuzzleDao {
         "SELECT date FROM daily_puzzles WHERE puzzleId = :puzzleId AND rulesetVersion = :rulesetVersion LIMIT 1",
     )
     suspend fun dateOf(puzzleId: String, rulesetVersion: Int): String?
+
+    /**
+     * The cycle a saved Daily belongs to, including boards made by an older recipe.
+     *
+     * A save can outlive an app update that bumps the ruleset. Filtering by today's version would
+     * then make its ranking deadline disappear and let the stale attempt remain eligible forever.
+     */
+    @Query(
+        "SELECT date FROM daily_puzzles WHERE puzzleId = :puzzleId " +
+            "ORDER BY rulesetVersion DESC LIMIT 1",
+    )
+    suspend fun dateOfPuzzle(puzzleId: String): String?
 }
 
 @Dao

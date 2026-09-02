@@ -204,8 +204,9 @@ cyfrą. Chroniłoby to gracza przed przypadkowym zamienieniem poprawnego ruchu n
 
 ## 8. Co odbiera Daily kwalifikację do rankingu
 
-**Stan: 🟢 ustalone 2026-08-26.** Minimalizacja aplikacji **nie** odbiera kwalifikacji. Zegar biegnie
-dalej, także gdy aplikacja jest w tle albo została ubita.
+**Stan: 🟢 ustalone 2026-09-02.** Minimalizacja aplikacji **nie** odbiera kwalifikacji. Zegar biegnie
+dalej, także gdy aplikacja jest w tle albo została ubita. Kwalifikacja wygasa natomiast wraz z
+cyklem konkretnej planszy, przy następnej zmianie Daily o 07:00 UTC.
 
 **To jest odstępstwo od `project.md` §28**, który wymienia minimalizację, przejście w tło,
 zablokowanie ekranu i przerwanie gry jako zdarzenia odbierające kwalifikację.
@@ -221,10 +222,11 @@ planszy. Licznik wewnątrz aplikacji zatrzymuje się razem z aplikacją, więc g
 na godzinę, wróciłby z godziną darmowego namysłu. Arytmetyki na zegarze ściennym nie da się w ten
 sposób obejść, a przy braku pauzy nie ma czego odejmować.
 
-**Co nadal odbiera kwalifikację:** nic — na razie. Uzgodnione, że odbierze ją **użycie podpowiedzi**,
-gdy powstanie (patrz „Podpowiedź dla gracza" w [STATUS.md](STATUS.md)). Metoda `loseRanking`
-w `GameViewModel` już istnieje i przełącza liczenie czasu na zwykłe, żeby w tym momencie licznik
-nie skoczył wstecz.
+**Co odbiera kwalifikację:** koniec cyklu planszy. Gra pozostaje dostępna, ale od tej chwili jest
+zwykłą rozgrywką nierankingową. Czas naliczony przed granicą nie znika, natomiast po konwersji
+zaczynają obowiązywać zwykłe zasady pauzy. Podpowiedź nie jest sposobem rezygnacji z rankingu:
+w grze nadal kwalifikującej się do rankingu przycisk nie istnieje i wywołanie jest odrzucane także
+przez `GameViewModel`; pojawia się dopiero po wygaśnięciu cyklu.
 
 **Czego to nie broni.** Gracz nadal może zrobić zrzut planszy i rozwiązać ją gdzie indziej — ale
 zegar przez ten czas biegnie, więc nic na tym nie zyskuje. `project.md` §31 uznaje wprost, że
