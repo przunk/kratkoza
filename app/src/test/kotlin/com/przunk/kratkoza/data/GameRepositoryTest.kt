@@ -102,13 +102,14 @@ class GameRepositoryTest {
         state = GameEngine.toggleCandidate(state, other, 5)
         state = GameEngine.toggleCandidate(state, other, 9)
 
-        repository.save(game.copy(state = state, elapsedMillis = 61_000))
+        repository.save(game.copy(state = state, elapsedMillis = 61_000, hintCount = 2))
 
         val restored = requireNotNull(repository.loadGame(game.state.puzzle.id))
         assertEquals(state.board, restored.state.board)
         assertEquals(state.candidates, restored.state.candidates)
         assertEquals(state.undoStack, restored.state.undoStack)
         assertEquals(1, restored.state.mistakeCount)
+        assertEquals(2, restored.hintCount)
         assertEquals(61_000, restored.elapsedMillis)
         assertEquals(game.historyId, restored.historyId)
     }
@@ -156,7 +157,7 @@ class GameRepositoryTest {
         now = 95_000
 
         repository.finishGame(
-            game.copy(state = state, elapsedMillis = 90_000),
+            game.copy(state = state, elapsedMillis = 90_000, hintCount = 3),
             completed = true,
         )
 
@@ -167,8 +168,10 @@ class GameRepositoryTest {
         assertEquals(95_000L, archived.completedAt)
         assertEquals(90_000L, archived.elapsedMillis)
         assertEquals(1, archived.mistakeCount)
+        assertEquals(3, archived.hintCount)
         assertEquals(PlayerProgress.xpForCompleting(Difficulty.HARD), archived.xpEarned)
         assertEquals(1, archived.completionCount)
+        assertEquals(3, historyDao.all.single().hintCount)
     }
 
     @Test

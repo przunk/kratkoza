@@ -123,6 +123,9 @@ class StatisticsScreenTest {
         scrollToText(inProgress)
         compose.onAllNodesWithText(inProgress).assertCountEquals(1)
 
+        scrollToText(context.getString(R.string.statistics_total_hints))
+        assertStatRow(R.string.statistics_total_hints, NumberFormat.getIntegerInstance().format(4))
+
         val reset = context.getString(R.string.statistics_reset)
         scrollToText(reset)
         compose.onNodeWithText(reset).performClick()
@@ -160,10 +163,10 @@ class StatisticsScreenTest {
             hasText(context.getString(Difficulty.EASY.labelRes())) and
                 hasText(NumberFormat.getIntegerInstance().format(2)),
         ).assertIsDisplayed()
-        compose.onNode(
-            hasText(context.getString(Difficulty.HARD.labelRes())) and
-                hasText(NumberFormat.getIntegerInstance().format(1)),
-        ).assertIsDisplayed()
+        val hardDaily = hasText(context.getString(Difficulty.HARD.labelRes())) and
+            hasText(NumberFormat.getIntegerInstance().format(1))
+        compose.onNode(hasScrollAction()).performScrollToNode(hardDaily)
+        compose.onNode(hardDaily).assertIsDisplayed()
 
         scrollToText(context.getString(R.string.statistics_daily_total_score))
         assertStatRow(R.string.statistics_daily_total_score, NumberFormat.getIntegerInstance().format(5_000))
@@ -223,6 +226,7 @@ class StatisticsScreenTest {
                 finishedAt = 61_000,
                 elapsedMillis = 60_000,
                 mistakeCount = 2,
+                hintCount = 4,
                 completed = true,
                 score = null,
                 xpEarned = totalXp,
@@ -258,6 +262,7 @@ class StatisticsScreenTest {
                 candidates = "",
                 undoHistory = "",
                 mistakeCount = 0,
+                hintCount = 0,
                 rankedEligible = false,
             ),
         )
@@ -278,6 +283,7 @@ class StatisticsScreenTest {
                 finishedAt = 61_000,
                 elapsedMillis = 60_000,
                 mistakeCount = 1,
+                hintCount = 0,
                 completed = true,
                 score = score,
                 xpEarned = 0,

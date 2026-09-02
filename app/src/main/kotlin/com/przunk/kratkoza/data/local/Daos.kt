@@ -126,6 +126,7 @@ interface SolvedBoardDao {
                a.completedAt AS completedAt,
                a.elapsedMillis AS elapsedMillis,
                a.mistakeCount AS mistakeCount,
+               a.hintCount AS hintCount,
                a.xpEarned AS xpEarned,
                a.score AS score,
                p.difficulty AS difficulty,
@@ -150,6 +151,7 @@ interface SolvedBoardDao {
                a.completedAt AS completedAt,
                a.elapsedMillis AS elapsedMillis,
                a.mistakeCount AS mistakeCount,
+               a.hintCount AS hintCount,
                a.xpEarned AS xpEarned,
                a.score AS score,
                p.difficulty AS difficulty,
@@ -180,6 +182,7 @@ abstract class GameHistoryDao {
         SET finishedAt = :finishedAt,
             elapsedMillis = :elapsedMillis,
             mistakeCount = :mistakeCount,
+            hintCount = :hintCount,
             completed = :completed,
             xpEarned = :xpEarned,
             rankedEligible = :rankedEligible,
@@ -192,6 +195,7 @@ abstract class GameHistoryDao {
         finishedAt: Long,
         elapsedMillis: Long,
         mistakeCount: Int,
+        hintCount: Int,
         completed: Boolean,
         xpEarned: Int,
         rankedEligible: Boolean,
@@ -269,6 +273,10 @@ abstract class GameHistoryDao {
 
     @Query("SELECT COALESCE(SUM(mistakeCount), 0) FROM game_history WHERE completed")
     abstract fun observeTotalMistakes(): Flow<Int>
+
+    /** Explicit reveals used in completed games; unfinished attempts have no final result yet. */
+    @Query("SELECT COALESCE(SUM(hintCount), 0) FROM game_history WHERE completed")
+    abstract fun observeTotalHints(): Flow<Int>
 
     /**
      * Every XP the player has earned (project.md section 32).
@@ -363,6 +371,7 @@ data class SolvedBoardRow(
     val completedAt: Long,
     val elapsedMillis: Long,
     val mistakeCount: Int,
+    val hintCount: Int,
     val xpEarned: Int,
     val score: Int?,
     val difficulty: String,

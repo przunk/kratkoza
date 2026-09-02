@@ -224,10 +224,17 @@ class GameViewModelTest {
         assertEquals(0, state.mistakeCount)
         assertFalse(state.canUndo)
         assertFalse(state.rankedEligible)
+        assertEquals(1, state.hintCount)
         assertEquals(
             game.state.puzzle.solution[cell],
             repository.loadGame(game.state.puzzle.id)?.state?.board?.get(cell),
         )
+        assertEquals(1, repository.loadGame(game.state.puzzle.id)?.hintCount)
+
+        // The already-filled cell is a no-op, so another direct call is not another used hint.
+        viewModel.revealDigit()
+        idle()
+        assertEquals(1, repository.loadGame(game.state.puzzle.id)?.hintCount)
     }
 
     @Test
@@ -607,6 +614,7 @@ class GameViewModelTest {
 
         assertTrue(viewModel.uiState.value.board.isEmpty(cell))
         assertTrue(viewModel.uiState.value.rankedEligible)
+        assertEquals(0, requireNotNull(repository.loadGame(daily.state.puzzle.id)).hintCount)
     }
 
     @Test

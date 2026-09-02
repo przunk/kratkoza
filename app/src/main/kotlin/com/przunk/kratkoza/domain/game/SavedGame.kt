@@ -18,6 +18,8 @@ data class SavedGame(
     val lastPlayedAt: Long,
     /** Time actually played, pauses excluded (project.md section 20). */
     val elapsedMillis: Long,
+    /** Successful explicit reveals. Monotonic: undoing board moves never erases assistance used. */
+    val hintCount: Int,
     /** The record row this game belongs to, or [NO_HISTORY_ROW] after the record was reset. */
     val historyId: Long,
     /** project.md section 28. Always false while only solo games exist. */

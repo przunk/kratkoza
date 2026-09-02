@@ -96,6 +96,7 @@ class GameRepository(
             startedAt = now,
             lastPlayedAt = now,
             elapsedMillis = 0,
+            hintCount = 0,
             historyId = historyId,
             // project.md section 24: solo games have no public leaderboard. Only a Daily starts
             // eligible, and section 28 can take that away.
@@ -180,6 +181,7 @@ class GameRepository(
                 candidates = game.state.candidates.toStorageString(),
                 undoHistory = MoveHistoryCodec.encode(game.state.undoStack),
                 mistakeCount = game.state.mistakeCount,
+                hintCount = game.hintCount,
                 rankedEligible = game.rankedEligible,
             ),
         )
@@ -208,6 +210,7 @@ class GameRepository(
                 startedAt = save.startedAt,
                 lastPlayedAt = save.lastPlayedAt,
                 elapsedMillis = save.elapsedMillis,
+                hintCount = save.hintCount,
                 historyId = save.historyId,
                 rankedEligible = save.rankedEligible,
             )
@@ -266,6 +269,7 @@ class GameRepository(
                     finishedAt = now,
                     elapsedMillis = game.elapsedMillis,
                     mistakeCount = game.state.mistakeCount,
+                    hintCount = game.hintCount,
                     completed = completed,
                     xpEarned = xp,
                     rankedEligible = game.rankedEligible,
@@ -278,6 +282,7 @@ class GameRepository(
                 finishedAt = now,
                 elapsedMillis = game.elapsedMillis,
                 mistakeCount = game.state.mistakeCount,
+                hintCount = game.hintCount,
                 completed = completed,
                 xpEarned = xp,
                 rankedEligible = game.rankedEligible,
@@ -297,6 +302,7 @@ class GameRepository(
                     completedAt = now,
                     elapsedMillis = game.elapsedMillis,
                     mistakeCount = game.state.mistakeCount,
+                    hintCount = game.hintCount,
                     xpEarned = xp,
                     score = score,
                 ),
@@ -378,6 +384,7 @@ private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
     finishedAt = null,
     elapsedMillis = 0,
     mistakeCount = 0,
+    hintCount = 0,
     completed = false,
     score = null,
     xpEarned = 0,
@@ -440,6 +447,7 @@ private fun SolvedBoardRow.toSolvedBoard(): SolvedBoard? = try {
         completedAt = completedAt,
         elapsedMillis = elapsedMillis,
         mistakeCount = mistakeCount,
+        hintCount = hintCount,
         xpEarned = xpEarned,
         score = score,
         completionCount = completionCount,

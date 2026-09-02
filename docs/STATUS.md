@@ -1,7 +1,7 @@
 # Kratkoza — stan realizacji
 
 **Wersja 0.31.0 (50), na Play w kanale wewnętrznym.** Gra solo i Daily z publicznym rankingiem
-działają na urządzeniu; 393 testy, lint czysty.
+działają na urządzeniu; 398 testów, lint czysty.
 
 ## Gotowe
 
@@ -261,11 +261,9 @@ kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` prz
 - **`develop`** — gałąź główna, wszystko wchodzi tutaj i stąd wychodzi.
 - **`feature/hypothesis-tools`** — **odłożona**. Narzędzia do symulacji założeń; trzy podejścia
   wróciły z urządzenia zepsute, model właściwy opisuje pozycja 14 w [WISHLIST.md](WISHLIST.md).
-  Jej migracja rości sobie prawo do wersji 5, którą zajęło archiwum plansz — przy wznowieniu trzeba
-  ją przenumerować.
-- **`feature/solved-board-history`** — **martwa**. Praca Codexa jest już na developie, przeniesiona
-  z przenumerowaniem migracji na 4→5. Worktree `/mnt/workspace/Kratkoza-codex` dalej na niej stoi i
-  musi się przestawić na developa, zanim ruszy dalej.
+  Jej porzucony schemat 6 nie może już wrócić pod tym numerem; oficjalna migracja 6→7 służy wyłącznie
+  odzyskaniu telefonów, które zdążyły go uruchomić.
+- **`feature/daily-expiry-and-hint-tracking`** — bieżące zadanie Codexa, odbite od `develop`.
 - **`docs/full-code-review`**, **`measure/difficulty-ladder`** — stare, niescalone.
 
 ## Do zrobienia
@@ -397,23 +395,23 @@ Rozszerzyć statystyki o liczbę nieukończonych gier na każdym poziomie trudno
 w jakim stopniu są wypełnione. Trzeba najpierw ustalić, czy „stopień ukończenia” oznacza odsetek
 poprawnie wypełnionych pól, wszystkich wypełnionych pól, czy inną miarę postępu.
 
-### ~~Podpowiedź dla gracza~~ — zrobione 2026-08-29
+### ~~Podpowiedź dla gracza i licznik użyć~~ — zrobione 2026-09-02
 
 **Zgłoszone:** 2026-08-26. `project.md` §18 zostawia tę funkcję do ustalenia.
 
-Podpowiedź wstawia **następną poprawną cyfrę w wolne pole**. Limit 1–3 użyć na partię — dokładna
-liczba do ustalenia.
+Podpowiedź wstawia poprawną cyfrę w zaznaczone wolne pole. Każde skuteczne odsłonięcie zwiększa
+licznik próby; kliknięcie bez zaznaczenia, na wypełnionym polu albo w grze rankingowej nie jest
+liczone. Licznik przeżywa ponowne uruchomienie, nie cofa się z Undo i trafia do historii gry oraz
+trwałego archiwum rozwiązanych plansz Solo. Bieżąca wartość jest widoczna przy pustej żarówce na
+ekranie gry, archiwum pokazuje ją na liście i w szczegółach, a Statystyki sumują ją dla ukończonych
+gier.
 
-Ustalone przy okazji decyzji o kwalifikacji rankingowej (patrz [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)
-§8): **użycie podpowiedzi odbiera Daily kwalifikację do rankingu** albo zabiera punkty — to jedyne
-zdarzenie, które ma to robić, skoro minimalizacja już tego nie robi. `GameViewModel.loseRanking()`
-czeka gotowa na wywołanie i przełącza liczenie czasu z zegara ściennego na zwykły, żeby licznik nie
-skoczył wstecz.
+Gra rankingowa nie oferuje podpowiedzi i `GameViewModel` odrzuca również bezpośrednie wywołanie.
+Po końcu cyklu Daily staje się nierankingowe i odzyskuje tę funkcję.
 
-Do ustalenia poza liczbą użyć:
+Nadal do ustalenia:
 
-- czy podpowiedź odbiera kwalifikację, czy tylko obniża wynik (§29 ma już karę mnożnikową za błędy),
-- czy w grze solo działa bez ograniczeń (§18 dopuszcza),
+- czy w grze solo wprowadzić limit użyć (§18 dopuszcza 1–3; obecnie limitu nie ma),
 - czy pole wstawione podpowiedzią jest oznaczone i czy liczy się do XP.
 
 ### ~~Wymiana tablic wyników i reużywalność modułu rankingu~~ — zrobione 2026-08-28

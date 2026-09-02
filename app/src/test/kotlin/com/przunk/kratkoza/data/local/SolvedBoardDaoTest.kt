@@ -71,6 +71,7 @@ private fun solvedBoardEntity(puzzleId: String, completedAt: Long) = SolvedBoard
     completedAt = completedAt,
     elapsedMillis = 60_000,
     mistakeCount = 1,
+    hintCount = 2,
     xpEarned = 40,
     score = null,
 )

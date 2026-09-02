@@ -17,15 +17,19 @@
 - Licznik podpowiedzi zwiększa się tylko wtedy, gdy podpowiedź faktycznie odsłoni cyfrę. Próba bez
   zaznaczenia, na pełnym polu albo w grze rankingowej nie zmienia licznika.
 - Licznik jest częścią aktywnego zapisu, wyniku w `game_history` i trwałego archiwum ukończonych
-  plansz Solo. Jest widoczny w historii plansz.
+  plansz Solo. Jest widoczny podczas gry, w historii plansz i jako suma ukończonych gier w
+  Statystykach.
 - Cofnięcie nie zmniejsza licznika podpowiedzi, a restart aplikacji go nie zeruje.
 
 ## Dane
 
-- Rezerwacja wersji Room: **6**.
-- Migracja 5→6 dodaje `hintCount INTEGER NOT NULL DEFAULT 0` do `saved_games`, `game_history` i
+- Rezerwacja wersji Room: **7**. Numer 6 miał inny porzucony build, który trafił na telefon testowy;
+  ponowne użycie numeru z innym schematem powodowałoby awarię Room przed migracją.
+- Migracja 5→7 dodaje `hintCount INTEGER NOT NULL DEFAULT 0` do `saved_games`, `game_history` i
   `solved_boards` bez usuwania danych.
-- Wyeksportowany schemat 6 trafia do repozytorium.
+- Migracja 6→7 zachowuje wspierane dane z porzuconego schematu i usuwa wyłącznie jego nieużywane
+  pola narzędzi hipotez.
+- Wyeksportowany schemat 7 trafia do repozytorium.
 - Migracja ma test na prawdziwym SQLite z danymi wersji 5.
 
 ## Etapy i weryfikacja

@@ -17,6 +17,7 @@ data class Statistics(
     val startedCount: Int,
     val completedCount: Int,
     val totalMistakes: Int,
+    val totalHints: Int,
     /** Experience and level (project.md section 32). */
     val progress: Progress,
     val perDifficulty: List<DifficultyStatistics>,
@@ -36,6 +37,7 @@ data class Statistics(
             startedCount = 0,
             completedCount = 0,
             totalMistakes = 0,
+            totalHints = 0,
             progress = Progress.NONE,
             perDifficulty = emptyList(),
             daily = null,

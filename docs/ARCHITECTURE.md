@@ -85,11 +85,13 @@ Uzasadnienie, pomiary i warianty do dalszej decyzji: [OPEN_QUESTIONS.md](OPEN_QU
 
 ## 5. Trwałość
 
-Room trzyma trzy tabele:
+Room trzyma pięć tabel:
 
 - `puzzles` — plansza raz zapisana, wskazywana przez resztę
 - `saved_games` — jedna gra w toku na planszę
 - `game_history` — jeden wiersz na rozegraną grę
+- `daily_puzzles` — data, poziom i wersja przepisu przypisane do konkretnej planszy Daily
+- `solved_boards` — trwałe archiwum ukończonych plansz Solo, niezależne od resetu statystyk
 
 Wiersz historii powstaje przy **starcie** gry. Inaczej `project.md` §33 („liczba rozpoczętych gier",
 „procent ukończeń") nie ma czego liczyć. Ukończenie zamyka wiersz i kasuje save; porzucenie kasuje
@@ -98,9 +100,9 @@ save i zostawia wiersz otwarty.
 Statystyki są liczone z historii przy każdym odczycie, nie trzymane jako sumy bieżące — `project.md`
 §23 chce, żeby dało się je przeliczyć później, a rozjechanej sumy nie da się naprawić.
 
-Schemat v1 zawiera już kolumny dla Daily i rankingu (`gameType`, `rankedEligible`, `score`,
-`xpEarned`, `rulesetVersion`). Migracja nie umiałaby zgadnąć typu gry wiersza zapisanego przed
-istnieniem kolumny.
+Schemat v7 zapisuje też liczbę skutecznych podpowiedzi w grze aktywnej, historii i archiwum. Numer 6
+należał do porzuconego buildu narzędzi hipotez; migracja 6→7 odzyskuje wspierane pola jego zapisów,
+a normalna ścieżka wydania prowadzi z 5 bezpośrednio do 7. Stare wiersze dostają licznik równy zero.
 
 DataStore trzyma ustawienia. Każda wartość ma default, więc brak klucza nie jest błędem, a dodanie
 opcji nie wymaga migracji.

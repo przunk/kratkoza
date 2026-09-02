@@ -30,6 +30,8 @@ data class GameUiState(
     val difficulty: Difficulty = Difficulty.EASY,
     val gameType: GameType = GameType.SOLO,
     val mistakeCount: Int = 0,
+    /** Successful explicit reveals used in this attempt. */
+    val hintCount: Int = 0,
     val elapsedMillis: Long = 0,
     val isPaused: Boolean = false,
     /** Whether the number pad writes pencil marks instead of digits (project.md section 14). */

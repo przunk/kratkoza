@@ -169,7 +169,13 @@ class GameViewModel(
         val index = selection ?: return
         if (!_uiState.value.canRevealDigit || current.rankedEligible) return
 
-        apply(GameEngine.revealDigit(current.state, index, settings.autoRemoveCandidates))
+        val revealed = GameEngine.revealDigit(current.state, index, settings.autoRemoveCandidates)
+        if (revealed === current.state) return
+
+        // Assistance used is attempt metadata, not part of a board snapshot. It therefore survives
+        // undo in the same way as mistakes, and rises only after a reveal actually changed a cell.
+        game = current.copy(hintCount = current.hintCount + 1)
+        apply(revealed)
     }
 
     /**
@@ -452,6 +458,7 @@ class GameViewModel(
             difficulty = state.puzzle.difficulty,
             gameType = state.puzzle.gameType,
             mistakeCount = state.mistakeCount,
+            hintCount = game?.hintCount ?: 0,
             debugTools = debugTools,
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,

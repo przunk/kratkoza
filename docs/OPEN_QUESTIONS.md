@@ -13,7 +13,7 @@ dlaczego, oraz jakie są alternatywy.
 | 5 | Domyślne wartości dwóch opcji z §35 | 🟢 **ustalone** — zostaje ON |
 | 6 | „Portrait only" na dużych ekranach | 🟢 **ustalone** — zostaje wariant A |
 | 7 | Edycja poprawnie wpisanej cyfry | 🟢 **ustalone** — zablokowana, cofa tylko Undo |
-| 8 | Co odbiera Daily kwalifikację rankingową | 🟢 **ustalone** — minimalizacja nie, podpowiedź tak |
+| 8 | Co odbiera Daily kwalifikację rankingową | 🟢 **ustalone** — koniec cyklu; minimalizacja nie |
 | 9 | Wzór na wynik Daily i czasy odniesienia | 🟡 **wstępnie** — wzór przyjęty, czasy do dostrojenia |
 
 🟢 = zatwierdzone, kod jest zgodny, pozycja zostaje tylko jako zapis powodu.

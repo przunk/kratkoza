@@ -67,6 +67,7 @@
     <string name="game_time">Czas</string>
     <string name="game_mistakes">Błędy</string>
     <string name="game_mistakes_value">%1$d</string>
+    <string name="game_hints_used">Użyte podpowiedzi: %1$d</string>
     <string name="game_pause">Pauza</string>
     <string name="game_ranked">Rankingowa</string>
     <!-- Debug builds only; never reaches a release APK. -->
@@ -119,12 +120,13 @@
     <string name="history_open">Historia rozwiązanych plansz</string>
     <string name="history_empty">Tutaj pojawią się rozwiązane plansze z gry solo.</string>
     <string name="history_preview">Początkowa plansza sudoku</string>
-    <string name="history_result">%1$s · %2$s · %3$d XP</string>
+    <string name="history_result">%1$s · %2$s · %3$s · %4$d XP</string>
     <string name="history_share">Udostępnij</string>
     <string name="history_detail_title">Rozwiązana plansza</string>
     <string name="history_missing">Ten wpis historii nie jest już dostępny.</string>
     <string name="history_completed_at">Ukończono</string>
     <string name="history_time">Czas</string>
+    <string name="history_hints">Podpowiedzi</string>
     <string name="history_xp">XP</string>
     <string name="history_completions">Ta plansza</string>
     <string name="history_solve_again">Rozwiąż ponownie</string>
@@ -142,6 +144,7 @@
     <string name="saved_games_progress">%1$s wypełnione · %2$s</string>
     <string name="statistics_completion_rate">Procent ukończeń</string>
     <string name="statistics_total_mistakes">Łącznie błędów</string>
+    <string name="statistics_total_hints">Łącznie podpowiedzi</string>
     <string name="statistics_average_mistakes">Błędów na grę</string>
     <string name="statistics_by_difficulty">Według poziomu</string>
     <string name="statistics_best_time">Najlepszy czas</string>
@@ -203,6 +206,12 @@
         <item quantity="few">%1$d błędy</item>
         <item quantity="many">%1$d błędów</item>
         <item quantity="other">%1$d błędu</item>
+    </plurals>
+    <plurals name="hint_count">
+        <item quantity="one">%1$d podpowiedź</item>
+        <item quantity="few">%1$d podpowiedzi</item>
+        <item quantity="many">%1$d podpowiedzi</item>
+        <item quantity="other">%1$d podpowiedzi</item>
     </plurals>
     <plurals name="history_solved_count">
         <item quantity="one">Rozwiązana %1$d raz</item>

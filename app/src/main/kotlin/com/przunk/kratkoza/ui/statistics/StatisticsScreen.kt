@@ -107,6 +107,10 @@ fun StatisticsScreen(
                             integerFormat.format(statistics.totalMistakes),
                         )
                         StatRow(
+                            stringResource(R.string.statistics_total_hints),
+                            integerFormat.format(statistics.totalHints),
+                        )
+                        StatRow(
                             stringResource(R.string.statistics_average_mistakes),
                             statistics.averageMistakes?.let(decimalFormat::format) ?: none,
                         )

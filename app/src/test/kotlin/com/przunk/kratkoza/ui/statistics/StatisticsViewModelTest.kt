@@ -53,7 +53,10 @@ class StatisticsViewModelTest {
     @Test
     fun `resetting clears what the screen shows`() = runTest(dispatcher) {
         val finished = repository.startNewGame(Difficulty.EASY)
-        repository.finishGame(finished.copy(elapsedMillis = 60_000), completed = true)
+        repository.finishGame(
+            finished.copy(elapsedMillis = 60_000, hintCount = 2),
+            completed = true,
+        )
         repository.startNewGame(Difficulty.HARD)
         historyDao.insert(
             GameHistoryEntity(
@@ -64,6 +67,7 @@ class StatisticsViewModelTest {
                 finishedAt = 61_000,
                 elapsedMillis = 60_000,
                 mistakeCount = 0,
+                hintCount = 1,
                 completed = true,
                 score = 900,
                 xpEarned = 0,
@@ -76,12 +80,14 @@ class StatisticsViewModelTest {
 
         val viewModel = StatisticsViewModel(statisticsRepository)
         assertEquals(2, viewModel.statistics.first().completedCount)
+        assertEquals(3, viewModel.statistics.first().totalHints)
         assertNotNull(viewModel.statistics.first().daily)
 
         viewModel.resetStatistics()
         val cleared = statisticsRepository.statistics.first()
         assertEquals(0, cleared.startedCount)
         assertEquals(0, cleared.completedCount)
+        assertEquals(0, cleared.totalHints)
         assertNull(cleared.daily)
     }
 }

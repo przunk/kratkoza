@@ -229,6 +229,7 @@ class SavedGamesScreenTest {
                 candidates = "",
                 undoHistory = "",
                 mistakeCount = mistakes,
+                hintCount = 0,
                 rankedEligible = false,
             ),
         )
