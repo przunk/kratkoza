@@ -58,7 +58,7 @@ jego para `applicationId` i SHA-1 nie zostanie dodana jako właściwy klient And
 
 ## Licencja
 
-Licencja projektu nie została jeszcze wybrana. Do czasu dodania pliku `LICENSE` kod pozostaje
-objęty pełnym prawem autorskim i samo publiczne udostępnienie repozytorium nie zezwala na jego
-ponowne wykorzystanie ani rozpowszechnianie. Porównanie rozważanych wariantów znajduje się w
-[`github.md`](github.md).
+Kod źródłowy i dokumentacja są udostępniane na warunkach
+[Apache License 2.0](LICENSE). Nazwa „Kratkoza” i elementy identyfikacji wizualnej nie są objęte tą
+licencją; szczegóły opisuje [`BRANDING.md`](BRANDING.md). Zależności zewnętrzne zachowują własne
+warunki licencyjne.
