@@ -3,12 +3,13 @@
 Stan ustaleń z 2026-09-03. Dokument opisuje decyzje przed zmianą widoczności repozytorium z
 prywatnego na publiczne. Nie jest listą wymagań aplikacji.
 
-## Licencja — decyzja otwarta
+## Licencja — wybrana
 
-Publiczne repozytorium bez pliku `LICENSE` można czytać i forkować technicznie, ale domyślnie
-pozostaje objęte pełnym prawem autorskim. Samo ustawienie widoczności na publiczną nie daje innym
-osobom prawa do używania, modyfikowania ani rozpowszechniania kodu. Do czasu wyboru licencji należy
-traktować projekt jako „all rights reserved”.
+2026-09-03 wybrano Apache License 2.0 dla kodu źródłowego i dokumentacji projektu. Pełny tekst
+znajduje się w `LICENSE`, a wymagane informacje atrybucyjne w `NOTICE`. Nazwa „Kratkoza” oraz
+elementy identyfikacji wizualnej są wyłączone z tej licencji i opisane w `BRANDING.md`.
+
+Poniższe porównanie pozostaje jako zapis przesłanek decyzji.
 
 ### MIT
 
@@ -29,7 +30,7 @@ traktować projekt jako „all rights reserved”.
 - Zawiera wyraźne udzielenie licencji patentowej przez autorów oraz mechanizm jej wygaśnięcia wobec
   podmiotu rozpoczynającego spór patentowy dotyczący projektu.
 - Jest dłuższa od MIT, ale lepiej opisuje prawa ważne dla większych i komercyjnych użytkowników.
-- To rekomendowany wariant dla Kratkozy, jeżeli celem ma być liberalna licencja open source.
+- To wybrany wariant dla Kratkozy: liberalna licencja open source z wyraźną ochroną patentową.
 
 ### GNU GPL v3
 
@@ -49,6 +50,9 @@ właściciela praw do projektu.
 
 ## Ustalenia
 
+- Kod źródłowy i dokumentacja zostały udostępnione na warunkach Apache License 2.0. Nazwa
+  „Kratkoza” i wskazane elementy identyfikacji wizualnej pozostają zastrzeżone zgodnie z
+  `BRANDING.md`.
 - Adres autora zapisany w historii commitów może pozostać publiczny. Nie przepisujemy historii z
   tego powodu.
 - Główny `README.md` został dodany jako strona wejściowa repozytorium.
@@ -68,7 +72,6 @@ właściciela praw do projektu.
 
 ## Pozostałe kontrole przed zmianą widoczności
 
-- Wybrać licencję i dodać plik `LICENSE`.
 - Przejrzeć treści istniejące wyłącznie na GitHubie: Issues, Pull requests, Releases, Actions,
   artefakty, Wiki i Discussions. Lokalny klon nie pozwala potwierdzić, czy nie zawierają informacji
   przeznaczonych wyłącznie dla prywatnego repozytorium.
