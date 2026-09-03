@@ -75,4 +75,11 @@ class DailyPuzzleDaoTest {
 
         assertEquals("puzzle-EASY-v1", old.puzzleId)
     }
+
+    @Test
+    fun `a saved board keeps its cycle date after the ruleset changes`() = runTest {
+        store(Difficulty.EASY, rulesetVersion = 1)
+
+        assertEquals(date, dao.dateOfPuzzle("puzzle-EASY-v1"))
+    }
 }

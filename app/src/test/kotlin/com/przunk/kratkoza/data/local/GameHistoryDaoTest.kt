@@ -215,6 +215,7 @@ class GameHistoryDaoTest {
             finishedAt = 5_000,
             elapsedMillis = 4_000,
             mistakeCount = 3,
+            hintCount = 2,
             completed = true,
             xpEarned = 20,
             rankedEligible = false,
@@ -224,6 +225,8 @@ class GameHistoryDaoTest {
         assertEquals(1, history.observeCompletedCount().first())
         assertEquals(20L, history.observeTotalXp().first())
         assertEquals(3, history.observeTotalMistakes().first())
+        assertEquals(2, history.attemptsOn(listOf("a")).single().hintCount)
+        assertEquals(2, history.observeTotalHints().first())
     }
 
     @Test

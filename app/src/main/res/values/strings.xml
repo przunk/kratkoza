@@ -69,6 +69,7 @@
     <string name="game_time">Time</string>
     <string name="game_mistakes">Mistakes</string>
     <string name="game_mistakes_value">%1$d</string>
+    <string name="game_hints_used">Hints used: %1$d</string>
     <string name="game_pause">Pause</string>
     <string name="game_ranked">Ranked</string>
     <!-- Debug builds only; never reaches a release APK. -->
@@ -121,12 +122,13 @@
     <string name="history_open">Solved-board history</string>
     <string name="history_empty">Your solved Solo boards will appear here.</string>
     <string name="history_preview">Initial Sudoku board</string>
-    <string name="history_result">%1$s · %2$s · %3$d XP</string>
+    <string name="history_result">%1$s · %2$s · %3$s · %4$d XP</string>
     <string name="history_share">Share</string>
     <string name="history_detail_title">Solved board</string>
     <string name="history_missing">This history entry is no longer available.</string>
     <string name="history_completed_at">Completed</string>
     <string name="history_time">Time</string>
+    <string name="history_hints">Hints</string>
     <string name="history_xp">XP</string>
     <string name="history_completions">This board</string>
     <string name="history_solve_again">Solve again</string>
@@ -144,6 +146,7 @@
     <string name="saved_games_progress">%1$s done · %2$s</string>
     <string name="statistics_completion_rate">Completion rate</string>
     <string name="statistics_total_mistakes">Total mistakes</string>
+    <string name="statistics_total_hints">Total hints</string>
     <string name="statistics_average_mistakes">Mistakes per game</string>
     <string name="statistics_by_difficulty">By difficulty</string>
     <string name="statistics_best_time">Best time</string>
@@ -207,6 +210,10 @@
     <plurals name="mistake_count">
         <item quantity="one">%1$d mistake</item>
         <item quantity="other">%1$d mistakes</item>
+    </plurals>
+    <plurals name="hint_count">
+        <item quantity="one">%1$d hint</item>
+        <item quantity="other">%1$d hints</item>
     </plurals>
     <plurals name="history_solved_count">
         <item quantity="one">Solved %1$d time</item>

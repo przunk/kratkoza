@@ -96,6 +96,8 @@ data class SavedGameEntity(
     /** The undo stack, see [MoveHistoryCodec]. */
     val undoHistory: String,
     val mistakeCount: Int,
+    /** Number of explicit digits successfully revealed in this attempt. */
+    val hintCount: Int,
     /**
      * Whether this game still counts for a public ranking (project.md section 28). Always false for
      * solo games; the column exists so that Daily does not need a migration to arrive.
@@ -127,6 +129,7 @@ data class GameHistoryEntity(
     val finishedAt: Long?,
     val elapsedMillis: Long,
     val mistakeCount: Int,
+    val hintCount: Int,
     val completed: Boolean,
     /**
      * project.md section 23 wants a score kept. The algorithm is deliberately open (section 39), so
@@ -180,6 +183,7 @@ data class SolvedBoardEntity(
     val completedAt: Long,
     val elapsedMillis: Long,
     val mistakeCount: Int,
+    val hintCount: Int,
     val xpEarned: Int,
     /** Reserved for a future personal Solo score; XP is what the current UI reports. */
     val score: Int?,

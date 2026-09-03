@@ -46,6 +46,7 @@ class StatisticsRepository(
         savedGameDao.observeInProgressByDifficulty(),
         historyDao.observeDailySummary(),
         historyDao.observeDailyByDifficulty(),
+        historyDao.observeTotalHints(),
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         val perDifficulty = values[4] as List<DifficultyStatisticsRow>
@@ -62,6 +63,7 @@ class StatisticsRepository(
             startedCount = values[0] as Int,
             completedCount = values[1] as Int,
             totalMistakes = values[2] as Int,
+            totalHints = values[8] as Int,
             progress = PlayerProgress.of(values[3] as Long),
             perDifficulty = Difficulty.entries.map { difficulty ->
                 val row = perDifficulty.firstOrNull { it.difficulty == difficulty.name }

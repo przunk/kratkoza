@@ -60,6 +60,9 @@ class FakeDailyPuzzleDao : DailyPuzzleDao {
     override suspend fun dateOf(puzzleId: String, rulesetVersion: Int): String? =
         rows.values.firstOrNull { it.puzzleId == puzzleId && it.rulesetVersion == rulesetVersion }?.date
 
+    override suspend fun dateOfPuzzle(puzzleId: String): String? =
+        rows.values.filter { it.puzzleId == puzzleId }.maxByOrNull { it.rulesetVersion }?.date
+
 }
 
 class FakeSavedGameDao(private val puzzleDao: FakePuzzleDao) : SavedGameDao {
@@ -162,6 +165,7 @@ class FakeSolvedBoardDao(
             completedAt = completedAt,
             elapsedMillis = elapsedMillis,
             mistakeCount = mistakeCount,
+            hintCount = hintCount,
             xpEarned = xpEarned,
             score = score,
             difficulty = puzzle.difficulty,
@@ -208,6 +212,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
         finishedAt: Long,
         elapsedMillis: Long,
         mistakeCount: Int,
+        hintCount: Int,
         completed: Boolean,
         xpEarned: Int,
         rankedEligible: Boolean,
@@ -221,6 +226,7 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
                     finishedAt = finishedAt,
                     elapsedMillis = elapsedMillis,
                     mistakeCount = mistakeCount,
+                    hintCount = hintCount,
                     completed = completed,
                     xpEarned = xpEarned,
                     rankedEligible = rankedEligible,
@@ -239,6 +245,9 @@ class FakeGameHistoryDao(private val savedGameDao: FakeSavedGameDao? = null) : G
 
     override fun observeTotalMistakes(): Flow<Int> =
         entries.map { list -> list.filter { it.completed }.sumOf { it.mistakeCount } }
+
+    override fun observeTotalHints(): Flow<Int> =
+        entries.map { list -> list.filter { it.completed }.sumOf { it.hintCount } }
 
     override fun observeTotalXp(): Flow<Long> =
         entries.map { list -> list.sumOf { it.xpEarned.toLong() } }

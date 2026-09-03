@@ -137,6 +137,11 @@ private fun SolvedBoardRow(
                             board.mistakeCount,
                             board.mistakeCount,
                         ),
+                        pluralStringResource(
+                            R.plurals.hint_count,
+                            board.hintCount,
+                            board.hintCount,
+                        ),
                         board.xpEarned,
                     ),
                     style = MaterialTheme.typography.bodySmall,
@@ -227,6 +232,10 @@ fun SolvedBoardDetailScreen(
                         DetailLine(
                             stringResource(R.string.game_mistakes),
                             board.mistakeCount.toString(),
+                        )
+                        DetailLine(
+                            stringResource(R.string.history_hints),
+                            board.hintCount.toString(),
                         )
                         DetailLine(stringResource(R.string.history_xp), board.xpEarned.toString())
                         DetailLine(

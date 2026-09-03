@@ -13,7 +13,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -157,14 +156,17 @@ class MigrationTest {
             assertEquals(500L, attempts.single().elapsedMillis)
             assertEquals(false, attempts.single().rankedEligible)
 
-            // Version 6 turns successful Solo history already on the phone into a visual archive.
-            // It must carry the result rather than merely prove the new table can be queried.
+            // Version 5 turns successful Solo history already on the phone into a visual archive.
+            // Version 7 then adds assistance counts without changing that result.
             val archive = database.solvedBoardDao().observeAll().first().single()
             assertEquals("p1", archive.puzzleId)
             assertEquals(500L, archive.completedAt)
             assertEquals(500L, archive.elapsedMillis)
             assertEquals(1, archive.mistakeCount)
+            assertEquals(0, archive.hintCount)
             assertEquals(20, archive.xpEarned)
+            assertEquals(0, save.hintCount)
+            assertEquals(0, attempts.single().hintCount)
 
             // And the table added in version 2 has to be usable, not merely present.
             database.dailyPuzzleDao().insert(
@@ -212,10 +214,10 @@ class MigrationTest {
     }
 
     @Test
-    fun `a database numbered above anything that ships is wiped, not left unopenable`() = runTest {
-        // Room's default is to throw here, and to throw on every launch afterwards, leaving an app
-        // that cannot start until its data is cleared by hand — which loses the same games this
-        // does, and leaves the player to work out why.
+    fun `the abandoned version six schema migrates without losing its saved game`() = runTest {
+        // Version 6 carried assumption-only save columns and reached a test phone before that work
+        // was abandoned. Reusing the number would make Room reject the database on identity alone;
+        // version 7 instead provides an explicit recovery path.
         createDatabaseAt(version = 6, ddl = orphanedVersionSixDdl).use { db ->
             db.execSQL(
                 "INSERT INTO puzzles VALUES ('p1', 1, ?, 'SOLO', ?, ?, NULL)",
@@ -230,12 +232,13 @@ class MigrationTest {
 
         val database = openWithRoom()
         try {
-            assertNull(
-                "a save written against a schema that no longer exists cannot come back",
-                database.savedGameDao().byId("p1"),
-            )
+            val recovered = database.savedGameDao().byId("p1")
+            assertNotNull("supported save data must survive the abandoned schema", recovered)
+            assertEquals(1234L, recovered!!.elapsedMillis)
+            assertEquals(2, recovered.mistakeCount)
+            assertEquals(0, recovered.hintCount)
 
-            // What actually matters: the app runs.
+            // What ultimately matters: the migrated database remains writable.
             database.puzzleDao().insert(puzzleEntity("p2"))
             assertNotNull(database.puzzleDao().byId("p2"))
         } finally {

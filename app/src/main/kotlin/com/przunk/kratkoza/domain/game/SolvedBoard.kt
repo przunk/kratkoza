@@ -14,6 +14,7 @@ data class SolvedBoard(
     val completedAt: Long,
     val elapsedMillis: Long,
     val mistakeCount: Int,
+    val hintCount: Int,
     val xpEarned: Int,
     /** Kept for a future personal Solo score. The current result shown to the player is XP. */
     val score: Int?,
