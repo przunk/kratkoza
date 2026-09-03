@@ -1,8 +1,8 @@
-# Zadania po Twojej stronie: Google Play Console
+# Google Play Console — stan i zadania właściciela
 
-Wszystko poniżej blokuje etap 2 rankingu i **żaden agent nie może tego zrobić za Ciebie** — wymaga
-konta, płatności i decyzji, które wiążą prawnie. Kolejność ma znaczenie: punkt 2 jest nieodwracalny,
-a punkt 6 wymaga, żeby aplikacja już istniała w konsoli.
+Aplikacja jest skonfigurowana w Google Play Console, korzysta z Play Games Services i była wysłana
+do `Testing → Internal testing`. Poniżej pozostają kroki operacyjne i prawne, których nie da się
+zamknąć samą zmianą kodu.
 
 Zaznaczaj, co gotowe.
 
@@ -41,10 +41,16 @@ zapasowa, jaką w tym projekcie zrobisz.
 
 Play nie wpuści aplikacji bez nich, a wypełnić może je tylko właściciel.
 
-- [ ] **Polityka prywatności** pod publicznym adresem URL. Kratkoza działa offline i nie zbiera
-      danych — po podpięciu Play Games dojdzie identyfikator gracza. Napisz to wprost.
-- [ ] **Data safety** — co aplikacja zbiera i wysyła. Dziś: nic. Po etapie 2: identyfikator gracza
-      i wyniki.
+- [ ] **Privacy policy** pod publicznym adresem URL. Większość danych rozgrywki pozostaje lokalnie,
+      ale aplikacja korzysta już z Play Games Services. Polityka musi opisywać uwierzytelnianie,
+      tożsamość gracza i wysyłanie wyników do tablic Google oraz odsyłać do zasad prywatności
+      Google. Android może też objąć lokalne dane kopią zapasową konta użytkownika, ponieważ backup
+      aplikacji jest włączony.
+- [ ] **Data safety** w `Policy and programs → App content`. Deklaracja musi uwzględniać zachowanie
+      aplikacji i SDK: Play Games automatycznie przetwarza tożsamość gracza, dane analityczne i
+      diagnostyczne, a używane przez Kratkozę tablice przechowują wyniki gry. Google opisuje zakres
+      SDK w [dokumentacji Play Games Services](https://developer.android.com/games/pgs/data-collection);
+      formularz trzeba ponownie sprawdzać po aktualizacji SDK.
 - [ ] **Ocena treści** — kwestionariusz. Sudoku bez treści wrażliwych.
 - [ ] **Grupa docelowa i reklamy** — brak reklam, brak zakupów.
 
@@ -55,7 +61,7 @@ Play nie wpuści aplikacji bez nich, a wypełnić może je tylko właściciel.
 - [x] Grafika promocyjna 1024×500.
 - [ ] Zrzuty ekranu telefonu — minimum dwa, przydadzą się: plansza, Daily, statystyki.
 
-## 6. Play Games Services — to blokuje ranking
+## 6. Play Games Services — konfiguracja rankingu
 
 - [x] **Play Games Services → utwórz grę** i powiąż ją z aplikacją `com.przunk.kratkoza`.
 - [x] Projekt Cloud i klient OAuth utworzone i podpięte pod aplikację.
@@ -101,12 +107,12 @@ Klucz podpisujący: **Play Console → Testowanie i publikowanie → Integralno�
 Certyfikat klucza podpisywania aplikacji**. Skopiuj wiersz `SHA-1`.
 
 **Krok 2 — sprawdź, który z nich już masz.** W **Google Cloud Console** otwórz projekt powiązany
-z grą, dalej **Interfejsy API i usługi → Dane logowania**. W sekcji *Identyfikatory klientów
-OAuth 2.0* kliknij pozycję typu Android — pokaże nazwę pakietu i odcisk. Porównaj z trzema
+z grą, dalej **APIs & Services → Credentials**. W sekcji *OAuth 2.0 Client IDs* kliknij pozycję
+typu Android — pokaże nazwę pakietu i odcisk. Porównaj z trzema
 powyżej i zapisz, którego wiersza dotyczy.
 
-**Krok 3 — dołóż dwa brakujące.** Tam samo: **+ Utwórz dane logowania → Identyfikator klienta
-OAuth → Typ aplikacji: Android**. Dla każdego brakującego odcisku:
+**Krok 3 — dołóż dwa brakujące.** Tam samo: **+ Create credentials → OAuth client ID →
+Application type: Android**. Dla każdego brakującego odcisku:
 
 - Nazwa: taka, żeby dało się je rozróżnić, np. `Kratkoza – klucz upload`,
 - Nazwa pakietu: `com.przunk.kratkoza` (identyczna we wszystkich trzech),
@@ -115,27 +121,25 @@ OAuth → Typ aplikacji: Android**. Dla każdego brakującego odcisku:
 Wszystkie trzy muszą powstać **w tym samym projekcie Cloud**, tym, który jest powiązany z grą.
 Klient OAuth w innym projekcie nie zadziała i nie da żadnego komunikatu o błędzie.
 
-**Krok 4 — wróć do Play Games Services → Konfiguracja → Dane logowania** i upewnij się, że gra ma
+**Krok 4 — wróć do Play Games Services → Setup and management → Configuration** i upewnij się, że gra ma
 poświadczenie typu Android wskazujące na klienta z kluczem podpisywania aplikacji. Jeśli konsola
 pozwala dodać kolejne poświadczenia Android, dodaj też pozostałe dwa. Jeśli nie pozwala — nic
 straconego, dopasowanie i tak idzie po projekcie Cloud.
 
-**Krok 5 — dodaj siebie jako testera:** Play Games Services → **Testerzy**. Zanim gra zostanie
+**Krok 5 — dodaj siebie jako testera:** Play Games Services → **Setup and management → Testers**.
+Zanim gra zostanie
 opublikowana, zalogują się wyłącznie konta z tej listy. Bez tego własny build wygląda jak zepsuty.
 
 ### Reszta konfiguracji
 
-- [x] **Utwórz trzy tablice wyników**, po jednej na poziom Daily. Sortowanie: **wynik większy jest
-      lepszy**, format liczbowy całkowity.
+- [x] **Utwórz pięć tablic wyników**: po jednej na każdy z trzech poziomów Daily, sumę dzienną i
+      sumę wszech czasów. Sortowanie: **wynik większy jest lepszy**, format liczbowy całkowity.
 - [x] **Opublikuj konfigurację Play Games** — dopóki jest w wersji roboczej, nie działa nawet dla
       Ciebie.
 - [x] **Przekaż mi identyfikatory tablic.** Wyglądają jak `CgkI...`. Znajdziesz je przy każdej
       tablicy w Play Games Services → Tablice wyników. Bez nich integracji nie da się napisać
       inaczej niż w ciemno.
-- [x] **Nazwa trzeciej tablicy.** Nazwałeś ją „Daily – deadly”, a poziom w aplikacji nazywa się
-      **Master**. Play pokazuje graczowi nazwę z konsoli, więc albo zmień ją na „Daily – master”,
-      albo powiedz, że zostaje — wtedy tak samo nazwiemy poziom w aplikacji. Byle nie zostały dwie
-      różne nazwy jednej rzeczy.
+- [x] Nazwy tablic są wyrównane z trzema poziomami używanymi przez Daily: Easy, Hard i Expert.
 
 Trzy fakty sprawdzone w dokumentacji, żebyś nie odkrywał ich w konsoli:
 
@@ -148,7 +152,7 @@ Trzy fakty sprawdzone w dokumentacji, żebyś nie odkrywał ich w konsoli:
 
 - [x] Zbuduj bundle: `./scripts/build-kratkoza-bundle.sh` — sam sprawdzi, czy podpisał kluczem
       upload, i odmówi, jeśli spadł na klucz debug.
-- [x] Wyślij na **testy zamknięte**, nie od razu do produkcji.
+- [x] Wyślij na **Testing → Internal testing**, nie od razu do produkcji.
 - [ ] Dołącz `app/build/outputs/mapping/release/mapping.txt`. Bez tego raport awarii z telefonu
       to lista ponumerowanych metod w klasie `a`.
 
