@@ -359,8 +359,7 @@ private fun RankedBadge(ranked: Boolean) {
     }
 }
 
-/** Time, mistakes and the pause button — the only numbers project.md section 34 lets compete
- *  with the board for attention. */
+/** Time, mistakes, assistance used and pause — the compact record of the current attempt. */
 @Composable
 private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
     val context = LocalContext.current
@@ -382,6 +381,11 @@ private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             )
         }
+        if (state.showRevealDigit) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                HintCountValue(state.hintCount)
+            }
+        }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             // Absent, not disabled: a greyed-out pause invites the player to wonder what they did
         // wrong, when the answer is simply that this game counts (project.md section 28).
@@ -389,6 +393,24 @@ private fun GameStatusRow(state: GameUiState, onTogglePause: () -> Unit) {
             PauseButton(paused = state.isPaused, onClick = onTogglePause)
         }
         }
+    }
+}
+
+/** A bulb keeps the fourth status column readable where the translated label would not fit. */
+@Composable
+private fun HintCountValue(count: Int) {
+    val description = stringResource(R.string.game_hints_used, count)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_bulb_outline),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(text = count.toString(), style = MaterialTheme.typography.titleMedium)
     }
 }
 

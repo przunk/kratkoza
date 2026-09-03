@@ -14,7 +14,8 @@ import androidx.sqlite.execSQL
  * Version 1 already carried the columns Daily and public ranking would need — game type, ranked
  * eligibility, score, XP, ruleset version. They were cheap to carry and expensive to retrofit: a
  * migration cannot invent the game type of a row written before the column existed. Later versions
- * add the Daily calendar, ranking eligibility, a versioned Daily key and the solved-board archive.
+ * add the Daily calendar, ranking eligibility, a versioned Daily key, the solved-board archive and
+ * assistance usage.
  */
 @Database(
     entities = [
@@ -24,7 +25,7 @@ import androidx.sqlite.execSQL
         DailyPuzzleEntity::class,
         SolvedBoardEntity::class,
     ],
-    version = 5,
+    version = 7,
     exportSchema = true,
 )
 abstract class KratkozaDatabase : RoomDatabase() {
@@ -170,8 +171,91 @@ abstract class KratkozaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Records explicit hint use in every place an attempt can live.
+         *
+         * Version 6 cannot be used for the released schema: an abandoned assumption-tools build
+         * already wrote a different schema under that number to at least one test phone. Moving
+         * directly from the released version 5 to 7 avoids a same-version identity mismatch that
+         * Room cannot migrate.
+         */
+        private val MIGRATION_5_7 = object : Migration(5, 7) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "ALTER TABLE `saved_games` ADD COLUMN `hintCount` INTEGER NOT NULL DEFAULT 0",
+                )
+                connection.execSQL(
+                    "ALTER TABLE `game_history` ADD COLUMN `hintCount` INTEGER NOT NULL DEFAULT 0",
+                )
+                connection.execSQL(
+                    "ALTER TABLE `solved_boards` ADD COLUMN `hintCount` INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        /**
+         * Recovers phones that ran the abandoned schema numbered 6.
+         *
+         * Its three assumption-only save columns never shipped and have no meaning in the current
+         * game. Rebuilding the save table keeps every supported field, discards only that orphaned
+         * state, and adds the hint counter expected by the official version 7 schema.
+         */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `saved_games_new` (" +
+                        "`puzzleId` TEXT NOT NULL, " +
+                        "`historyId` INTEGER NOT NULL, " +
+                        "`startedAt` INTEGER NOT NULL, " +
+                        "`lastPlayedAt` INTEGER NOT NULL, " +
+                        "`elapsedMillis` INTEGER NOT NULL, " +
+                        "`board` TEXT NOT NULL, " +
+                        "`candidates` TEXT NOT NULL, " +
+                        "`undoHistory` TEXT NOT NULL, " +
+                        "`mistakeCount` INTEGER NOT NULL, " +
+                        "`hintCount` INTEGER NOT NULL DEFAULT 0, " +
+                        "`rankedEligible` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`puzzleId`), " +
+                        "FOREIGN KEY(`puzzleId`) REFERENCES `puzzles`(`puzzleId`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                )
+                connection.execSQL(
+                    "INSERT INTO `saved_games_new` (" +
+                        "`puzzleId`, `historyId`, `startedAt`, `lastPlayedAt`, `elapsedMillis`, " +
+                        "`board`, `candidates`, `undoHistory`, `mistakeCount`, `hintCount`, " +
+                        "`rankedEligible`) " +
+                        "SELECT `puzzleId`, `historyId`, `startedAt`, `lastPlayedAt`, " +
+                        "`elapsedMillis`, `board`, `candidates`, `undoHistory`, `mistakeCount`, 0, " +
+                        "`rankedEligible` FROM `saved_games`",
+                )
+                connection.execSQL("DROP TABLE `saved_games`")
+                connection.execSQL("ALTER TABLE `saved_games_new` RENAME TO `saved_games`")
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_saved_games_lastPlayedAt` " +
+                        "ON `saved_games` (`lastPlayedAt`)",
+                )
+                connection.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_saved_games_historyId` " +
+                        "ON `saved_games` (`historyId`)",
+                )
+                connection.execSQL(
+                    "ALTER TABLE `game_history` ADD COLUMN `hintCount` INTEGER NOT NULL DEFAULT 0",
+                )
+                connection.execSQL(
+                    "ALTER TABLE `solved_boards` ADD COLUMN `hintCount` INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
         fun migrations(): Array<Migration> =
-            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            arrayOf(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_7,
+                MIGRATION_6_7,
+            )
 
         /**
          * [name] is a parameter so tests open the database exactly as the app does. A configuration

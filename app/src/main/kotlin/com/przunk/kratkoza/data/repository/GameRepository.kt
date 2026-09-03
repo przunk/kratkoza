@@ -20,6 +20,7 @@ import com.przunk.kratkoza.data.local.SolvedBoardRow
 import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailyTotals
 import com.przunk.kratkoza.domain.daily.DailyPuzzles
+import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.daily.DailyScore
 import com.przunk.kratkoza.domain.daily.DailyStatus
 import com.przunk.kratkoza.domain.game.CandidateGrid
@@ -95,6 +96,7 @@ class GameRepository(
             startedAt = now,
             lastPlayedAt = now,
             elapsedMillis = 0,
+            hintCount = 0,
             historyId = historyId,
             // project.md section 24: solo games have no public leaderboard. Only a Daily starts
             // eligible, and section 28 can take that away.
@@ -179,6 +181,7 @@ class GameRepository(
                 candidates = game.state.candidates.toStorageString(),
                 undoHistory = MoveHistoryCodec.encode(game.state.undoStack),
                 mistakeCount = game.state.mistakeCount,
+                hintCount = game.hintCount,
                 rankedEligible = game.rankedEligible,
             ),
         )
@@ -207,6 +210,7 @@ class GameRepository(
                 startedAt = save.startedAt,
                 lastPlayedAt = save.lastPlayedAt,
                 elapsedMillis = save.elapsedMillis,
+                hintCount = save.hintCount,
                 historyId = save.historyId,
                 rankedEligible = save.rankedEligible,
             )
@@ -214,6 +218,18 @@ class GameRepository(
             null
         }
     }
+
+    /**
+     * The instant after which this Daily can no longer produce a ranked result.
+     *
+     * The date comes from the persisted Daily mapping rather than from `now`: after the changeover
+     * the current date describes the new board, not the saved board the player is resuming.
+     */
+    suspend fun dailyRankingDeadline(puzzleId: String): Long? =
+        dailyPuzzleDao.dateOfPuzzle(puzzleId)
+            ?.let(LocalDate::parse)
+            ?.let(DailySchedule::endOf)
+            ?.toEpochMilli()
 
     /**
      * Closes a game out: records the result and drops the save.
@@ -253,6 +269,7 @@ class GameRepository(
                     finishedAt = now,
                     elapsedMillis = game.elapsedMillis,
                     mistakeCount = game.state.mistakeCount,
+                    hintCount = game.hintCount,
                     completed = completed,
                     xpEarned = xp,
                     rankedEligible = game.rankedEligible,
@@ -265,6 +282,7 @@ class GameRepository(
                 finishedAt = now,
                 elapsedMillis = game.elapsedMillis,
                 mistakeCount = game.state.mistakeCount,
+                hintCount = game.hintCount,
                 completed = completed,
                 xpEarned = xp,
                 rankedEligible = game.rankedEligible,
@@ -284,6 +302,7 @@ class GameRepository(
                     completedAt = now,
                     elapsedMillis = game.elapsedMillis,
                     mistakeCount = game.state.mistakeCount,
+                    hintCount = game.hintCount,
                     xpEarned = xp,
                     score = score,
                 ),
@@ -365,6 +384,7 @@ private fun historyEntry(puzzle: Puzzle, startedAt: Long) = GameHistoryEntity(
     finishedAt = null,
     elapsedMillis = 0,
     mistakeCount = 0,
+    hintCount = 0,
     completed = false,
     score = null,
     xpEarned = 0,
@@ -427,6 +447,7 @@ private fun SolvedBoardRow.toSolvedBoard(): SolvedBoard? = try {
         completedAt = completedAt,
         elapsedMillis = elapsedMillis,
         mistakeCount = mistakeCount,
+        hintCount = hintCount,
         xpEarned = xpEarned,
         score = score,
         completionCount = completionCount,

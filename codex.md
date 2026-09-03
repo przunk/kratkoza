@@ -1,61 +1,41 @@
-# Task: archive of solved Solo boards
+# Zadanie: wygaszenie Daily i licznik podpowiedzi
 
-> Follow `codex_instructions.md`. This task was refined and approved by the owner on 2026-08-30.
+> Uzgodnione z właścicielem 2026-09-02. Obowiązuje `codex_instructions.md`.
 
-**Branch:** `feature/solved-board-history`, rebased onto the current assumption-tools work so the
-two independently developed Room changes have a single migration sequence.
+**Gałąź:** `feature/daily-expiry-and-hint-tracking`, odbita od aktualnego `develop` (`fa38115`).
 
-## Product contract
+## Kontrakt produktu
 
-- Archive every successfully completed `SOLO` game, including generated and imported/shared boards.
-- Never archive Daily games or unfinished attempts.
-- Keep one archive entry per successful completion. Replaying and completing the same `puzzleId`
-  creates another entry, and the UI reports how many times that board has been solved.
-- A statistics reset must preserve the archive. Archived entries are a read-only record and must not
-  affect statistics, XP, Daily eligibility, scores, or public rankings.
-- Show the initial board (`givens`), not the filled result, in the thumbnail and detail preview.
-- A history row shows the thumbnail, difficulty, completion date/time, elapsed time, mistakes, XP,
-  and completion count for that unique `puzzleId`.
-- Offer quick Share directly from the list.
-- Tapping a row opens a dedicated detail/preview screen.
-- The detail screen offers Share and an icon-led "Solve again" action. If the same puzzle already
-  has a save, the action becomes "Continue" and resumes it instead of replacing progress.
-- Open History from an icon-led button at the top of Statistics. Do not change the Home menu or the
-  placement/styling of Daily in this task.
-- Prefer icon plus short caption for actions. Do not introduce text-only action buttons where an
-  established icon-led pattern fits.
+- Rankingowa próba Daily zachowuje kwalifikację tylko do końca cyklu planszy, czyli do następnej
+  zmiany Daily o 07:00 UTC.
+- Po przekroczeniu granicy plansza pozostaje grywalna, ale staje się trwale nierankingowa. Zegar nie
+  cofa się i nie gubi czasu przy zmianie trybu.
+- Wygaśnięcie jest sprawdzane po wczytaniu zapisu, podczas otwartej gry i bezpośrednio przed
+  utrwaleniem wyniku, żeby ukończenie tuż po granicy nie trafiło do rankingu.
+- Gra kwalifikująca się do rankingu nie pokazuje i nie wykonuje podpowiedzi. Po wygaśnięciu Daily
+  podpowiedź jest dostępna jak w zwykłej grze.
+- Licznik podpowiedzi zwiększa się tylko wtedy, gdy podpowiedź faktycznie odsłoni cyfrę. Próba bez
+  zaznaczenia, na pełnym polu albo w grze rankingowej nie zmienia licznika.
+- Licznik jest częścią aktywnego zapisu, wyniku w `game_history` i trwałego archiwum ukończonych
+  plansz Solo. Jest widoczny podczas gry, w historii plansz i jako suma ukończonych gier w
+  Statystykach.
+- Cofnięcie nie zmniejsza licznika podpowiedzi, a restart aplikacji go nie zeruje.
 
-## Storage design
+## Dane
 
-- Add a dedicated Room archive table with its own generated completion id and a foreign key to
-  `puzzles`.
-- Store immutable completion metadata: `puzzleId`, completion timestamp, elapsed time, mistakes,
-  XP, and optional score for forward compatibility.
-- Keep assumption tools as schema 5, then add a 5→6 migration that creates the table and backfills
-  existing completed `SOLO` rows from `game_history` whose `finishedAt` is present.
-- Statistics reset continues to clear `game_history`; it never touches the archive table.
-- Archive insertion happens only on a successful Solo completion.
+- Rezerwacja wersji Room: **7**. Numer 6 miał inny porzucony build, który trafił na telefon testowy;
+  ponowne użycie numeru z innym schematem powodowałoby awarię Room przed migracją.
+- Migracja 5→7 dodaje `hintCount INTEGER NOT NULL DEFAULT 0` do `saved_games`, `game_history` i
+  `solved_boards` bez usuwania danych.
+- Migracja 6→7 zachowuje wspierane dane z porzuconego schematu i usuwa wyłącznie jego nieużywane
+  pola narzędzi hipotez.
+- Wyeksportowany schemat 7 trafia do repozytorium.
+- Migracja ma test na prawdziwym SQLite z danymi wersji 5.
 
-## Files in scope
+## Etapy i weryfikacja
 
-- `codex.md`
-- `app/src/main/kotlin/com/przunk/kratkoza/data/local/`
-- `app/src/main/kotlin/com/przunk/kratkoza/data/repository/GameRepository.kt`
-- `app/src/main/kotlin/com/przunk/kratkoza/di/AppContainer.kt`
-- `app/src/main/kotlin/com/przunk/kratkoza/domain/game/`
-- `app/src/main/kotlin/com/przunk/kratkoza/navigation/`
-- `app/src/main/kotlin/com/przunk/kratkoza/ui/history/` (new)
-- `app/src/main/kotlin/com/przunk/kratkoza/ui/statistics/`
-- `app/src/main/res/drawable/` for local vector icons
-- `app/src/main/res/values*/strings.xml`
-- focused tests and exported Room schemas required by the change
-
-## Verification
-
-- Focused domain/repository/DAO/migration/ViewModel/Compose tests while implementing.
-- `scripts/test-kratkoza.sh`
-- `scripts/lint-kratkoza.sh`
-- `scripts/build-kratkoza-release.sh`
-- Copy the final APK to `/mnt/workspace/Kratkoza/dist/`.
-- Device verification remains the owner's responsibility; explicitly call out the History list,
-  detail layout, icons, Share chooser, and Solve again/Continue behavior for manual review.
+1. Wygaszenie kwalifikacji na granicy cyklu Daily wraz z testami zegara, wznowienia i ukończenia.
+2. Licznik podpowiedzi, migracja, zapis wyniku i prezentacja w historii wraz z testami warstw.
+3. Celowane testy w trakcie, następnie pełny skrypt testów, lint i release APK.
+4. Końcowy APK kopiowany do `/mnt/workspace/Kratkoza/dist/`; zachowanie na telefonie potwierdza
+   właściciel przed scaleniem.

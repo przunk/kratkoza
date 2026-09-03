@@ -25,12 +25,11 @@ z raportów JUnit i lintu, nie z logu. Pełny log zawsze leży w `/tmp/kratkoza-
 
 ## Stosunek do skryptów w `.tooling`
 
-Skrypty Kratkozy **nie są** pochodnymi `build-taskflow-release.sh` ani `build-opowio-release.sh` —
-zostały napisane od zera, z tamtych wzięte są konwencje:
+Skrypty Kratkozy zostały napisane dla tego projektu. Ze wspólnego warsztatu biorą jedynie
+konwencje:
 
 - układ `source <env>.sh` → build → weryfikacja
 - artefakt do `dist/`, nazwany `kratkoza-<versionName>-<versionCode>-<stempel>.apk`
-  (tak nazywa Opowio; TaskFlow i LocusLog wrzucają do `app/build/outputs/<projekt>/`)
 - odczyt certyfikatu z **gotowego pliku** zamiast ufania konfiguracji Gradle'a
 - raport rozmiaru APK
 

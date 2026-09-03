@@ -76,6 +76,10 @@ class SolvedBoardHistoryScreenTest {
         compose.onNodeWithText(
             context.resources.getQuantityString(R.plurals.history_solved_count, 1, 1),
         ).assertIsDisplayed()
+        compose.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.hint_count, 2, 2),
+            substring = true,
+        ).assertIsDisplayed()
         compose.onNodeWithContentDescription(context.getString(R.string.history_preview))
             .assertIsDisplayed()
         compose.onNodeWithContentDescription(context.getString(R.string.history_share))
@@ -112,7 +116,7 @@ class SolvedBoardHistoryScreenTest {
 
     private fun seedCompletion(): Long = runBlocking {
         val game = repository.startNewGame(Difficulty.HARD)
-        repository.finishGame(game.copy(elapsedMillis = 75_000), completed = true)
+        repository.finishGame(game.copy(elapsedMillis = 75_000, hintCount = 2), completed = true)
         repository.solvedBoards.first().single().id
     }
 }

@@ -34,6 +34,7 @@ internal fun savedGameEntity(
     lastPlayedAt: Long = 0,
     elapsedMillis: Long = 0,
     mistakeCount: Int = 0,
+    hintCount: Int = 0,
 ): SavedGameEntity = SavedGameEntity(
     puzzleId = puzzleId,
     historyId = historyId,
@@ -44,6 +45,7 @@ internal fun savedGameEntity(
     candidates = "000".repeat(Sudoku.CELL_COUNT),
     undoHistory = "",
     mistakeCount = mistakeCount,
+    hintCount = hintCount,
     rankedEligible = false,
 )
 
@@ -53,6 +55,7 @@ internal fun historyEntity(
     completed: Boolean = false,
     elapsedMillis: Long = 0,
     mistakeCount: Int = 0,
+    hintCount: Int = 0,
     xpEarned: Int = 0,
     startedAt: Long = 0,
     gameType: GameType = GameType.SOLO,
@@ -66,6 +69,7 @@ internal fun historyEntity(
     finishedAt = if (completed) startedAt + elapsedMillis else null,
     elapsedMillis = elapsedMillis,
     mistakeCount = mistakeCount,
+    hintCount = hintCount,
     completed = completed,
     score = score,
     xpEarned = xpEarned,

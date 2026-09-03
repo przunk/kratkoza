@@ -115,6 +115,22 @@ class GameScreenTest {
     }
 
     @Test
+    fun `the game shows how many hints have actually been used`() {
+        compose.onNodeWithContentDescription(context.getString(R.string.game_hints_used, 0))
+            .assertIsDisplayed()
+
+        selectFirstEmptyCell()
+        // Direct ViewModel action: this test covers rendering. Gesture delivery in this harness is
+        // separately known to miss the bottom game controls; their enabled state is tested above.
+        viewModel.revealDigit()
+        compose.waitForIdle()
+        assertEquals(1, viewModel.uiState.value.hintCount)
+
+        compose.onNodeWithContentDescription(context.getString(R.string.game_hints_used, 1))
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun `undo stays out of it — it does not act on a selection`() {
         // The fix had to be narrower than "disable the row": undo and the candidate toggle work
         // perfectly well with nothing selected, and dimming them would have traded one wrong

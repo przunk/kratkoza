@@ -7,6 +7,7 @@ import com.przunk.kratkoza.data.FakeSavedGameDao
 import com.przunk.kratkoza.data.FakeSolvedBoardDao
 import com.przunk.kratkoza.data.repository.DailyRepository
 import com.przunk.kratkoza.data.repository.GameRepository
+import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.game.SavedGame
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.model.GameType
@@ -223,10 +224,17 @@ class GameViewModelTest {
         assertEquals(0, state.mistakeCount)
         assertFalse(state.canUndo)
         assertFalse(state.rankedEligible)
+        assertEquals(1, state.hintCount)
         assertEquals(
             game.state.puzzle.solution[cell],
             repository.loadGame(game.state.puzzle.id)?.state?.board?.get(cell),
         )
+        assertEquals(1, repository.loadGame(game.state.puzzle.id)?.hintCount)
+
+        // The already-filled cell is a no-op, so another direct call is not another used hint.
+        viewModel.revealDigit()
+        idle()
+        assertEquals(1, repository.loadGame(game.state.puzzle.id)?.hintCount)
     }
 
     @Test
@@ -606,6 +614,7 @@ class GameViewModelTest {
 
         assertTrue(viewModel.uiState.value.board.isEmpty(cell))
         assertTrue(viewModel.uiState.value.rankedEligible)
+        assertEquals(0, requireNotNull(repository.loadGame(daily.state.puzzle.id)).hintCount)
     }
 
     @Test
@@ -677,6 +686,59 @@ class GameViewModelTest {
 
         assertEquals("an hour away is an hour played", 3_600_000L, reopened.uiState.value.elapsedMillis)
         assertTrue(reopened.uiState.value.rankedEligible)
+    }
+
+    @Test
+    fun `a daily becomes unranked when its cycle ends`() = gameTest {
+        val day = java.time.LocalDate.parse("2026-08-26")
+        now = DailySchedule.startOf(day).toEpochMilli() + 1_000
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, Difficulty.EASY))
+        val viewModel = viewModelFor(daily)
+
+        assertTrue(viewModel.uiState.value.rankedEligible)
+        assertFalse(viewModel.uiState.value.showRevealDigit)
+
+        now = DailySchedule.endOf(day).toEpochMilli()
+        dispatcher.scheduler.advanceTimeBy(250)
+        idle()
+
+        assertFalse(viewModel.uiState.value.rankedEligible)
+        assertTrue(viewModel.uiState.value.showRevealDigit)
+        assertFalse(requireNotNull(repository.loadGame(daily.state.puzzle.id)).rankedEligible)
+    }
+
+    @Test
+    fun `an expired daily reopened days later banks only until its cycle ended`() = gameTest {
+        val day = java.time.LocalDate.parse("2026-08-26")
+        val startedAt = DailySchedule.startOf(day).toEpochMilli() + 1_000
+        now = startedAt
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, Difficulty.HARD))
+
+        now = DailySchedule.endOf(day).toEpochMilli() + 3 * 24 * 60 * 60 * 1_000L
+        val reopened = viewModelFor(requireNotNull(repository.loadGame(daily.state.puzzle.id)))
+
+        assertFalse(reopened.uiState.value.rankedEligible)
+        assertEquals(DailySchedule.endOf(day).toEpochMilli() - startedAt, reopened.uiState.value.elapsedMillis)
+        assertFalse(requireNotNull(repository.loadGame(daily.state.puzzle.id)).rankedEligible)
+    }
+
+    @Test
+    fun `finishing just after changeover cannot submit a ranked result`() = gameTest {
+        val day = java.time.LocalDate.parse("2026-08-26")
+        now = DailySchedule.endOf(day).toEpochMilli() - 1_000
+        dailyRepository.dailySet(day)
+        val daily = requireNotNull(dailyRepository.startDaily(day, Difficulty.EASY))
+        val viewModel = viewModelFor(daily)
+
+        // No ticker is advanced: the completion path itself must enforce the boundary.
+        now = DailySchedule.endOf(day).toEpochMilli()
+        viewModel.autoSolve()
+        idle()
+
+        assertTrue(historyDao.all.single().completed)
+        assertFalse(historyDao.all.single().rankedEligible)
     }
 
     @Test
