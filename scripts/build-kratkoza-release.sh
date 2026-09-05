@@ -65,9 +65,14 @@ if [ -n "$APKSIGNER" ]; then
     if [ -z "$signer_line" ]; then
         echo "   ⚠️  Could not read the certificate. The APK may be unsigned."
     elif echo "$signer_line" | grep -qi 'CN=Android Debug'; then
+        # Print what Play Games authenticates, without claiming whether the console contains the
+        # matching credential — that configuration is outside the repository.
+        sha1="$("$APKSIGNER" verify --print-certs "$artifact" 2>/dev/null \
+            | grep -m1 -i 'SHA-1 digest' | sed 's/.*: *//')"
         echo "   ⚠️  DEBUG KEY — installable by sideload, NOT publishable."
         echo "       $signer_line"
-        echo "       Set PRZUNK_UPLOAD_* in ~/.gradle/gradle.properties to sign with the upload key."
+        echo "       SHA-1: $sha1"
+        echo "       Play Games credential must match this SHA-1 and com.przunk.kratkoza."
     else
         echo "   ✅ Release key."
         echo "       $signer_line"

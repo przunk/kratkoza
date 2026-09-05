@@ -76,6 +76,11 @@ android {
         versionCode = 51
         versionName = "0.32.0$versionSuffix"
 
+        // Enabled in release while the account-specific Play Games failure is being investigated.
+        // A dedicated flag keeps ranking diagnostics independent from every other debug-only tool
+        // and makes removing the public diagnostics a one-line, reviewable change later.
+        buildConfigField("boolean", "RANKING_DIAGNOSTICS_ENABLED", "true")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

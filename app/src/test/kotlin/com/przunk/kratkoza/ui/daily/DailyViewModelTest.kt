@@ -12,6 +12,7 @@ import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SignInOutcome
 import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import androidx.lifecycle.ViewModelStore
@@ -19,6 +20,7 @@ import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -31,6 +33,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -82,8 +85,12 @@ class DailyViewModelTest {
         }
     }
 
-    private fun viewModelWith(ranking: Ranking): DailyViewModel {
-        val viewModel = DailyViewModel(dailyRepository, ranking) { noon }
+    private fun viewModelWith(ranking: Ranking, diagnosticsEnabled: Boolean = true): DailyViewModel {
+        val viewModel = DailyViewModel(
+            dailyRepository,
+            ranking,
+            diagnosticsEnabled = diagnosticsEnabled,
+        ) { noon }
         store.put("daily", viewModel)
         return viewModel
     }
@@ -123,6 +130,66 @@ class DailyViewModelTest {
         viewModel.signIn()
 
         assertTrue(viewModel.uiState.value.signedIn)
+    }
+
+    @Test
+    fun `a refused sign-in says so instead of doing nothing`() = dailyTest {
+        // The old boolean discarded every reason the SDK supplied, so a completed chooser and a
+        // dead press looked identical. Player-facing builds need an answer without developer data.
+        val ranking = FakeRanking(signedIn = false)
+        ranking.signInOutcome = SignInOutcome.Failed("sign-in — 4 SIGN_IN_REQUIRED")
+        val viewModel = viewModelWith(ranking, diagnosticsEnabled = false)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.signIn()
+
+        // The channel buffers, so the message is already waiting by the time signIn returns.
+        assertEquals(DailyViewModel.SIGN_IN_FAILED_KEY, viewModel.messages.first())
+        assertFalse(viewModel.uiState.value.signedIn)
+    }
+
+    @Test
+    fun `a debug build gets the status code rather than the sentence`() = dailyTest {
+        // Which code came back is the whole diagnosis, and it is unavailable anywhere else on the
+        // device — the SDK reports a refusal to nobody.
+        val ranking = FakeRanking(signedIn = false)
+        ranking.signInOutcome = SignInOutcome.Failed("sign-in — 4 SIGN_IN_REQUIRED")
+        val viewModel = viewModelWith(ranking, diagnosticsEnabled = true)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.signIn()
+
+        assertEquals("sign-in — 4 SIGN_IN_REQUIRED", viewModel.messages.first())
+    }
+
+    @Test
+    fun `a canceled chooser stays quiet in a release build`() = dailyTest {
+        val ranking = FakeRanking(signedIn = false)
+        ranking.signInOutcome = SignInOutcome.Dismissed("request canceled; verification false")
+        val viewModel = viewModelWith(ranking, diagnosticsEnabled = false)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.signIn()
+
+        assertNull(
+            "a dismissed chooser must leave the message channel empty",
+            withTimeoutOrNull(MESSAGE_WAIT_MILLIS) { viewModel.messages.first() },
+        )
+        assertFalse(viewModel.uiState.value.signedIn)
+    }
+
+    @Test
+    fun `a canceled chooser exposes its trace in a debug build`() = dailyTest {
+        val ranking = FakeRanking(signedIn = false)
+        val detail = "request canceled; verification false"
+        ranking.signInOutcome = SignInOutcome.Dismissed(detail)
+        val viewModel = viewModelWith(ranking, diagnosticsEnabled = true)
+        viewModel.uiState.first { !it.isLoading }
+
+        viewModel.signIn()
+
+        assertEquals(detail, viewModel.messages.first())
+        assertFalse(viewModel.uiState.value.signedIn)
     }
 
     @Test
@@ -184,9 +251,11 @@ private class FakeRanking(
 
     override suspend fun isSignedIn(): Boolean = signedIn
 
-    override suspend fun signIn(): Boolean {
-        signedIn = true
-        return true
+    var signInOutcome: SignInOutcome = SignInOutcome.Signed("test")
+
+    override suspend fun signIn(): SignInOutcome {
+        if (signInOutcome is SignInOutcome.Signed) signedIn = true
+        return signInOutcome
     }
 
     override suspend fun show(board: Leaderboard): LeaderboardOutcome {
@@ -197,3 +266,6 @@ private class FakeRanking(
     override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome =
         SubmissionOutcome.Submitted(newBest = true)
 }
+
+/** Long enough for a message to arrive if one were coming; virtual time makes it cost nothing. */
+private const val MESSAGE_WAIT_MILLIS = 1_000L

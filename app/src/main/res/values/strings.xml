@@ -26,6 +26,7 @@
     <string name="daily_continue">Continue</string>
     <string name="daily_leaderboard">Leaderboard</string>
     <string name="daily_leaderboard_unavailable">Could not open the leaderboard. Try again in a moment.</string>
+    <string name="daily_sign_in_failed">Could not sign in to Play Games</string>
     <string name="daily_board_today">Today</string>
     <string name="daily_board_all_time">All time</string>
     <string name="daily_sign_in">Sign in to Play Games</string>
@@ -178,6 +179,8 @@
     <string name="settings_palette_preview">Preview of the %1$s palette</string>
     <string name="settings_gameplay">Gameplay</string>
     <string name="settings_about">About</string>
+    <string name="settings_ranking_diagnostics">Play Games diagnostics</string>
+    <string name="settings_ranking_diagnostics_empty">No diagnostic events yet</string>
     <string name="settings_version">Version</string>
     <string name="settings_auto_remove_candidates">Remove candidates automatically</string>
     <string name="settings_auto_remove_candidates_summary">After a correct digit, clear it from candidates in the same row, column and block.</string>

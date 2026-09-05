@@ -73,6 +73,7 @@ class SettingsScreenTest {
             R.string.settings_appearance,
             R.string.settings_gameplay,
             R.string.settings_about,
+            R.string.settings_ranking_diagnostics,
         )
 
         for (section in sections) scrollToText(context.getString(section))

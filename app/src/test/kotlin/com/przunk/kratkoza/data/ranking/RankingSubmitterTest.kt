@@ -14,6 +14,7 @@ import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.Ranking
 import com.przunk.kratkoza.domain.ranking.RankingLog
+import com.przunk.kratkoza.domain.ranking.SignInOutcome
 import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import com.przunk.kratkoza.domain.sudoku.SudokuGenerator
 import java.time.LocalDate
@@ -203,7 +204,7 @@ private class RecordingRanking(
 
     override suspend fun isSignedIn(): Boolean = true
 
-    override suspend fun signIn(): Boolean = true
+    override suspend fun signIn(): SignInOutcome = SignInOutcome.Signed("test")
 
     override suspend fun show(board: Leaderboard): LeaderboardOutcome =
         LeaderboardOutcome.Failed("the submitter never opens one")

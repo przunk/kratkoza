@@ -26,6 +26,7 @@
     <string name="daily_continue">Kontynuuj</string>
     <string name="daily_leaderboard">Tablica wyników</string>
     <string name="daily_leaderboard_unavailable">Nie udało się otworzyć tablicy wyników. Spróbuj za chwilę.</string>
+    <string name="daily_sign_in_failed">Nie udało się zalogować do Play Games</string>
     <string name="daily_board_today">Dziś</string>
     <string name="daily_board_all_time">Wszech czasów</string>
     <string name="daily_sign_in">Zaloguj się do Play Games</string>
@@ -176,6 +177,8 @@
     <string name="settings_palette_preview">Podgląd palety %1$s</string>
     <string name="settings_gameplay">Rozgrywka</string>
     <string name="settings_about">O aplikacji</string>
+    <string name="settings_ranking_diagnostics">Diagnostyka Play Games</string>
+    <string name="settings_ranking_diagnostics_empty">Brak zdarzeń diagnostycznych</string>
     <string name="settings_version">Wersja</string>
     <string name="settings_auto_remove_candidates">Automatycznie usuwaj kandydatów</string>
     <string name="settings_auto_remove_candidates_summary">Po poprawnej cyfrze usuń ją z kandydatów w tym samym wierszu, kolumnie i bloku.</string>

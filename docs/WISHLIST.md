@@ -478,3 +478,28 @@ błędną cyfrę **w chwili wpisania**. Konwersja całej planszy naraz policzy w
 jednym momencie, a `MISTAKE_FACTOR = 0.7` sprawia, że już trzy błędy zbijają punktację do 0,34
 wartości. Jedno naciśnięcie może zniszczyć wynik rankingowy. Do decyzji: ostrzegać przed konwersją,
 liczyć te błędy inaczej, czy zostawić bez zabezpieczenia.
+
+---
+
+## 16. Tryb wprowadzania jednej cyfry
+
+**Zgłoszone:** 2026-09-05, przez właściciela.
+
+Długie przyciśnięcie cyfry na klawiaturze na dole włącza tryb, w którym **tapnięcie pola wpisuje
+właśnie tę cyfrę**. Wyjście z trybu przez ponowne tapnięcie tej cyfry na klawiaturze.
+
+Odwraca zwykłą kolejność: zamiast „wybierz pole, potem cyfrę" jest „wybierz cyfrę, potem wypełniaj
+pola". Wygodne przy rozstawianiu jednej cyfry po całej planszy — czyli dokładnie przy technice
+pojedynczej ukrytej, którą gracz robi cyfra po cyfrze.
+
+**Do rozstrzygnięcia przy realizacji:**
+
+- **Kolizja gestu.** Długie przyciśnięcie cyfry jest już zajęte przez wishlistową pozycję o
+  przyjmowaniu założenia (poziomy predykcji). Ta jest odłożona, więc gest jest wolny — ale jeśli obie
+  mają kiedyś istnieć, jedna musi dostać inne wejście.
+- **Widoczność trybu.** Musi być jednoznacznie widać, że klawiatura jest w innym stanie, inaczej
+  tapnięcie w planszę zrobi coś nieoczekiwanego. Wyróżniony klawisz to za mało.
+- **Tryb kandydatów.** Czy w tym trybie tapnięcie wpisuje cyfrę, czy kandydata? Prawdopodobnie
+  powinno respektować bieżący tryb kandydatów.
+- **Cyfra wyczerpana.** Gdy wszystkie dziewięć jest już poprawnie wpisanych, klawisz jest
+  nieaktywny — tryb powinien się wtedy sam wyłączyć.
