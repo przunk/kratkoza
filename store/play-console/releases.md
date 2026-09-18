@@ -4,18 +4,18 @@ One section per artifact handed to Google Play. Ties each published `versionCode
 
 ---
 
-## 0.32.0 — versionCode 51
+## 0.32.0 — versionCode 215
 
-Closed testing release. First release prepared for Google Play Closed Testing track.
+Closed testing release. First release uploaded to Google Play Closed Testing track (versionCode 51 was rejected by Play Console as already used).
 
 | Property | Value |
 | --- | --- |
-| Artifact | `dist/kratkoza-0.32.0-51.aab` |
+| Artifact | `dist/kratkoza-0.32.0-215.aab` |
 | Size | 4,422,307 bytes (4.3M) |
-| SHA-256 | `31572b8ae6700f7813010d565af0932c0142ed092cf5f1c60c2ea7fe02937df2` |
-| versionCode | 51 |
+| SHA-256 | `67789b9b72124fc4dddef23cdfa2e186909b17ad5b1720e17e20ae00468c8bcd` |
+| versionCode | 215 — `git rev-list --count HEAD`, matching Protracktor |
 | versionName | 0.32.0 |
-| Commit | `2411c62` |
+| Commit | `1474e3d` |
 | Tag | `v0.32.0` |
 | Target SDK | 36 (Android 16) |
 | Min SDK | 29 (Android 10) |
@@ -40,3 +40,9 @@ Algorithm: SHA256withRSA
 - **Visuals**: Light, Dark, System themes, 4 custom palettes, dedicated High Contrast mode.
 - **i18n**: English and Polish, switchable in-app.
 - **Zero ads, 100% offline-first**.
+
+---
+
+### Unsent build: 0.32.0 — versionCode 51
+
+Built 2026-09-18 from commit `2411c62` (SHA-256: `31572b8ae6700f7813010d565af0932c0142ed092cf5f1c60c2ea7fe02937df2`). Rejected by Play Console because versionCode 51 had been used in an earlier upload. Superseded by versionCode 215.

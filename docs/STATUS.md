@@ -1,6 +1,6 @@
 # Kratkoza — stan realizacji
 
-**Wersja kodu 0.32.0 (51); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
+**Wersja kodu 0.32.0 (215); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
 Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games włączona w Ustawieniach.
 406 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
 

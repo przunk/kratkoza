@@ -1,6 +1,6 @@
 # Google Play Store Package
 
-Prepared 2026-09-18 for Kratkoza v0.32.0 (versionCode 51).
+Prepared 2026-09-18 for Kratkoza v0.32.0 (versionCode 215).
 
 This directory contains copy-ready text, visual assets, and verification documentation for the Google Play Store.
 
