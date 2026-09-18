@@ -94,7 +94,7 @@ version_name="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts 
 # The declaration interpolates a branch suffix at build time; the literal read out of the file still
 # carries the reference, and a filename is no place for it.
 version_name="${version_name%%\$*}"
-version_code="$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)"
+version_code="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 artifact="$DIST_DIR/kratkoza-${version_name:-unknown}-${version_code:-0}.aab"
 
 echo "🔨 Kratkoza — Play bundle ${version_name:-?} (${version_code:-?})"

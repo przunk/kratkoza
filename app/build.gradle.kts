@@ -59,6 +59,22 @@ val versionSuffix: String = providers.of(GitBranchSource::class) {
     if (branch.isEmpty() || branch in setOf("develop", "master", "HEAD")) "" else "+$branch"
 }
 
+/**
+ * The number of commits behind HEAD, used as the versionCode.
+ *
+ * Through `providers.exec` rather than `ProcessBuilder`: Gradle 9 refuses to start an external
+ * process at configuration time, because doing so cannot be cached. The provider API exists for
+ * exactly this and its result participates in the configuration cache properly.
+ *
+ * Falls back to 1 outside a git checkout — a source archive, say — which is wrong but harmless:
+ * nothing built that way is going to a store.
+ */
+val gitCommitCount: Int = providers.exec {
+    commandLine("git", "rev-list", "--count", "HEAD")
+    workingDir = rootProject.projectDir
+    isIgnoreExitValue = true
+}.standardOutput.asText.map { it.trim().toIntOrNull() ?: 1 }.getOrElse(1)
+
 android {
     namespace = "com.przunk.kratkoza"
 
@@ -70,10 +86,14 @@ android {
         applicationId = "com.przunk.kratkoza"
         minSdk = 29
         targetSdk = 36
-        // Bumped once per merge into `develop`, by whoever performs the merge — never on a task
-        // branch, or two branches would claim the same number for different code. Branch builds are
-        // told apart by `versionSuffix` above instead.
-        versionCode = 51
+        // Counted, not typed. Play rejects an upload whose versionCode it has seen before, and a
+        // number a person has to remember to raise is a number that eventually is not raised. The
+        // commit count only ever grows, changes on every merge without anyone doing anything, and
+        // needs no discipline at all.
+        //
+        // Falls back to 1 outside a git checkout — a source archive, say — which is wrong but
+        // harmless: nothing built that way is going to a store.
+        versionCode = gitCommitCount
         versionName = "0.32.0$versionSuffix"
 
         // Enabled in release while the account-specific Play Games failure is being investigated.
