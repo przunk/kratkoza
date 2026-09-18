@@ -178,11 +178,10 @@ fun SettingsScreen(
                 }
             }
 
-            // Debug builds only, and last on the screen. Play Games fails quietly by nature, so
-            // this is the record of what it did; Settings is where somebody looks when something
-            // is wrong, which is where it belongs once an investigation is over rather than on the
-            // screen people play on.
-            if (BuildConfig.DEBUG) {
+            // Temporarily present in release builds as well: the failure is account-specific and
+            // only reproducible on a remote phone. The BuildConfig flag deliberately controls this
+            // one diagnostic without exposing unrelated debug tools.
+            if (BuildConfig.RANKING_DIAGNOSTICS_ENABLED) {
                 item { RankingDiagnostics(entries = diagnostics) }
             }
         }
@@ -191,10 +190,10 @@ fun SettingsScreen(
 
 @Composable
 private fun RankingDiagnostics(entries: List<String>) {
-    SettingsSection("Ranking (debug)") {
+    SettingsSection(stringResource(R.string.settings_ranking_diagnostics)) {
         if (entries.isEmpty()) {
             Text(
-                text = "nothing yet",
+                text = stringResource(R.string.settings_ranking_diagnostics_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

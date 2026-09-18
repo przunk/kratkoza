@@ -8,9 +8,9 @@ package com.przunk.kratkoza.domain.ranking
  * stay runnable on the JVM: the SDK insists on an `Activity` for every one of its clients, and a
  * ViewModel that reached for one could not be tested at all.
  *
- * Every method answers with a plain boolean rather than throwing. There is no failure here the
- * player can act on — no configuration, no signed-in account, no network all look the same from
- * the game's side, and all of them mean the same thing: the board still counts locally.
+ * Nothing here throws. What a failure is worth saying depends on who caused it: sending a score
+ * happens by itself and its failure is the game's business, while signing in and opening a board
+ * happen because the player pressed something, and those answer with a reason.
  */
 interface Ranking {
 
@@ -25,8 +25,13 @@ interface Ranking {
      *
      * Only ever called because the player pressed something. Play Games attempts a silent sign-in
      * of its own when the process starts, and that is the only automatic one there should be.
+     *
+     * Answers with the SDK trace for the same purpose [show] reports a reason. A bare boolean used
+     * to discard whether the request failed, timed out, was cancelled, or merely returned an
+     * unauthenticated response; those cases need different remedies and cannot be inferred from the
+     * chooser disappearing.
      */
-    suspend fun signIn(): Boolean
+    suspend fun signIn(): SignInOutcome
 
     /**
      * Opens the leaderboard for one Daily level.
@@ -40,6 +45,23 @@ interface Ranking {
 
     /** Sends one value to one board, answering whether it landed and why not when it did not. */
     suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome
+}
+
+/**
+ * What came of asking the player to sign in.
+ *
+ * Every outcome carries the trace of the explicit request and the authentication check immediately
+ * after it. Release UI can keep a dismissal quiet, while a debug build must retain it: an SDK
+ * cancellation is not proof that the player deliberately closed the chooser.
+ */
+sealed interface SignInOutcome {
+    val detail: String
+
+    data class Signed(override val detail: String) : SignInOutcome
+
+    data class Dismissed(override val detail: String) : SignInOutcome
+
+    data class Failed(override val detail: String) : SignInOutcome
 }
 
 /**
@@ -87,7 +109,8 @@ sealed interface SubmissionOutcome {
 object NoRanking : Ranking {
     override val isAvailable: Boolean = false
     override suspend fun isSignedIn(): Boolean = false
-    override suspend fun signIn(): Boolean = false
+    override suspend fun signIn(): SignInOutcome =
+        SignInOutcome.Failed("Play Games is not configured in this build")
     override suspend fun show(board: Leaderboard): LeaderboardOutcome =
         LeaderboardOutcome.Failed("Play Games is not configured in this build")
     override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome =

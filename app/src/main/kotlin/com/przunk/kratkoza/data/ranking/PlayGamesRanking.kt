@@ -3,6 +3,7 @@ package com.przunk.kratkoza.data.ranking
 import android.app.Activity
 import android.content.Intent
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.games.GamesClientStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.leaderboard.LeaderboardVariant
@@ -11,6 +12,7 @@ import com.google.android.gms.tasks.Task
 import com.przunk.kratkoza.domain.ranking.Leaderboard
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.Ranking
+import com.przunk.kratkoza.domain.ranking.SignInOutcome
 import com.przunk.kratkoza.domain.ranking.SubmissionOutcome
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
@@ -37,9 +39,23 @@ class PlayGamesRanking(
         return signedIn(activity)
     }
 
-    override suspend fun signIn(): Boolean {
-        val activity = activities.current() ?: return false
-        return PlayGames.getGamesSignInClient(activity).signIn().awaitOrNull()?.isAuthenticated == true
+    /** Records both halves of authentication instead of guessing why the chooser disappeared. */
+    override suspend fun signIn(): SignInOutcome {
+        val activity = activities.current() ?: return SignInOutcome.Failed("no activity attached")
+        val client = PlayGames.getGamesSignInClient(activity)
+
+        val request = client.signIn()
+        val response = request.awaitOrNull()
+        val requestSnapshot = snapshot(request, response?.isAuthenticated)
+
+        // The explicit request and the session it leaves behind are separate observations. Keeping
+        // both catches the otherwise invisible case where the chooser completes but authentication
+        // state does not change (or changes despite an unhelpful request result).
+        val verification = client.isAuthenticated()
+        val verificationResponse = verification.awaitOrNull()
+        val verificationSnapshot = snapshot(verification, verificationResponse?.isAuthenticated)
+
+        return resolveSignInOutcome(requestSnapshot, verificationSnapshot)
     }
 
     override suspend fun show(board: Leaderboard): LeaderboardOutcome {
@@ -83,7 +99,7 @@ class PlayGamesRanking(
      * The leaderboard id is included because the three differ only in their last character, and
      * "which board did it actually ask for" is the first question worth answering.
      */
-    private fun describe(cause: Exception?, leaderboard: String): String {
+    private fun describe(cause: Exception?, subject: String): String {
         // Play Games codes are five digits and mean nothing on their own; the SDK can name them,
         // and a name is what makes the difference between a bug report and a number.
         val reason = when (val code = statusCodeOf(cause)) {
@@ -92,7 +108,7 @@ class PlayGamesRanking(
 
             else -> "$code ${GamesClientStatusCodes.getStatusCodeString(code)}"
         }
-        return "$leaderboard — $reason"
+        return "$subject — $reason"
     }
 
     override suspend fun submit(board: Leaderboard, value: Long): SubmissionOutcome {
@@ -166,6 +182,21 @@ class PlayGamesRanking(
 
     private fun statusCodeOf(cause: Exception?): Int? = (cause as? ApiException)?.statusCode
 
+    private fun snapshot(task: Task<*>, authenticated: Boolean?): SignInTaskSnapshot {
+        val cause = task.exception
+        val statusCode = statusCodeOf(cause)
+        return SignInTaskSnapshot(
+            complete = task.isComplete,
+            successful = task.isSuccessful,
+            canceled = task.isCanceled,
+            authenticated = authenticated,
+            exceptionType = cause?.javaClass?.simpleName,
+            statusCode = statusCode,
+            statusName = statusCode?.let(GamesClientStatusCodes::getStatusCodeString),
+            message = cause?.message,
+        )
+    }
+
     private suspend fun signedIn(activity: Activity): Boolean =
         PlayGames.getGamesSignInClient(activity).isAuthenticated().awaitOrNull()?.isAuthenticated == true
 
@@ -200,6 +231,50 @@ class PlayGamesRanking(
          * seconds is long enough for a slow network and short enough to still be an answer.
          */
         const val TASK_TIMEOUT_MILLIS = 10_000L
+    }
+}
+
+/** A framework-free copy of the facts exposed by one Play Services task. */
+internal data class SignInTaskSnapshot(
+    val complete: Boolean,
+    val successful: Boolean,
+    val canceled: Boolean,
+    val authenticated: Boolean?,
+    val exceptionType: String? = null,
+    val statusCode: Int? = null,
+    val statusName: String? = null,
+    val message: String? = null,
+) {
+    fun describe(label: String): String = buildString {
+        append(label)
+        append("{complete=").append(complete)
+        append(", success=").append(successful)
+        append(", canceled=").append(canceled)
+        append(", authenticated=").append(authenticated ?: "none")
+        if (exceptionType != null) append(", exception=").append(exceptionType)
+        if (statusCode != null) {
+            append(", status=").append(statusCode)
+            if (statusName != null) append(' ').append(statusName)
+        }
+        if (!message.isNullOrBlank()) append(", message=").append(message)
+        append('}')
+    }
+}
+
+/** Decides from recorded facts only; the trace deliberately contains no proposed root cause. */
+internal fun resolveSignInOutcome(
+    request: SignInTaskSnapshot,
+    verification: SignInTaskSnapshot,
+): SignInOutcome {
+    val detail = "${request.describe("request")}; ${verification.describe("verification")}"
+    return when {
+        request.authenticated == true || verification.authenticated == true ->
+            SignInOutcome.Signed(detail)
+
+        request.canceled || request.statusCode == CommonStatusCodes.CANCELED ->
+            SignInOutcome.Dismissed(detail)
+
+        else -> SignInOutcome.Failed(detail)
     }
 }
 

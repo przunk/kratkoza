@@ -1,6 +1,5 @@
 package com.przunk.kratkoza.ui.daily
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +19,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +65,7 @@ fun DailyScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel) {
         viewModel.openGame.collect(onOpenGame)
@@ -71,16 +74,24 @@ fun DailyScreen(
     // Resolved in the composition rather than inside the effect: a resource read through Context
     // does not follow a configuration change, and the effect only needs the finished string.
     val unavailable = stringResource(R.string.daily_leaderboard_unavailable)
+    val signInFailed = stringResource(R.string.daily_sign_in_failed)
 
-    LaunchedEffect(viewModel) {
-        // A Toast rather than a Snackbar: these report that something the player pressed did not
-        // work, and they have to survive whatever the screen is doing — including the Play Games
-        // overlay taking the foreground. A Toast has no host to be missing and no layout to be
-        // clipped by, which is exactly what is wanted from a message about a failure.
+    LaunchedEffect(viewModel, snackbarHostState) {
         viewModel.messages.collect { message ->
             // The ViewModel has no resources, so it names the string and the screen resolves it.
-            val text = if (message == DailyViewModel.FAILED_TO_OPEN_KEY) unavailable else message
-            Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+            val text = when (message) {
+                DailyViewModel.FAILED_TO_OPEN_KEY -> unavailable
+                DailyViewModel.SIGN_IN_FAILED_KEY -> signInFailed
+                else -> message
+            }
+            // The diagnostic can be longer than a transient overlay and must remain available long
+            // enough to photograph on another person's phone. Settings keeps the complete trace
+            // after this Snackbar is dismissed.
+            snackbarHostState.showSnackbar(
+                message = text,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long,
+            )
         }
     }
 
@@ -96,6 +107,7 @@ fun DailyScreen(
         title = stringResource(R.string.daily_title),
         modifier = modifier,
         onNavigateBack = onNavigateBack,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         if (state.isLoading && state.entries.isEmpty()) {
             Box(

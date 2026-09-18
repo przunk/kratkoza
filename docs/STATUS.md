@@ -1,7 +1,8 @@
 # Kratkoza — stan realizacji
 
-**Wersja kodu 0.32.0 (51); na Play w kanale wewnętrznym pozostaje 0.31.0 (50).** Gra solo i Daily
-z publicznym rankingiem działają na urządzeniu; 398 testów, lint czysty.
+**Wersja kodu 0.32.0 (51); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
+Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games włączona w Ustawieniach.
+406 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
 
 ## Gotowe
 
@@ -81,7 +82,7 @@ z publicznym rankingiem działają na urządzeniu; 398 testów, lint czysty.
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 393 testy: walidacja, solver, unikalność, generator, klasyfikacja trudności, kandydaci,
+- [x] 406 testów: walidacja, solver, unikalność, generator, klasyfikacja trudności, kandydaci,
       Undo, wykrywanie błędów, zapis/odtworzenie sesji, migracje po prawdziwym SQLite,
       repozytoria, ViewModele, ekrany Compose na Robolectriku
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`
@@ -114,11 +115,23 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Znane usterki
 
-**Nic otwartego.** Wszystko zgłoszone z urządzenia jest naprawione; jedyna niewykreślona pozycja
-niżej opisuje zachowanie, które łatwo wziąć za usterkę, a nią nie jest.
+Jedna usterka jest otwarta i ma gotowy build diagnostyczny, ale jej przyczyna pozostaje
+niesprawdzona do czasu ponownego przebiegu na urządzeniu.
 
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
+
+### Logowanie do Play Games kończy się bez rezultatu
+
+**Zgłoszone:** 2026-09-05. Okno wyboru konta pojawia się, ale po potwierdzeniu aplikacja nadal nie
+jest zalogowana. Credentiale Android w Play Games Services zostały sprawdzone przez właściciela;
+brak credentiala nie jest ustaloną przyczyną.
+
+Gałąź `fix/play-games-sign-in-is-silent` zachowuje wynik `signIn()`, pełny status wyjątku oraz wynik
+kontrolnego `isAuthenticated()` w `Settings → Diagnostyka Play Games`. Na czas ustalania przyczyny
+sekcja i szczegółowy Snackbar są włączone również w release AAB, bo problem występuje na zdalnym
+telefonie, a nie na urządzeniu właściciela. Kod i testy potwierdzają drogę raportowania, ale
+przyczyna i samo zachowanie SDK są **niesprawdzone** bez kolejnego przebiegu na tamtym urządzeniu.
 
 ### ~~Grafika tytułowa jest zrobiona pod ciemny motyw~~ — naprawione 2026-08-28
 
@@ -257,14 +270,15 @@ kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` prz
 
 ## Gałęzie
 
-- **`master`** — `b1c0d29`, równy developowi, 0.31.0 (50). Aktualizowany rzadko, decyzją właściciela.
-- **`develop`** — gałąź główna, wszystko wchodzi tutaj i stąd wychodzi.
+- **`master`** — `9557c08`, równy zawartością `develop`, 0.32.0 (51). Aktualizowany rzadko,
+  decyzją właściciela.
+- **`develop`** — `4182801`, gałąź główna, wszystko wchodzi tutaj i stąd wychodzi.
+- **`fix/play-games-sign-in-is-silent`** — bieżąca diagnostyka logowania do Play Games.
 - **`feature/hypothesis-tools`** — **odłożona**. Narzędzia do symulacji założeń; trzy podejścia
   wróciły z urządzenia zepsute, model właściwy opisuje pozycja 14 w [WISHLIST.md](WISHLIST.md).
   Jej porzucony schemat 6 nie może już wrócić pod tym numerem; oficjalna migracja 6→7 służy wyłącznie
   odzyskaniu telefonów, które zdążyły go uruchomić.
-- **`feature/daily-expiry-and-hint-tracking`** — bieżące zadanie Codexa, odbite od `develop`.
-- **`docs/full-code-review`**, **`measure/difficulty-ladder`** — stare, niescalone.
+- **`docs/full-code-review`** — stara, niescalona.
 
 ## Do zrobienia
 

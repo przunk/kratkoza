@@ -9,6 +9,7 @@ import com.przunk.kratkoza.domain.daily.DailyEntry
 import com.przunk.kratkoza.domain.daily.DailySchedule
 import com.przunk.kratkoza.domain.model.Difficulty
 import com.przunk.kratkoza.domain.ranking.Leaderboard
+import com.przunk.kratkoza.domain.ranking.SignInOutcome
 import com.przunk.kratkoza.domain.ranking.LeaderboardOutcome
 import com.przunk.kratkoza.domain.ranking.NoRanking
 import com.przunk.kratkoza.domain.ranking.Ranking
@@ -38,8 +39,8 @@ class DailyViewModel(
      */
     private val ranking: Ranking = NoRanking,
     private val rankingLog: RankingLog = RankingLog(),
-    /** Whether to show developer detail. Release builds get a sentence a player can read. */
-    private val debugTools: Boolean = BuildConfig.DEBUG,
+    /** Whether to expose the SDK trace; temporarily enabled in release for remote diagnosis. */
+    private val diagnosticsEnabled: Boolean = BuildConfig.RANKING_DIAGNOSTICS_ENABLED,
     private val clock: () -> Instant = Instant::now,
 ) : ViewModel() {
 
@@ -71,7 +72,27 @@ class DailyViewModel(
      */
     fun signIn() {
         viewModelScope.launch {
-            ranking.signIn()
+            // Recorded before the SDK is touched, so the log separates a press that produced
+            // nothing from one that never arrived — the same reason opening a board does it.
+            rankingLog.add("sign-in: requested")
+
+            when (val outcome = ranking.signIn()) {
+                is SignInOutcome.Signed -> rankingLog.add("sign-in: signed; ${outcome.detail}")
+
+                is SignInOutcome.Dismissed -> {
+                    rankingLog.add("sign-in: canceled; ${outcome.detail}")
+                    // A cancellation can mean a deliberate close, but the SDK status alone does
+                    // not prove that. Production stays quiet; diagnostics must show the evidence.
+                    if (diagnosticsEnabled) _messages.send(outcome.detail)
+                }
+
+                is SignInOutcome.Failed -> {
+                    rankingLog.add("sign-in: ${outcome.detail}")
+                    // A player gets a sentence; the status code is for whoever holds the log.
+                    _messages.send(if (diagnosticsEnabled) outcome.detail else SIGN_IN_FAILED_KEY)
+                }
+            }
+
             refreshSignIn()
         }
     }
@@ -100,7 +121,7 @@ class DailyViewModel(
                     rankingLog.add("leaderboard: ${outcome.detail}")
                     // A player gets a sentence; the identifier and status code are for whoever is
                     // holding the log, and mean nothing to anybody else.
-                    _messages.send(if (debugTools) outcome.detail else FAILED_TO_OPEN_KEY)
+                    _messages.send(if (diagnosticsEnabled) outcome.detail else FAILED_TO_OPEN_KEY)
                 }
             }
         }
@@ -181,6 +202,8 @@ class DailyViewModel(
          * be testable without Android.
          */
         const val FAILED_TO_OPEN_KEY = "leaderboard-unavailable"
+
+        const val SIGN_IN_FAILED_KEY = "sign-in-failed"
 
         /** Once a second: the screen shows a countdown, and a coarser tick makes it stutter. */
         private const val TICK_MILLIS = 1_000L
