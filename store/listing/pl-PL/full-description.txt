@@ -1,0 +1,42 @@
+Kratkoza to czysta, nowoczesna gra Sudoku na Androida. Zero reklam, zero mikropłatności, zero sztucznego blokowania gry — tylko czysta logika, czytelny interfejs i intuicyjne sterowanie dotykowe.
+
+KLASYCZNE SUDOKU 9×9
+• Ścisła zgodność ze standardowymi regułami tradycyjnego Sudoku.
+• Każda plansza posiada dokładnie jedno unikalne rozwiązanie i nie wymaga zgadywania.
+• Wyraźne rozróżnienie cyfr początkowych od wpisanych przez gracza.
+
+5 ZBALANSOWANYCH POZIOMÓW TRUDNOŚCI
+Poziom trudności wynika z ludzkich technik logicznych potrzebnych do rozwiązania planszy, a nie tylko z liczby pustych pól:
+• Łatwy — pojedyncze cyfry (singles), idealny do nauki i relaksu.
+• Normalny — techniki pojedynczych cyfr wymagające dokładnego przeszukiwania siatki.
+• Trudny — techniki blokowania kandydatów (locked candidates: pointing i claiming).
+• Ekspert — pary jawne i ukryte (naked and hidden pairs).
+• Mistrz — trójki, X-Wing, XY-Wing i Swordfish.
+
+KOMFORTOWA ROZGRYWKA
+• Inteligentne notatki kandydatów: wpisywanie ołówkiem z automatycznym czyszczeniem po wstawieniu cyfry. Kasowanie wszystkich notatek jednym długim dotknięciem.
+• Wykrywanie błędów: natychmiastowe oznaczanie konfliktów bez frustrującego systemu żyć.
+• Pełne Undo: nielimitowana historia ruchów obejmująca cyfry i notatki.
+• Wymazywanie i licznik cyfr: łatwe czyszczenie pól i opcjonalny podgląd pozostałych cyfr.
+• Pauza i automatyczny zapis: odejdź od gry w dowolnej chwili bez utraty stanu i czasu.
+
+DAILY SUDOKU I RANKINGI
+• Świeże, codzienne wyzwanie Daily na 3 poziomach trudności (Łatwy, Trudny, Ekspert).
+• Opcjonalne logowanie do Google Play Games z publicznymi rankingami dziennymi i łącznymi.
+• Wygasłe plansze Daily pozostają dostępne do gry offline jako rozgrywki nierankingowe.
+
+STATYSTYKI I POSTĘP
+• Szczegółowe statystyki lokalne: gry rozpoczęte, ukończone, procent ukończeń, najlepsze i średnie czasy.
+• Punkty doświadczenia (XP) i poziomy gracza nagradzające rozwiązane plansze.
+• Archiwum plansz: wracaj do swoich ulubionych i rozwiązanych łamigłówek.
+• Udostępnianie plansz znajomym za pomocą krótkiego kodu tekstowego.
+
+WYGLĄD I DOSTĘPNOŚĆ
+• Spokojny, minimalistyczny interfejs z wyraźnymi granicami bloków 3×3.
+• Motyw ciemny, jasny oraz systemowy.
+• Cztery starannie dobrane palety kolorystyczne (Slate, Classic, Forest, Dusk) oraz tryb wysokiego kontrastu.
+• Pełna dwujęzyczność: polski i angielski z możliwością przełączenia w aplikacji.
+• Pełna dostępność TalkBack na każdym polu planszy.
+
+100% OFFLINE I SZACUNEK DLA PRYWATNOŚCI
+Kratkoza działa w pełni bez połączenia z Internetem. Nie wymaga zakładania konta. Nie zawiera żadnych bibliotek reklamowych, analitycznych ani śledzących. Twoje dane, historia i statystyki zostają na Twoim telefonie.

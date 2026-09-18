@@ -27,14 +27,28 @@ fail() {
     exit 1
 }
 
+already_configured() {
+    [ -f "$HOME/.gradle/gradle.properties" ] && grep -qs '^[[:space:]]*PRZUNK_UPLOAD_STORE_FILE[[:space:]]*=' "$HOME/.gradle/gradle.properties"
+}
+
 # Asks for what it needs, defaulting to whatever the environment already carries.
 collect_signing_configuration() {
     local entered current
 
+    if already_configured && [ -z "${KRATKOZA_UPLOAD_KEYSTORE:-}" ] && [ -z "${PRZUNK_UPLOAD_STORE_FILE:-}" ]; then
+        echo "🔑 Using PRZUNK_UPLOAD_* from ~/.gradle/gradle.properties"
+        return
+    fi
+
+    # Fall back to PRZUNK_UPLOAD_* if KRATKOZA_UPLOAD_* is not set
+    KRATKOZA_UPLOAD_KEYSTORE="${KRATKOZA_UPLOAD_KEYSTORE:-${PRZUNK_UPLOAD_STORE_FILE:-}}"
+    KRATKOZA_UPLOAD_KEY_ALIAS="${KRATKOZA_UPLOAD_KEY_ALIAS:-${PRZUNK_UPLOAD_KEY_ALIAS:-}}"
+    KRATKOZA_UPLOAD_STORE_PASSWORD="${KRATKOZA_UPLOAD_STORE_PASSWORD:-${PRZUNK_UPLOAD_STORE_PASSWORD:-}}"
+    KRATKOZA_UPLOAD_KEY_PASSWORD="${KRATKOZA_UPLOAD_KEY_PASSWORD:-${PRZUNK_UPLOAD_KEY_PASSWORD:-}}"
+
     if [ -t 0 ]; then
         current="${KRATKOZA_UPLOAD_KEYSTORE:-/mnt/d/Projects/google-play-upload.jks}"
         if [ -n "$current" ]; then
-			#current="${KRATKOZA_UPLOAD_KEYSTORE:-/mnt/d/Projects/google-play-upload.jks}"
             read -r -p "Upload keystore path [$current]: " entered
             KRATKOZA_UPLOAD_KEYSTORE="${entered:-$current}"
         else
@@ -42,7 +56,7 @@ collect_signing_configuration() {
         fi
     fi
     [ -n "${KRATKOZA_UPLOAD_KEYSTORE:-}" ] || fail "no keystore given" \
-        "Set KRATKOZA_UPLOAD_KEYSTORE, or run this from a terminal so it can ask."
+        "Set KRATKOZA_UPLOAD_KEYSTORE / PRZUNK_UPLOAD_STORE_FILE, or run this from a terminal so it can ask."
 
     # ~ is the shell's, not the filesystem's; a typed path keeps it literal.
     KRATKOZA_UPLOAD_KEYSTORE="${KRATKOZA_UPLOAD_KEYSTORE/#\~/$HOME}"

@@ -1,0 +1,8 @@
+Closed testing release (v0.32.0).
+• 5 balanced difficulty levels based on logical techniques.
+• Daily Sudoku challenges with Google Play Games leaderboards.
+• Smart candidate notes with automatic cleanup.
+• Comprehensive local statistics, history, and player levels.
+• Dark, light, and high contrast themes with 4 color palettes.
+• Play Games sign-in diagnostics and status reporting.
+• 100% offline-friendly, no advertising.

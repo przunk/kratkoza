@@ -1,8 +1,8 @@
 # Kratkoza — stan realizacji
 
-**Wersja kodu 0.32.0 (51); na Play w kanale wewnętrznym pozostaje 0.31.0 (50).** Gra solo i Daily
-działają na urządzeniu. Interaktywne logowanie do Play Games jest w trakcie diagnostyki po zgłoszeniu
-z urządzenia; 406 testów, lint czysty.
+**Wersja kodu 0.32.0 (51); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
+Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games włączona w Ustawieniach.
+406 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
 
 ## Gotowe
 

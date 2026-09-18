@@ -47,6 +47,7 @@ if [ $status -eq 0 ]; then
     fi
 
     echo "✅ $total tests passed (${elapsed}s)"
+    "$SCRIPT_DIR/check-store-metadata.sh"
     exit 0
 fi
 

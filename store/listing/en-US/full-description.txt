@@ -1,0 +1,42 @@
+Kratkoza is a pure, thoughtful Sudoku game designed for Android. No advertising, no paywalls, no artificial timers locking you out of the game — just clean logic, elegant design, and responsive controls.
+
+CLASSIC 9×9 SUDOKU
+• Adheres strictly to the standard rules of pencil-and-paper Sudoku.
+• Every generated board has exactly one unique solution and requires no guessing.
+• Initial givens are clearly distinguished from your entered digits.
+
+5 BALANCED DIFFICULTY LEVELS
+Difficulty is graded by the human logical techniques required to solve each board, not just by how many cells are empty:
+• Easy — singles only, perfect for relaxing or learning.
+• Normal — singles, requiring thorough scanning across the grid.
+• Hard — locked candidates (pointing and claiming).
+• Expert — naked and hidden pairs.
+• Master — triples, X-Wing, XY-Wing, and Swordfish.
+
+PLAY YOUR WAY
+• Smart Candidate Notes: Enter pencil marks with auto-removal when a digit is placed. Clear all notes with a single long press.
+• Error Detection: Immediate conflict highlighting without a punitive lives system.
+• Full Undo: Unlimited, step-by-step history covering digits and notes.
+• Erase & Remaining Counts: Clear cells easily and optionally see how many of each digit remain.
+• Pause & Auto-Save: Step away anytime. Your game state and timer are automatically preserved.
+
+DAILY SUDOKU & LEADERBOARDS
+• A fresh, deterministic Daily challenge every day across 3 difficulties (Easy, Hard, Expert).
+• Optional Google Play Games sign-in for competitive public leaderboards.
+• Past Daily puzzles remain playable offline as unranked games.
+
+STATISTICS & PROGRESS
+• Detailed local records: games started, completed, completion rate, best times, and average times per difficulty.
+• Player XP and leveling system that rewards completed boards.
+• Board Archive: Revisit and replay previously solved boards.
+• Share boards with friends using lightweight puzzle codes.
+
+DESIGN & ACCESSIBILITY
+• Calm, high-readability interface with distinct 3×3 block boundaries.
+• Dark, Light, and System themes.
+• Four carefully chosen color palettes (Slate, Classic, Forest, Dusk) plus a dedicated High Contrast mode.
+• Full bilingual support: English and Polish, switchable in-app.
+• TalkBack accessibility labels on every cell.
+
+100% OFFLINE & PRIVACY-FIRST
+Kratkoza works entirely without an internet connection. No account is required. No analytics, tracking, or advertising SDKs are included. Your puzzles, history, and settings remain on your device.
