@@ -36,6 +36,14 @@ data class GameUiState(
     val isPaused: Boolean = false,
     /** Whether the number pad writes pencil marks instead of digits (project.md section 14). */
     val candidateMode: Boolean = false,
+    /**
+     * The digit pinned by a long press on the pad, or `null` when none is.
+     *
+     * While a digit is pinned, tapping a cell writes it there (or toggles it as a pencil mark in
+     * [candidateMode]) and every cell holding it is highlighted. It is screen state, not game
+     * state: it is not saved and does not survive leaving the game.
+     */
+    val insertDigit: Int? = null,
     /** Whether the destructive candidate-clear confirmation is currently visible. */
     val confirmingCandidateClear: Boolean = false,
     val canUndo: Boolean = false,
@@ -127,6 +135,17 @@ data class GameUiState(
      * the status row does for the pause button of a ranked game.
      */
     val canEnterDigit: Boolean get() = isPlayable && selectedCell != null
+
+    /**
+     * Whether a short press on a pad key does anything.
+     *
+     * With a digit pinned it always does — it switches the pinned digit or, on the pinned key
+     * itself, releases it — so the pad must not look dead just because nothing is selected.
+     */
+    val canPressDigit: Boolean get() = canEnterDigit || (isPlayable && insertDigit != null)
+
+    /** A digit can be pinned whenever the game is in play; no selection is needed. */
+    val canPinDigit: Boolean get() = isPlayable
 
     /** project.md section 18: a publicly ranked game must not expose a reveal control at all. */
     val showRevealDigit: Boolean get() = !rankedEligible

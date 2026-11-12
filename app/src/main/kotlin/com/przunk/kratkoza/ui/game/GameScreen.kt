@@ -2,9 +2,11 @@ package com.przunk.kratkoza.ui.game
 
 import android.widget.Toast
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
@@ -39,6 +41,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -194,6 +198,11 @@ private fun LoadingBody() {
 
 @Composable
 private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
+
+    // Back first releases a pinned digit, then — on the next press — leaves the game as usual.
+    BackHandler(enabled = state.insertDigit != null, onBack = viewModel::exitInsertMode)
+
     GameFunctionRow(state = state, viewModel = viewModel, onLeave = onLeave)
     GameStatusRow(state = state, onTogglePause = { viewModel.setPaused(!state.isPaused) })
 
@@ -206,7 +215,11 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
             selectedCell = state.selectedCell,
             peerCells = state.peerCells,
             sameDigitCells = state.sameDigitCells,
-            onCellClick = viewModel::selectCell,
+            onCellClick = { cell ->
+                // A pinned digit that could not go into the tapped cell is refused out loud: the
+                // selection moves there, so the reason is in view, and the phone says no.
+                if (!viewModel.tapCell(cell)) haptics.performHapticFeedback(HapticFeedbackType.Reject)
+            },
             enabled = state.isPlayable,
             eightOfNineHints = state.eightOfNineHints,
             lastMove = state.lastMove,
@@ -224,8 +237,11 @@ private fun PlayingBody(state: GameUiState, viewModel: GameViewModel, onLeave: (
 
     NumberPad(
         remainingByDigit = state.remainingByDigit,
-        onDigitClick = viewModel::enterDigit,
-        enabled = state.canEnterDigit,
+        onDigitClick = viewModel::pressDigit,
+        enabled = state.canPressDigit,
+        insertDigit = state.insertDigit,
+        pinEnabled = state.canPinDigit,
+        onDigitLongClick = viewModel::pinDigit,
         candidateMode = state.candidateMode,
         showRemainingCounts = state.showRemainingCounts,
     )
@@ -267,6 +283,10 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
             RankedBadge(ranked = state.rankedEligible)
         }
 
+        state.insertDigit?.let { digit ->
+            PinnedDigitBanner(digit = digit, onEnd = viewModel::exitInsertMode)
+        }
+
         Spacer(Modifier.weight(1f))
 
         // Debug builds only. Reaching the end of a Daily is otherwise twenty minutes of typing,
@@ -290,6 +310,50 @@ private fun GameFunctionRow(state: GameUiState, viewModel: GameViewModel, onLeav
                 },
             )
         }
+    }
+}
+
+/**
+ * Says that a digit is pinned, and is the way out of it.
+ *
+ * The highlighted key alone would be easy to miss — wishlist item 16 calls it too little — and a
+ * tap on the board that writes a digit the player did not expect is the kind of surprise that
+ * costs a mistake. So the mode is also named above the board, next to the thing it changes, and
+ * the same element ends it: a pin and the digit say what is going on, the cross says what a tap
+ * does.
+ */
+@Composable
+private fun PinnedDigitBanner(digit: Int, onEnd: () -> Unit) {
+    val colours = MaterialTheme.colorScheme
+    val endLabel = stringResource(R.string.game_pinned_banner_end, digit)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(BADGE_CORNER_DP.dp))
+            .background(colours.primaryContainer)
+            // clickable merges the row, so a screen reader hears the state once and the action as
+            // the click label; the cross itself stays silent rather than saying it twice.
+            .clickable(onClickLabel = endLabel, role = Role.Button, onClick = onEnd)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_pin),
+            contentDescription = null,
+            modifier = Modifier.size(BADGE_ICON_DP.dp),
+            tint = colours.onPrimaryContainer,
+        )
+        Text(
+            text = stringResource(R.string.game_pinned_banner, digit),
+            style = MaterialTheme.typography.labelMedium,
+            color = colours.onPrimaryContainer,
+            modifier = Modifier.padding(horizontal = 6.dp),
+        )
+        Icon(
+            painter = painterResource(R.drawable.ic_close),
+            contentDescription = null,
+            modifier = Modifier.size(BADGE_ICON_DP.dp),
+            tint = colours.onPrimaryContainer,
+        )
     }
 }
 
