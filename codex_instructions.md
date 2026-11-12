@@ -143,9 +143,9 @@ zatwierdzonymi wymaganiami** — zostaw kod gotowy na rozszerzenie, ale nie impl
 
 ```bash
 cd /mnt/workspace/Kratkoza-codex
-./scripts/test-kratkoza.sh          # wszystkie testy muszą przechodzić
-./scripts/lint-kratkoza.sh          # lint musi być czysty
-./scripts/build-kratkoza-debug.sh
+./scripts/test.sh                   # wszystkie testy muszą przechodzić
+./scripts/lint.sh                   # lint musi być czysty
+./scripts/build-debug.sh
 ```
 
 Skrypty wyliczają katalog projektu z własnego położenia, więc uruchomione z Twojego worktree budują

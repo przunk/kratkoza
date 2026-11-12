@@ -1,42 +1,67 @@
 # Kratkoza — budowanie
 
-Wszystkie skrypty siedzą w `scripts/` i same ustawiają JDK, Android SDK i Gradle
-z `/mnt/workspace/.tooling`. Nie trzeba niczego eksportować ręcznie.
+Wszystkie skrypty siedzą w `scripts/` i same ustawiają JDK i Android SDK z
+`/mnt/workspace/.tooling`. Nie trzeba niczego eksportować ręcznie.
 
 | Skrypt | Co robi |
 |---|---|
-| `scripts/build-kratkoza-debug.sh` | debug APK do wgrania na telefon |
-| `scripts/build-kratkoza-release.sh` | release APK + weryfikacja, którym kluczem podpisany, do `dist/` |
-| `scripts/test-kratkoza.sh` | testy jednostkowe |
-| `scripts/lint-kratkoza.sh` | Android Lint |
-| `scripts/build-kratkoza-bundle.sh` | AAB na Google Play, do `dist/` |
+| `scripts/build-debug.sh` | debug APK do `dist/` |
+| `scripts/build-release.sh` | release APK do `dist/` + którym kluczem podpisany i jego SHA-1 |
+| `scripts/test.sh` | pełny pakiet testów jednostkowych, sprawdzian napisów i metadanych sklepu |
+| `scripts/lint.sh` | Android Lint |
+| `scripts/build-bundle.sh` | AAB na Google Play do `dist/`; hasła pytane, nigdzie niezapisywane |
+| `scripts/release.sh` | całe wydanie jednym poleceniem — patrz „Wydanie” niżej |
+| `scripts/check-release.sh` | uruchamia `release.sh` naprawdę na jednorazowych klonach i sprawdza wynik |
+| `scripts/check-store-metadata.sh` | limity znaków Play i te same pliki w każdym języku |
+| `scripts/check-tooling.sh` | co z narzędzi jest, a czego brakuje |
 | `scripts/push-kratkoza.sh` | wypchnięcie na GitHuba, token pytany za każdym razem |
-| `scripts/kratkoza-env.sh` | wspólne środowisko, tylko do `source` |
+| `scripts/project.env` | wszystko, czym Kratkoza różni się od szablonu |
+| `scripts/use-tooling.sh` | wspólne środowisko, tylko do `source` |
 
-Wszystkie przyjmują dodatkowe argumenty Gradle'a, np.:
+Wszystkie budujące przyjmują dodatkowe argumenty Gradle'a, np.:
 
 ```bash
-./scripts/test-kratkoza.sh --tests '*SudokuGeneratorTest*'
+./scripts/test.sh --tests '*SudokuGeneratorTest*'
+./scripts/test.sh --really      # wymusza uruchomienie testów zamiast wyniku z cache
 ```
 
-Skrypty celowo **nie wypluwają logu Gradle'a**. Sukces to jedna linia; porażka to lista tego, co
-nie przeszło — nazwy testów z komunikatami asercji, błędy kompilacji, znaleziska lintu — czytana
-z raportów JUnit i lintu, nie z logu. Pełny log zawsze leży w `/tmp/kratkoza-*.log`.
+Skrypty celowo **nie wypluwają logu Gradle'a**. Sukces to kilka linii; porażka to lista tego, co
+nie przeszło — nazwy testów z komunikatami asercji, błędy kompilacji, znaleziska lintu. Pełny log
+zawsze leży w `/tmp/kratkoza-<katalog>-*.log`. Zero uruchomionych testów to porażka, nie sukces.
 
-## Stosunek do skryptów w `.tooling`
+### Nazwy artefaktów
 
-Skrypty Kratkozy zostały napisane dla tego projektu. Ze wspólnego warsztatu biorą jedynie
-konwencje:
+Każdy plik do zainstalowania albo wgrania trafia do `dist/`, a ostatnia linia skryptu podaje jego
+pełną ścieżkę i rozmiar:
 
-- układ `source <env>.sh` → build → weryfikacja
-- artefakt do `dist/`, nazwany `kratkoza-<versionName>-<versionCode>-<stempel>.apk`
-- odczyt certyfikatu z **gotowego pliku** zamiast ufania konfiguracji Gradle'a
-- raport rozmiaru APK
+| artefakt | nazwa |
+|---|---|
+| debug APK | `kratkoza-debug-<versionName>-<versionCode>-<sha>[-dirty]-<czas>.apk` |
+| release APK | `kratkoza-<versionName>-<versionCode>-<sha>[-dirty]-<czas>.apk` |
+| bundle | `kratkoza-<versionName>-<versionCode>-<sha>[-dirty].aab` |
 
-Świadomie pominięte, bo tamte skrypty mają po ~17 kB i wypisują kilkadziesiąt linii na starcie:
-banner środowiska, podsumowanie czasów per faza, raporty `--profile`, wykrywanie JDK dla natywnego
-Windowsa, podmienianie `local.properties`. Tutaj priorytetem jest krótki output. Jeśli któraś z tych
-rzeczy okaże się potrzebna, dokłada się ją pojedynczo.
+`<sha>` to krótki SHA commita, z którego powstał build; `-dirty` znaczy, że w drzewie były
+niezacommitowane zmiany i SHA wskazuje tylko commit bazowy. `versionCode` sam nie wystarcza do
+wskazania źródeł: równoległe gałęzie mają te same liczniki, a `--amend` licznika nie zmienia. Build z
+gałęzi ma w `versionName` jej nazwę, z `/` zamienionym na `-`.
+
+## Stosunek do szablonu w `.tooling`
+
+Od 2026-11-12 skrypty są kopią szablonu `/mnt/workspace/.tooling/templates/android/`, skopiowaną do
+projektu, nie wołaną stamtąd. Różnice wobec szablonu, każda z powodem:
+
+- **build w drzewie projektu** (`app/build`), nie poza montowaniem — `settings.gradle.kts` Kratkozy
+  nigdy nie przenosił katalogu builda, a przejście na skrypty miało nie zmienić żadnego pliku Gradle'a;
+- **SHA commita i `-dirty` w nazwach artefaktów** (AGENTS.md §11; szablon tego jeszcze nie ma);
+- **`release.sh` w modelu z przewijaniem `master`** i hotfixami (AGENTS.md §5 i §11; szablon ma
+  jeszcze model ze scalaniem do `master`) oraz `check-release.sh`, którego szablon nie ma;
+- **`lint.sh`** jako osobny skrypt, wołany przez `release.sh` razem z testami;
+- **SHA-1 podpisu w `build-release.sh`**, bo to pierwsza rzecz do porównania, gdy nie działa
+  logowanie do Play Games;
+- **raport porażek testów z JUnit XML**, przeniesiony ze starego `test-kratkoza.sh`.
+
+Przeniesienie którejś z tych zmian do szablonu jest osobną decyzją, bo zmienia skrypty wszystkich
+projektów.
 
 ## Lint
 
@@ -57,7 +82,7 @@ rzeczy okaże się potrzebna, dokłada się ją pojedynczo.
 
 `GRADLE_USER_HOME` ląduje w `/tmp/kratkoza-gradle-home`, czyli na dysku linuksowym. Cache trzymany
 na montowanym 9p (`/mnt/workspace`) dominuje czas builda i potrafi wywracać natywne usługi Gradle'a.
-Można to nadpisać przez `KRATKOZA_GRADLE_USER_HOME`.
+Można to nadpisać przez `PROJECT_GRADLE_USER_HOME`.
 
 Pierwszy build po restarcie maszyny pobiera zależności od nowa — to jedyny koszt tej decyzji.
 
@@ -76,7 +101,7 @@ Bez nich build **nadal się udaje**, ale podpisuje kluczem debug. To celowe: nie
 się w ogóle zainstalować, więc fallback ratuje wgrywanie na telefon na maszynie bez klucza
 wydawniczego. Takiego APK nie wolno publikować.
 
-`build-kratkoza-release.sh` odczytuje certyfikat z gotowego pliku i mówi wprost, którym kluczem
+`build-release.sh` odczytuje certyfikat z gotowego pliku i mówi wprost, którym kluczem
 podpisał — konfiguracja Gradle'a może wyglądać poprawnie i mimo to zadziałać fallback, a błąd jest
 inaczej niewidoczny aż do odrzucenia uploadu.
 
@@ -91,25 +116,18 @@ Wygenerowanie klucza (raz):
 ## Bundle na Google Play
 
 ```bash
-./scripts/build-kratkoza-bundle.sh
+./scripts/build-bundle.sh
 ```
 
-Pyta o wszystko na bieżąco — ścieżkę do keystore'a, alias, hasła — i **nigdzie ich nie zapisuje**:
-ani w repozytorium, ani w `~/.gradle/gradle.properties`, ani w historii powłoki. Trafiają do
-Gradle'a przez zmienne `ORG_GRADLE_PROJECT_*` (tak Gradle czyta właściwość projektu ze środowiska)
-i żyją tyle, co proces skryptu.
+Zwykle nie uruchamia się go samodzielnie, tylko przez `release.sh`, który buduje bundle z taga.
+Pyta o wszystko na bieżąco — ścieżkę do keystore'a (domyślnie `KEYSTORE_DEFAULT` z `project.env`),
+alias, hasła — i **nigdzie ich nie zapisuje**: ani w repozytorium, ani w
+`~/.gradle/gradle.properties`, ani w historii powłoki. Trafiają do Gradle'a przez zmienne
+`ORG_GRADLE_PROJECT_*` i żyją tyle, co proces skryptu.
 
-Artefakt ląduje w `dist/` jako `kratkoza-<versionName>-<versionCode>.aab`, razem z sumą SHA-256.
-
-Bez terminala — na przykład w CI — te same wartości czyta ze zmiennych:
-
-```bash
-KRATKOZA_UPLOAD_KEYSTORE=/path/to/kratkoza-upload.jks \
-KRATKOZA_UPLOAD_KEY_ALIAS=kratkoza \
-KRATKOZA_UPLOAD_STORE_PASSWORD=… \
-KRATKOZA_UPLOAD_KEY_PASSWORD=… \
-./scripts/build-kratkoza-bundle.sh
-```
+Bez terminala te same wartości czyta ze zmiennych `PRZUNK_UPLOAD_STORE_FILE`,
+`PRZUNK_UPLOAD_KEY_ALIAS`, `PRZUNK_UPLOAD_STORE_PASSWORD` i `PRZUNK_UPLOAD_KEY_PASSWORD`. Dawne
+`KRATKOZA_UPLOAD_*` nie są już czytane.
 
 Trzy rzeczy działają tu inaczej niż w skrypcie APK:
 
@@ -163,26 +181,73 @@ lista ponumerowanych metod w klasie `a`.
 
 ## Wersjonowanie
 
-`versionCode` i `versionName` podbija **jedna osoba, scalając do `develop`** — nigdy nie robi się
-tego na gałęzi zadaniowej, bo dwie gałęzie zgłosiłyby ten sam numer dla różnego kodu.
+`versionCode` to liczba commitów (`git rev-list --count HEAD`), liczona przez Gradle'a, nigdy
+wpisywana ręcznie. `versionName` zmienia wyłącznie `release.sh`.
 
-Żeby build z gałęzi dało się mimo to rozpoznać, `app/build.gradle.kts` dokleja do `versionName`
-nazwę gałęzi, gdy nie jest to `develop` ani `master`:
+Żeby build z gałęzi dało się rozpoznać, `app/build.gradle.kts` dokleja do `versionName` nazwę
+gałęzi, gdy nie jest to `develop`, `master` ani odłączony HEAD:
 
 | Skąd build | Wersja w Ustawieniach |
 |---|---|
-| `develop` / `master` | `0.6.0 (12)` |
-| gałąź zadaniowa | `0.6.0+fix/game-screen-readability (12)` |
+| `develop` / `master` / tag | `0.32.0 (216)` |
+| gałąź zadaniowa | `0.32.0+feature/digit-insert-mode (217)` |
 
-Wydania na Play pochodzą z gałęzi integracyjnych, więc nie niosą przyrostka.
+Bundle wydania powstaje z odłączonego checkoutu taga, więc nie niesie przyrostka.
 
 Ten sam `versionCode` **nie przeszkadza w instalacji** na urządzeniu — Android blokuje tylko wersję
-niższą od zainstalowanej. Play jest inne: tam każdy wysłany `versionCode` musi być nowy, i o to
-dba `build-kratkoza-bundle.sh`.
+niższą od zainstalowanej. Play jest inne: każdy wysłany `versionCode` musi być wyższy od
+dotychczasowych, a przy liczbie commitów oznacza to nowy commit, nie `--amend`.
+
+## Wydanie
+
+Wydanie robię sam, jednym poleceniem; agent przygotowuje drzewo i tego skryptu nie uruchamia.
+
+```bash
+./scripts/release.sh X.Y.Z --check    # sprawdza wszystko, niczego nie zmienia
+./scripts/release.sh X.Y.Z            # wykonuje; pyta o wpisanie wersji, potem o hasła keystore'a
+```
+
+Z `develop` dla zwykłego wydania, z `hotfix/<nazwa>` dla poprawki tego, co już wydane. Kolejno,
+z zatrzymaniem na pierwszym błędzie:
+
+1. gałąź `develop` albo `hotfix/*`, czyste drzewo, wolny tag, wersja wyższa od bieżącej i od
+   każdego istniejącego taga, a `master` da się przewinąć do tej gałęzi;
+2. informacje o wydaniu we wszystkich językach, w limitach Play — pokazane do ostatniego czytania;
+3. pełny pakiet testów i lint;
+4. po wpisaniu wersji: `versionName` i commit `Release X.Y.Z` na gałęzi, `master` **przewinięty** do
+   tego commita (nigdy nie scalany), tag `vX.Y.Z` na nim;
+5. bundle zbudowany z odłączonego checkoutu taga przez `build-bundle.sh`, który sam pyta o hasła;
+6. ślad wydania w `store/play-console/releases.md`, commitowany na gałęzi, nie na `master`, który
+   zostaje na tagu; wpis mówi „przygotowane”, a wgranie i publikację odnotowuję ręcznie;
+7. przy hotfixie: gałąź scalona z powrotem do `develop` (scaleniem, nie `cherry-pick`).
+
+Skrypt nie wypycha i nie wgrywa. Ostatnie linie mówią, co wgrać gdzie, jaki SHA-256 ma pokazać Play
+i jakie `git push` wykonać.
+
+**Przerwane wydanie zostawia wykonane kroki** — nic nie jest cofane. Skrypt wypisuje, na którym
+kroku stanął, gdzie są gałąź, `master` i tag, i co zostało do zrobienia ręcznie. Trybu wznowienia nie
+ma; ponowne uruchomienie od początku odmówi, bo tag już istnieje.
+
+`store/play-console/releases.md` ma w `.gitattributes` scalanie `union`: ślad wydania powstaje po
+tagu, więc hotfix odbity od `master` nie zna wpisu poprzedniego wydania, i bez tego każde scalenie
+hotfixu z `develop` kończyłoby się konfliktem w tym pliku. `check-release.sh` to wykrył.
+
+**Zmiana w `release.sh` wymaga przebiegu `./scripts/check-release.sh`.** Klonuje repozytorium do
+`/tmp`, instaluje w klonie skrypty z bieżącego drzewa, podmienia tam tylko testy, lint i budowanie
+bundla (ten ostatni dalej sprawdza, że działa na tagu, i podpisuje plik jednorazowym kluczem) i
+uruchamia wydanie naprawdę: odmowy, `--check`, wydanie z `develop`, hotfix przy niewydanej pracy na
+`develop`, przerwanie po tagu.
+
+### Historia do naprawienia przed pierwszym wydaniem tym skryptem
+
+Stan na 2026-11-12: `master` (`9557c08`) zawiera trzy commity scalające, których nie ma `develop`, i
+nie stoi na tagu `v0.32.0` (`1474e3d`). `release.sh` odmówi więc przewinięcia `master`. Naprawa
+wymaga jednorazowej decyzji, zanim padnie pierwsze wydanie — patrz [STATUS.md](STATUS.md).
 
 ## Repozytorium
 
-`master` jest bazą, praca idzie na `develop`. Wydania powstają przez scalenie `develop` w `master`.
+Model gałęzi opisuje `/mnt/workspace/AGENTS.md` §5: praca na gałęziach zadań, `develop` jako gałąź
+bieżąca, `master` przewijany do wydania przez `release.sh`.
 
 ```bash
 ./scripts/push-kratkoza.sh              # bieżąca gałąź

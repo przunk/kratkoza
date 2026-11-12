@@ -21,25 +21,25 @@ Follow these steps in order when preparing and publishing a release to Google Pl
   - Data safety form (see `data-safety.md`)
   - Privacy policy URL entered (pointing to hosted `store/privacy-policy.md`)
 
-## 2. Code Quality and Checks
+## 2. Checks, version, tag and bundle — `release.sh`
 
-- [ ] Run full test suite: `./scripts/test-kratkoza.sh`
-- [ ] Run lint: `./scripts/lint-kratkoza.sh`
-- [ ] Run store metadata validation: `./scripts/check-store-metadata.sh`
-- [ ] Verify `versionCode` and `versionName` in `app/build.gradle.kts`
-- [ ] Check git status is clean and create release tag `v<versionName>` (e.g. `v0.32.0`)
+Steps 2 and 3 of the old checklist are one command now (see `docs/BUILD.md`, "Wydanie"):
 
-## 3. Build Release Bundle
+- [ ] On `develop` (or `hotfix/<name>`), with a clean tree: `./scripts/release.sh X.Y.Z --check`.
+- [ ] Then `./scripts/release.sh X.Y.Z`. It runs the full suite and lint, sets `versionName`,
+      fast-forwards `master`, tags `vX.Y.Z`, builds the bundle from the tag (asking for the keystore
+      passwords), and records size, SHA-256 and signer in `store/play-console/releases.md`.
+- [ ] If it stops, read what it printed: completed steps are not rolled back.
 
-- [ ] Run `./scripts/build-kratkoza-bundle.sh` with the release keystore credentials.
-- [ ] Ensure the script verifies the JAR signature and rejects any debug key.
-- [ ] Record the resulting `.aab` in `dist/`, along with its SHA-256 and size in `store/play-console/releases.md`.
+## 3. Bundle
+
+- [ ] Use the `.aab` path printed at the end of `release.sh`; the SHA-256 Play shows must match.
 
 ## 4. Google Play Console Upload
 
 - [ ] Navigate to **Release → Testing → Closed testing** (or Internal testing).
 - [ ] Create a new release.
-- [ ] Upload the generated `dist/kratkoza-<versionName>-<versionCode>.aab`.
+- [ ] Upload the generated `dist/kratkoza-<versionName>-<versionCode>-<sha>.aab`.
 - [ ] Enter release notes:
   - English: copy from `store/listing/en-US/release-notes/default.txt`.
   - Polish: copy from `store/listing/pl-PL/release-notes/default.txt`.

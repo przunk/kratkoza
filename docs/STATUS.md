@@ -14,6 +14,10 @@ Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games wł
 - [x] Zero bibliotek spoza Androida / Kotlina / Jetpacka / Material (§9)
 - [x] i18n polski + angielski od pierwszego commita (§12)
 - [x] Skrypty budowania: debug, podpisany release, bundle AAB na Play
+- [x] Skrypty przeniesione na szablon z `.tooling`, SHA commita w nazwach artefaktów, `release.sh`
+      w modelu z przewijaniem `master` i hotfixami, sprawdzany przez `check-release.sh` na
+      jednorazowych klonach (2026-11-12, gałąź `feature/release-scripts`; `release.sh` nie był
+      uruchomiony na tym repozytorium ani z prawdziwym keystore'em)
 - [x] Minifikacja R8 z regułami chroniącymi format zapisu (25 MB → 2,3 MB)
 
 ### Logika Sudoku
@@ -286,6 +290,23 @@ kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` prz
 - **`docs/full-code-review`** — stara, niescalona.
 
 ## Do zrobienia
+
+### Historia `master` przed pierwszym wydaniem przez `release.sh`
+
+**Zapisane 2026-11-12.** `master` (`9557c08`) ma trzy commity scalające, których nie ma `develop`
+(`b1c0d29`, `b00ddf4`, `9557c08` — dawne scalenia `develop` do `master`), i nie stoi na tagu
+`v0.32.0` (`1474e3d`). `release.sh` odmówi przewinięcia `master`, dopóki to trwa. Treść obu gałęzi
+jest taka sama; różni je tylko historia.
+
+Warianty:
+
+- **A — scalić `master` do `develop` jednym commitem** (przez gałąź, po mojej zgodzie). Wspólna
+  historia wraca, następne wydanie przewinie `master`, nic wypchniętego nie jest przepisywane.
+  Liczba commitów na `develop` rośnie o cztery, więc `versionCode` dalej rośnie. **Rekomendowane.**
+- **B — przestawić `master` na `develop` albo na `v0.32.0`.** Czystsza historia, ale przepisuje
+  wypchnięty `master` i wymaga force pusha.
+- **C — zostawić.** Pierwsze wydanie przez `release.sh` się nie uda.
+
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
 Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).

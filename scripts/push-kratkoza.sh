@@ -2,7 +2,7 @@
 #
 # Pushes to GitHub, asking for the token when it runs and keeping it nowhere.
 #
-# Same bargain as build-kratkoza-bundle.sh: the secret is typed, used, and gone when the process
+# Same bargain as build-bundle.sh: the secret is typed, used, and gone when the process
 # ends. It is never written to .git/config, never baked into the remote URL (where `git remote -v`
 # and every error message would show it), and never left in a credential store.
 #

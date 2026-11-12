@@ -25,6 +25,6 @@ i angielski.
 ## Szybki start
 
 ```bash
-./scripts/build-kratkoza-debug.sh    # APK do wgrania
-./scripts/test-kratkoza.sh           # testy
+./scripts/build-release.sh          # APK release do wgrania na telefon
+./scripts/test.sh                   # pełny pakiet testów
 ```

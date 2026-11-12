@@ -7,15 +7,19 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/kratkoza-env.sh"
-cd "$KRATKOZA_DIR"
+# shellcheck source=./use-tooling.sh
+source "$SCRIPT_DIR/use-tooling.sh"
+cd "$PROJECT_DIR"
+# shellcheck source=./internal/build-common.sh
+source "$SCRIPT_DIR/internal/build-common.sh"
+write_local_properties
 
-LOG_FILE="$KRATKOZA_LOG_PREFIX-lint.log"
+LOG_FILE="$LOG_PREFIX-lint.log"
 started_at=$(date +%s)
-echo "🔍 Kratkoza — lint…"
+echo "🔍 $APP_NAME — lint…"
 
 set +e
-./gradlew :app:lintDebug --no-daemon --console=plain "$@" > "$LOG_FILE" 2>&1
+./gradlew ":$APP_MODULE:lintDebug" --no-daemon --console=plain "$@" > "$LOG_FILE" 2>&1
 status=$?
 set -e
 
@@ -31,12 +35,12 @@ echo "❌ Lint failed (${elapsed}s):"
 # Those are reported by Gradle, not by lint, and are what the reader needs to see first.
 if grep -aq '^\* What went wrong:' "$LOG_FILE"; then
     sed -n '/^\* What went wrong:/,/^\* Try:/p' "$LOG_FILE" \
-        | grep -av '^\* Try:' | sed "s|$KRATKOZA_DIR/||" | head -n 25
+        | grep -av '^\* Try:' | sed "s|$PROJECT_DIR/||" | head -n 25
 fi
 # Lint reports as "path[:line]: Error: message [IssueId]" — the line number is absent when the
 # finding is about a whole directory, so it must not be required here.
 grep -aE '^[^ ]+: (Error|Warning):' "$LOG_FILE" \
-    | sed "s|$KRATKOZA_DIR/||" | sort -u | head -n 40
+    | sed "s|$PROJECT_DIR/||" | sort -u | head -n 40
 grep -aE '^[0-9]+ errors?, [0-9]+ warnings?' "$LOG_FILE" | tail -n 1
 echo
 echo "Full log: $LOG_FILE"

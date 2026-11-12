@@ -80,7 +80,7 @@ urządzeniach ląduje **kilka różnych certyfikatów**, więc jeden klient nie 
 |---|---|---|
 | **klucz podpisujący aplikację** | gracz pobiera z Play — Google przepisuje podpis | Play Console → Testowanie i publikowanie → **Integralność aplikacji** |
 | klucz upload | instalujesz lokalnie to, co sam podpisałeś | `keytool` na `google-play-upload.jks` |
-| klucz debug | instalujesz APK z `build-kratkoza-debug.sh` | już znany, patrz niżej |
+| klucz debug | instalujesz APK z `build-debug.sh` / `build-release.sh` | już znany, patrz niżej |
 
 Pominięcie pierwszego wiersza daje objaw „logowanie działa u mnie, nie działa u nikogo innego" —
 bo u Ciebie na telefonie siedzi build podpisany kluczem upload albo debug, a u graczy build
@@ -150,7 +150,7 @@ Trzy fakty sprawdzone w dokumentacji, żebyś nie odkrywał ich w konsoli:
 
 ## 7. Pierwsze wysłanie
 
-- [x] Zbuduj bundle: `./scripts/build-kratkoza-bundle.sh` — sam sprawdzi, czy podpisał kluczem
+- [x] Zbuduj bundle: `./scripts/build-bundle.sh` — sam sprawdzi, czy podpisał kluczem
       upload, i odmówi, jeśli spadł na klucz debug.
 - [x] Wyślij na **Testing → Internal testing**, nie od razu do produkcji.
 - [ ] Dołącz `app/build/outputs/mapping/release/mapping.txt`. Bez tego raport awarii z telefonu
