@@ -1,0 +1,6 @@
+# Release evidence is written on the release branch after the tag (scripts/release.sh, step 6), so a
+# hotfix cut from master never has the previous release's entry, and both branches insert their new
+# entry in the same place. Every hotfix merged back into develop would conflict there. A union merge
+# keeps the entries from both sides; the price is that two entries written concurrently may end up
+# out of date order, which is cosmetic.
+store/play-console/releases.md merge=union

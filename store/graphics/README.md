@@ -18,6 +18,6 @@ Assets for the Google Play store listing (**Grow users → Store presence → Ma
   ```
 - **Screenshots**: Rendered directly from Compose in `StoreScreenshotsTest` without a physical device, then padded to 1080 px wide by `scripts/fit-store-screenshots.mjs` to satisfy Google Play's 2:1 aspect ratio and 1080px short-side rules.
   ```bash
-  ./scripts/test-kratkoza.sh
+  ./scripts/test.sh
   node scripts/fit-store-screenshots.mjs store/screenshots/*.png
   ```
