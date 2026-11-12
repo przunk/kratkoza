@@ -1,7 +1,12 @@
 package com.przunk.kratkoza.ui.game
 
 import android.content.Context
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -100,9 +105,38 @@ class GameScreenTest {
 
     @Test
     fun `the pad and the eraser are dimmed until a cell is chosen`() {
-        digitKey(1).assertIsNotEnabled()
+        // A key offers no tap before a cell is chosen. It does offer the long press, because
+        // pinning a digit is exactly the way to place digits without choosing a cell first.
+        digitKey(1).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        digitKey(1).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.OnLongClick))
         eraser().assertIsNotEnabled()
         reveal().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a long press pins the digit and the key says so`() {
+        digitKey(5).performSemanticsAction(SemanticsActions.OnLongClick)
+        compose.waitForIdle()
+
+        assertEquals(5, viewModel.uiState.value.insertDigit)
+        digitKey(5).assertIsSelected()
+        compose.onNodeWithText(context.getString(R.string.game_pinned_banner, 5)).assertIsDisplayed()
+        digitKey(5).assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.StateDescription,
+                context.getString(R.string.game_digit_pinned),
+            ),
+        )
+        // Only the pinned key carries a selected state; the others are plain buttons.
+        digitKey(4).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Selected))
+        // With a digit pinned, a tap on any key means something even with nothing selected.
+        digitKey(4).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick))
+
+        digitKey(5).performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+        assertEquals(null, viewModel.uiState.value.insertDigit)
+        compose.onNodeWithText(context.getString(R.string.game_pinned_banner, 5)).assertDoesNotExist()
+        digitKey(5).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Selected))
     }
 
     @Test
@@ -175,6 +209,26 @@ class GameScreenTest {
 
         viewModel.undo()
         assertEquals(beforeClear, viewModel.uiState.value.candidates)
+    }
+
+    @Test
+    fun `the banner above the board names the pinned digit and ends the mode`() {
+        viewModel.pinDigit(7)
+        compose.waitForIdle()
+
+        compose.onNodeWithText(context.getString(R.string.game_pinned_banner, 7), useUnmergedTree = true)
+            .assertIsDisplayed()
+        compose.onNode(
+            SemanticsMatcher("click label") {
+                it.config.getOrNull(SemanticsActions.OnClick)?.label ==
+                    context.getString(R.string.game_pinned_banner_end, 7)
+            },
+        ).performSemanticsAction(SemanticsActions.OnClick)
+        compose.waitForIdle()
+
+        assertEquals(null, viewModel.uiState.value.insertDigit)
+        compose.onNodeWithText(context.getString(R.string.game_pinned_banner, 7), useUnmergedTree = true)
+            .assertDoesNotExist()
     }
 
     // Driven through the ViewModel rather than by tapping the board: what is under test is that the

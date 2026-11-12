@@ -68,6 +68,9 @@ class GameViewModel(
     /** The cell the player has tapped, or `null` when nothing is selected. */
     private var selection: Int? = null
 
+    /** The digit pinned by a long press; see [GameUiState.insertDigit]. */
+    private var insertDigit: Int? = null
+
     /** Rises with every move, so the board can tell a fresh move from a redraw. */
     private var moveToken: Int = 0
     private var lastMove: GameUiState.MoveEcho? = null
@@ -130,6 +133,71 @@ class GameViewModel(
         // highlights out of the way without picking a different cell.
         selection = if (selection == index) null else index
         render(state)
+    }
+
+    /**
+     * A tap on the board.
+     *
+     * Without a pinned digit it only moves the selection. With one, the tapped cell becomes the
+     * selection and receives the digit through exactly the same path as a pad press, so givens,
+     * locked correct digits and the mistake count follow the usual rules.
+     *
+     * Returns `false` when a pinned digit could not be placed — a given, a locked digit, the same
+     * digit again, or a pencil mark on a filled cell — so the screen can say so instead of letting
+     * the tap disappear without a trace.
+     */
+    fun tapCell(index: Int): Boolean {
+        val digit = insertDigit ?: run {
+            selectCell(index)
+            return true
+        }
+        if (!_uiState.value.isPlayable) return true
+        require(Sudoku.isCellIndex(index)) { "Cell index out of range: $index" }
+        val before = game?.state ?: return true
+
+        selection = index
+        enterDigit(digit)
+        val after = game?.state ?: return true
+        if (after !== before) return true
+
+        // Nothing was written, but the selection did move; show it, so the refusal has a place.
+        render(after)
+        return false
+    }
+
+    /**
+     * A short press on a pad key.
+     *
+     * With nothing pinned it writes into the selected cell, as it always has. With a digit pinned,
+     * the pinned key releases it and any other key takes its place: the selection has just been
+     * filled by the pinned digit, so writing there would only ever be refused.
+     */
+    fun pressDigit(digit: Int) {
+        val pinned = insertDigit ?: return enterDigit(digit)
+        if (!_uiState.value.isPlayable) return
+        if (digit == pinned) exitInsertMode() else pinDigit(digit)
+    }
+
+    /**
+     * A long press on a pad key: pins [digit] so that tapping cells places it.
+     *
+     * Allowed in a ranked Daily as well. It is a way of entering digits and highlights only what
+     * the board already shows; it reveals nothing about the solution.
+     */
+    fun pinDigit(digit: Int) {
+        require(Sudoku.isDigit(digit)) { "Not a sudoku digit: $digit" }
+        if (!_uiState.value.isPlayable) return
+        val state = game?.state ?: return
+        // A finished digit has nowhere left to go; pinning it would only set up refusals.
+        if (state.isDigitComplete(digit)) return
+        insertDigit = digit
+        render(state)
+    }
+
+    fun exitInsertMode() {
+        if (insertDigit == null) return
+        insertDigit = null
+        game?.let { render(it.state) }
     }
 
     fun enterDigit(digit: Int) {
@@ -288,6 +356,9 @@ class GameViewModel(
         lastMove = echoOf(before = current.state, after = state)
 
         game = current.copy(state = state)
+        // The ninth copy of the pinned digit ends the mode: it has nowhere left to go, and staying
+        // pinned would turn every following tap into a refusal.
+        if (insertDigit?.let(state::isDigitComplete) == true) insertDigit = null
         render(state)
 
         if (state.isSolved) {
@@ -438,7 +509,14 @@ class GameViewModel(
     /** Rebuilds the UI state from a board state. The single place UI state is produced. */
     private fun render(state: GameState) {
         val selected = selection
-        val selectedDigit = selected?.let { state.board[it] } ?: Sudoku.EMPTY
+        val pinned = insertDigit
+        // A pinned digit takes over the same-digit highlight regardless of the option: showing
+        // where that digit already stands is the point of pinning it.
+        val highlightedDigit = when {
+            pinned != null -> pinned
+            !settings.highlightSameDigits -> Sudoku.EMPTY
+            else -> selected?.let { state.board[it] } ?: Sudoku.EMPTY
+        }
 
         _uiState.value = GameUiState(
             phase = if (state.isSolved) GameUiState.Phase.SOLVED else GameUiState.Phase.PLAYING,
@@ -448,11 +526,11 @@ class GameViewModel(
             incorrectCells = state.incorrectCells,
             selectedCell = selected,
             peerCells = selected?.let { Sudoku.peers[it].toSet() } ?: emptySet(),
-            sameDigitCells = when {
-                !settings.highlightSameDigits -> emptySet()
-                selectedDigit == Sudoku.EMPTY -> emptySet()
-                else -> (0 until Sudoku.CELL_COUNT).filterTo(mutableSetOf()) {
-                    state.board[it] == selectedDigit
+            sameDigitCells = if (highlightedDigit == Sudoku.EMPTY) {
+                emptySet()
+            } else {
+                (0 until Sudoku.CELL_COUNT).filterTo(mutableSetOf()) {
+                    state.board[it] == highlightedDigit
                 }
             },
             difficulty = state.puzzle.difficulty,
@@ -463,6 +541,7 @@ class GameViewModel(
             elapsedMillis = elapsedMillis(),
             isPaused = runningSince == null && !state.isSolved,
             candidateMode = _uiState.value.candidateMode,
+            insertDigit = pinned,
             confirmingCandidateClear = _uiState.value.confirmingCandidateClear &&
                 state.candidates.hasAny && !state.isSolved && runningSince != null,
             canUndo = state.canUndo,

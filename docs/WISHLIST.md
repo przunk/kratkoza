@@ -178,6 +178,9 @@ dotyczy wyłącznie formy wyboru.
 
 **Zgłoszone:** 2026-08-28. Pomysł użytkownika, widziany w innej aplikacji do sudoku.
 
+**2026-11-12:** podświetlenie wszystkich wystąpień cyfry z klawiatury daje teraz przypięcie cyfry z
+pozycji 16. Otwarte zostaje zachowanie kliknięcia cyfry wyczerpanej.
+
 Zgłaszający opisał to tak: gdy zaznaczone jest pole, którego nie da się nadpisać, kliknięcie cyfry
 na klawiaturze zaznacza pierwsze jej wystąpienie od góry i podświetla wszystkie takie same na
 planszy.
@@ -484,6 +487,34 @@ liczyć te błędy inaczej, czy zostawić bez zabezpieczenia.
 ## 16. Tryb wprowadzania jednej cyfry
 
 **Zgłoszone:** 2026-09-05, przez właściciela.
+
+**Zrobione 2026-11-12**, scalone do `develop` tego samego dnia; przebieg scenariuszy na urządzeniu
+niepotwierdzony w zapisie. Rozstrzygnięcia z 2026-11-12:
+
+| sprawa | ustalenie |
+|---|---|
+| wejście | długie przytrzymanie klawisza cyfry; nie wymaga zaznaczonego pola |
+| tapnięcie pustego pola | wpisuje przypiętą cyfrę tą samą drogą co klawiatura: błąd liczy się jak zwykle, każde wstawienie to osobny krok Undo; zaznaczenie przechodzi na to pole |
+| tapnięcie pola, którego cyfra nie może zająć | nic nie wpisuje, zaznaczenie przechodzi na to pole, telefon daje wibrację odmowy (`Reject`) |
+| pole z błędną cyfrą | zostaje nadpisane, tak jak przy zwykłym wpisywaniu |
+| tryb kandydatów | tapnięcie przełącza kandydata przypiętej cyfry |
+| podświetlenie | wszystkie wystąpienia przypiętej cyfry, niezależnie od opcji podświetlania takich samych cyfr |
+| wyjście | krótkie tapnięcie przypiętego klawisza, krzyżyk na wskaźniku nad planszą albo „wstecz” |
+| inny klawisz w trybie | krótkie tapnięcie lub przytrzymanie przełącza przypięcie na tę cyfrę |
+| cyfra wyczerpana | tryb kończy się sam po dziewiątym poprawnym wpisaniu; wyczerpanej cyfry nie da się przypiąć |
+| rankingowe Daily | tryb dostępny — to sposób wpisywania, nie pomoc |
+
+**Widoczność trybu** ma dwa niezależne sygnały poza podświetleniem planszy: przypięty klawisz dostaje
+grubą obwódkę, wypełnione tło i pogrubioną cyfrę (kształt, nie tylko kolor), a nad planszą pojawia
+się wskaźnik z pinezką, cyfrą i krzyżykiem, który jednocześnie kończy tryb. TalkBack słyszy klawisz
+jako zaznaczony ze stanem „Wstawianie tej cyfry”, a długie przytrzymanie ma etykietę „Przypnij do
+wstawiania”.
+
+**Kolizja gestu z pozycją 14** pozostaje: jeśli poziomy predykcji wrócą, nie mogą już wziąć
+długiego przytrzymania cyfry. Pozycja 14 jest odłożona, więc dziś nie ma konfliktu.
+
+Częściowo zaspokaja też pozycję 8 — przypięcie pokazuje wszystkie wystąpienia cyfry bez ruszania
+zaznaczenia. Kliknięcie wyczerpanej cyfry nadal nic nie robi; ta część pozycji 8 zostaje otwarta.
 
 Długie przyciśnięcie cyfry na klawiaturze na dole włącza tryb, w którym **tapnięcie pola wpisuje
 właśnie tę cyfrę**. Wyjście z trybu przez ponowne tapnięcie tej cyfry na klawiaturze.

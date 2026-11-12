@@ -97,6 +97,10 @@
     <string name="game_solved_home">Wróć do menu</string>
     <string name="game_solved_new">Nowa gra</string>
     <string name="game_digit">%1$d</string>
+    <string name="game_pin_digit">Przypnij do wstawiania</string>
+    <string name="game_digit_pinned">Wstawianie tej cyfry</string>
+    <string name="game_pinned_banner">Wstawianie: %1$d</string>
+    <string name="game_pinned_banner_end">Zakończ wstawianie %1$d</string>
 
     <!-- Dostępność planszy -->
     <string name="board_description">Plansza Sudoku, 9 na 9</string>

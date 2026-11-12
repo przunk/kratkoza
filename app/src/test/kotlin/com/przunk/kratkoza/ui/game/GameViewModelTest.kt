@@ -866,6 +866,215 @@ class GameViewModelTest {
         assertTrue(historyDao.all.none { it.completed })
     }
 
+    // --- Pinned digit: long press on the pad, then tap cells to place it ---
+
+    @Test
+    fun `a pinned digit highlights every copy even with the option off`() = gameTest {
+        settings.value = GameSettings.DEFAULT.copy(highlightSameDigits = false)
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val digit = game.state.puzzle.givens[firstGiven(game)]
+
+        viewModel.pinDigit(digit)
+
+        val state = viewModel.uiState.value
+        assertEquals(digit, state.insertDigit)
+        val expected = (0 until Sudoku.CELL_COUNT).filterTo(mutableSetOf()) { game.state.board[it] == digit }
+        assertTrue(expected.isNotEmpty())
+        assertEquals(expected, state.sameDigitCells)
+    }
+
+    @Test
+    fun `pinning needs no selection and a tap on an empty cell places the digit there`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = firstEmpty(game)
+        val digit = game.state.puzzle.solution[cell]
+
+        assertNull(viewModel.uiState.value.selectedCell)
+        assertTrue(viewModel.uiState.value.canPinDigit)
+        viewModel.pinDigit(digit)
+        assertTrue("a pinned digit wakes the pad up", viewModel.uiState.value.canPressDigit)
+
+        assertTrue(viewModel.tapCell(cell))
+        idle()
+
+        val state = viewModel.uiState.value
+        assertEquals(digit, state.board[cell])
+        assertEquals(cell, state.selectedCell)
+        assertTrue(cell in state.sameDigitCells)
+        assertEquals(digit, repository.loadGame(game.state.puzzle.id)?.state?.board?.get(cell))
+        // Still pinned: the next tap places another one.
+        assertEquals(digit, state.insertDigit)
+    }
+
+    @Test
+    fun `a pinned digit goes in through the usual rules, mistakes included`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = firstEmpty(game)
+        val wrong = GameFixturesFor(game).wrongDigitAt(cell)
+
+        viewModel.pinDigit(wrong)
+        assertTrue(viewModel.tapCell(cell))
+
+        val state = viewModel.uiState.value
+        assertEquals(wrong, state.board[cell])
+        assertEquals(1, state.mistakeCount)
+        assertTrue(cell in state.incorrectCells)
+        assertEquals(GameUiState.FlashKind.MISTAKE, state.lastMove?.flashKind)
+
+        // One undo per placement, as with the pad.
+        viewModel.undo()
+        assertTrue(viewModel.uiState.value.board.isEmpty(cell))
+    }
+
+    @Test
+    fun `a tap the pinned digit cannot use is refused and only moves the selection`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val given = firstGiven(game)
+        val digit = (1..9).first { it != game.state.puzzle.givens[given] }
+        val writesBefore = savedGameDao.writeCount
+
+        viewModel.pinDigit(digit)
+        assertFalse(viewModel.tapCell(given))
+        idle()
+
+        val state = viewModel.uiState.value
+        assertEquals(game.state.puzzle.givens, state.board)
+        assertEquals(given, state.selectedCell)
+        assertEquals(0, state.mistakeCount)
+        assertEquals(writesBefore, savedGameDao.writeCount)
+
+        // The same digit again into a cell that already holds it is refused as well.
+        val cell = firstEmpty(game)
+        val wrong = GameFixturesFor(game).wrongDigitAt(cell)
+        viewModel.pinDigit(wrong)
+        assertTrue(viewModel.tapCell(cell))
+        assertFalse(viewModel.tapCell(cell))
+        assertEquals(1, viewModel.uiState.value.mistakeCount)
+    }
+
+    @Test
+    fun `tapping the board without a pinned digit only selects, as before`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = firstEmpty(game)
+
+        assertTrue(viewModel.tapCell(cell))
+        assertEquals(cell, viewModel.uiState.value.selectedCell)
+        assertTrue(viewModel.uiState.value.board.isEmpty(cell))
+
+        assertTrue(viewModel.tapCell(cell))
+        assertNull(viewModel.uiState.value.selectedCell)
+    }
+
+    @Test
+    fun `the pinned key releases the digit and another key takes its place`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = firstEmpty(game)
+        viewModel.selectCell(cell)
+
+        viewModel.pinDigit(3)
+        viewModel.pressDigit(7)
+        assertEquals(7, viewModel.uiState.value.insertDigit)
+        assertTrue("switching writes nothing", viewModel.uiState.value.board.isEmpty(cell))
+
+        viewModel.pressDigit(7)
+        assertNull(viewModel.uiState.value.insertDigit)
+
+        // Released, the pad writes into the selection again.
+        val digit = game.state.puzzle.solution[cell]
+        viewModel.pressDigit(digit)
+        assertEquals(digit, viewModel.uiState.value.board[cell])
+    }
+
+    @Test
+    fun `back releases the pinned digit`() = gameTest {
+        val viewModel = viewModelFor(startGame())
+        viewModel.pinDigit(5)
+        viewModel.exitInsertMode()
+
+        assertNull(viewModel.uiState.value.insertDigit)
+    }
+
+    @Test
+    fun `in candidate mode a pinned digit toggles a pencil mark`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val cell = firstEmpty(game)
+
+        viewModel.toggleCandidateMode()
+        viewModel.pinDigit(4)
+        assertTrue(viewModel.tapCell(cell))
+        assertTrue(viewModel.uiState.value.candidates.contains(cell, 4))
+        assertTrue(viewModel.uiState.value.board.isEmpty(cell))
+
+        assertTrue(viewModel.tapCell(cell))
+        assertFalse(viewModel.uiState.value.candidates.contains(cell, 4))
+
+        // No pencil marks on a given.
+        assertFalse(viewModel.tapCell(firstGiven(game)))
+    }
+
+    @Test
+    fun `placing the last copy releases the digit and a finished digit cannot be pinned`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        val solution = game.state.puzzle.solution
+        val digit = (1..9).first { d -> (0 until Sudoku.CELL_COUNT).any { solution[it] == d && game.state.board.isEmpty(it) } }
+        val targets = (0 until Sudoku.CELL_COUNT).filter { solution[it] == digit && game.state.board.isEmpty(it) }
+
+        viewModel.pinDigit(digit)
+        for (cell in targets.dropLast(1)) assertTrue(viewModel.tapCell(cell))
+        assertEquals(digit, viewModel.uiState.value.insertDigit)
+
+        assertTrue(viewModel.tapCell(targets.last()))
+        assertNull(viewModel.uiState.value.insertDigit)
+        assertEquals(0, viewModel.uiState.value.remainingByDigit[digit])
+
+        viewModel.pinDigit(digit)
+        assertNull(viewModel.uiState.value.insertDigit)
+    }
+
+    @Test
+    fun `nothing can be pinned or placed while paused`() = gameTest {
+        val game = startGame()
+        val viewModel = viewModelFor(game)
+        viewModel.pinDigit(5)
+        viewModel.setPaused(true)
+
+        assertFalse(viewModel.uiState.value.canPinDigit)
+        viewModel.tapCell(firstEmpty(game))
+        assertEquals(game.state.puzzle.givens, viewModel.uiState.value.board)
+
+        viewModel.exitInsertMode()
+        viewModel.pinDigit(6)
+        assertNull(viewModel.uiState.value.insertDigit)
+    }
+
+    @Test
+    fun `a ranked daily may pin a digit and stays ranked`() = gameTest {
+        val daily = startDaily(Difficulty.EASY)
+        val viewModel = viewModelFor(daily)
+        val cell = firstEmpty(daily)
+        val digit = daily.state.puzzle.solution[cell]
+
+        viewModel.pinDigit(digit)
+        assertTrue(viewModel.tapCell(cell))
+
+        assertEquals(digit, viewModel.uiState.value.board[cell])
+        assertTrue(viewModel.uiState.value.rankedEligible)
+    }
+
+    private fun firstEmpty(game: SavedGame): Int =
+        (0 until Sudoku.CELL_COUNT).first { game.state.board.isEmpty(it) }
+
+    private fun firstGiven(game: SavedGame): Int =
+        (0 until Sudoku.CELL_COUNT).first { !game.state.puzzle.givens.isEmpty(it) }
+
     private suspend fun startDaily(difficulty: Difficulty): SavedGame {
         val day = java.time.LocalDate.parse("2026-08-26")
         dailyRepository.dailySet(day)

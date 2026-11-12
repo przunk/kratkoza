@@ -2,7 +2,7 @@
 
 **Wersja kodu 0.32.0 (215); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
 Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games włączona w Ustawieniach.
-406 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
+419 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
 
 ## Gotowe
 
@@ -44,6 +44,9 @@ Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games wł
 - [x] Automatyczny zapis po każdym istotnym ruchu (§21)
 - [x] Podpowiedź odsłaniająca zaznaczoną cyfrę, niedostępna w grach rankingowych (§18)
 - [x] Wyczyszczenie wszystkich kandydatów jednym długim przyciśnięciem
+- [x] Przypięcie cyfry długim przytrzymaniem: tapnięcie pola ją wstawia, wszystkie jej wystąpienia są
+      podświetlone ([WISHLIST.md](WISHLIST.md) §16; 2026-11-12, zaakceptowane do scalenia; przebieg
+      scenariuszy na urządzeniu niepotwierdzony w zapisie)
 
 ### Daily
 - [x] Jedna plansza dzienna na poziom, deterministyczna z daty i `RULESET_VERSION`
@@ -82,7 +85,7 @@ Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games wł
 
 ### Jakość
 - [x] Logika domenowa testowalna bez Androida (§38)
-- [x] 406 testów: walidacja, solver, unikalność, generator, klasyfikacja trudności, kandydaci,
+- [x] 419 testów: walidacja, solver, unikalność, generator, klasyfikacja trudności, kandydaci,
       Undo, wykrywanie błędów, zapis/odtworzenie sesji, migracje po prawdziwym SQLite,
       repozytoria, ViewModele, ekrany Compose na Robolectriku
 - [x] Android Lint czysty przy `abortOnError` i `warningsAsErrors`

@@ -99,6 +99,10 @@
     <string name="game_solved_home">Back to menu</string>
     <string name="game_solved_new">New game</string>
     <string name="game_digit">%1$d</string>
+    <string name="game_pin_digit">Pin for placing</string>
+    <string name="game_digit_pinned">Placing this digit</string>
+    <string name="game_pinned_banner">Placing: %1$d</string>
+    <string name="game_pinned_banner_end">Stop placing %1$d</string>
 
     <!-- Board accessibility -->
     <string name="board_description">Sudoku board, 9 by 9</string>
