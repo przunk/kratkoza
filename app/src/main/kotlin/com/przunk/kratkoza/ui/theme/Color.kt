@@ -43,6 +43,8 @@ internal val ForestAccentLight = Color(0xFF1D6B47)
 internal val ForestAccentDark = Color(0xFF86D6A8)
 internal val GraphiteAccentLight = Color(0xFF454545)
 internal val GraphiteAccentDark = Color(0xFFCFCFCF)
+internal val HoneyAccentLight = Color(0xFF82600F)
+internal val HoneyAccentDark = Color(0xFFB89B56)
 
 internal val Teal40 = Color(0xFF2C6E63)
 internal val Teal80 = Color(0xFF9CD1C6)

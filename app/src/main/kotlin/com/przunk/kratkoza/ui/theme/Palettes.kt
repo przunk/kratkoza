@@ -34,6 +34,7 @@ internal object Palettes {
         BoardPalette.SEPIA -> if (dark) SepiaAccentDark else SepiaAccentLight
         BoardPalette.FOREST -> if (dark) ForestAccentDark else ForestAccentLight
         BoardPalette.GRAPHITE -> if (dark) GraphiteAccentDark else GraphiteAccentLight
+        BoardPalette.HONEY -> if (dark) HoneyAccentDark else HoneyAccentLight
     }
 
     private fun lightColors(palette: BoardPalette): BoardColors = when (palette) {
@@ -98,6 +99,23 @@ internal object Palettes {
             candidate = Color(0xFF8A8A8A),
             autoHintDigit = Color(0xFF9C9C9C),
         )
+
+        // Tiers chosen in CIE L* with headroom over PalettesTest: peer 9.3 from the surface, then
+        // steps of 7.8 and 8.0. The accent clears 5.7:1 against the white label of a filled button.
+        BoardPalette.HONEY -> BoardColors(
+            surface = Color(0xFFFBF8EE),
+            gridLine = Color(0xFFE3DAC2),
+            blockLine = Color(0xFF857652),
+            selectedCell = Color(0xFFCFAE55),
+            peerCell = Color(0xFFEADDB4),
+            sameDigitCell = Color(0xFFDCC686),
+            errorCell = Error90,
+            givenDigit = Color(0xFF4A4232),
+            enteredDigit = HoneyAccentLight,
+            errorDigit = Error40,
+            candidate = Color(0xFF958A6F),
+            autoHintDigit = Color(0xFFAEA488),
+        )
     }
 
     private fun darkColors(palette: BoardPalette): BoardColors = when (palette) {
@@ -159,6 +177,26 @@ internal object Palettes {
             errorDigit = Error80,
             candidate = Color(0xFF7A7A7A),
             autoHintDigit = Color(0xFF616161),
+        )
+
+        // Deliberately flat, for play in a dark room (2026-11-12): digits at about 6.7:1 against the
+        // surface instead of the 12:1 the other dark palettes reach, still above WCAG AA, and block
+        // lines dimmed with them. The highlight tiers sit just above the dark-display floor in
+        // PalettesTest — peer 10.8 L* from the surface, then steps of 8.8 and 8.2 — because that
+        // floor came from a device review and is the one thing flattening must not cross.
+        BoardPalette.HONEY -> BoardColors(
+            surface = Color(0xFF16140E),
+            gridLine = Color(0xFF2E2A1C),
+            blockLine = Color(0xFF5E5642),
+            selectedCell = Color(0xFF5C4F2E),
+            peerCell = Color(0xFF2F2A1A),
+            sameDigitCell = Color(0xFF453D25),
+            errorCell = Error20,
+            givenDigit = Color(0xFFA39A85),
+            enteredDigit = HoneyAccentDark,
+            errorDigit = Error80,
+            candidate = Color(0xFF756D5C),
+            autoHintDigit = Color(0xFF5A5446),
         )
     }
 }

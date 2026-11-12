@@ -108,6 +108,7 @@ class SettingsScreenTest {
             BoardPalette.SEPIA to R.string.settings_palette_sepia,
             BoardPalette.FOREST to R.string.settings_palette_forest,
             BoardPalette.GRAPHITE to R.string.settings_palette_graphite,
+            BoardPalette.HONEY to R.string.settings_palette_honey,
         )
 
         for ((palette, labelRes) in labels) {

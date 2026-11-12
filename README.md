@@ -14,7 +14,7 @@ kandydatów, historię rozwiązanych plansz, statystyki oraz interfejs po polsku
 - kandydaci, automatyczne usuwanie nieaktualnych kandydatów, Undo i podpowiedzi,
 - automatyczny zapis, wznawianie oraz udostępnianie plansz kodem,
 - historia ukończonych plansz, statystyki i system XP,
-- jasny i ciemny motyw, cztery palety oraz tryb wysokiego kontrastu,
+- jasny i ciemny motyw, pięć palet oraz tryb wysokiego kontrastu,
 - język polski i angielski.
 
 ## Stos technologiczny
