@@ -238,11 +238,11 @@ bundla (ten ostatni dalej sprawdza, że działa na tagu, i podpisuje plik jednor
 uruchamia wydanie naprawdę: odmowy, `--check`, wydanie z `develop`, hotfix przy niewydanej pracy na
 `develop`, przerwanie po tagu.
 
-### Historia do naprawienia przed pierwszym wydaniem tym skryptem
+### Historia `master` naprawiona 2026-11-12
 
-Stan na 2026-11-12: `master` (`9557c08`) zawiera trzy commity scalające, których nie ma `develop`, i
-nie stoi na tagu `v0.32.0` (`1474e3d`). `release.sh` odmówi więc przewinięcia `master`. Naprawa
-wymaga jednorazowej decyzji, zanim padnie pierwsze wydanie — patrz [STATUS.md](STATUS.md).
+`master` miał trzy commity scalające, których nie było na `develop`, i `release.sh` odmówiłby
+przewinięcia. Naprawione jednorazowym scaleniem `master` do `develop` (`8ee63df`); szczegóły w
+[STATUS.md](STATUS.md).
 
 ## Repozytorium
 

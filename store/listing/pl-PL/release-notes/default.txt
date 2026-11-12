@@ -1,8 +1,4 @@
-Wydanie do testów zamkniętych (v0.32.0).
-• 5 zbalansowanych poziomów trudności opartych na technikach logicznych.
-• Codzienne wyzwania Daily Sudoku z rankingami Google Play Games.
-• Notatki kandydatów z automatycznym usuwaniem.
-• Szczegółowe statystyki lokalne, historia gier i poziomy gracza.
-• Motywy: jasny, ciemny, wysoki kontrast oraz 4 palety barwne.
-• Narzędzia diagnostyczne logowania Play Games w Ustawieniach.
-• Działanie w 100% offline, brak reklam.
+Wydanie do testów zamkniętych (v0.33.0).
+• Nowość: przytrzymaj cyfrę, żeby ją przypiąć, i dotykaj pól, żeby ją wstawiać. Wszystkie jej wystąpienia są podświetlone. Wyjście: dotknięcie przypiętego klawisza, krzyżyk nad planszą albo „wstecz”.
+• Nowość: paleta Miód — krem i przygaszone złoto, z łagodnym ciemnym wariantem do gry po zmroku.
+• Znany problem: logowanie do Play Games może się jeszcze nie udawać. Diagnostyka zostaje w Ustawieniach.

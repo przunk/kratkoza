@@ -1,6 +1,6 @@
 # Kratkoza — stan realizacji
 
-**Wersja kodu 0.32.0 (215); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
+**Na Play w kanale Closed testing: 0.32.0 (215). Zaakceptowane do wydania: 0.33.0 (2026-11-13).**
 Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games włączona w Ustawieniach.
 419 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
 
@@ -312,14 +312,13 @@ kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` prz
 
 Stan na 2026-11-12.
 
-- **`master`** — `9557c08`, 0.32.0; zmienia się tylko w procedurze wydania.
-- **`develop`** — `f264ff9`, sześć commitów przed `master`, w tym `versionCode` liczony z liczby
-  commitów.
-- **`fix/play-games-sign-in-is-silent`** — scalona do `develop` w `2411c62`.
+- **`master`** — `9557c08`, 0.32.0; zmienia się tylko w procedurze wydania (`release.sh`).
+- **`develop`** — gałąź bieżąca; od `8ee63df` zawiera `master`, więc wydanie może go przewinąć.
+- **`release/0.33.0`**, **`feature/digit-insert-mode`**, **`feature/soft-palette`**,
+  **`feature/release-scripts`**, **`fix/master-history`**, **`fix/play-games-sign-in-is-silent`** —
+  scalone do `develop`. 0.33.0 zaakceptowane do wydania 2026-11-13; wydanie robię `release.sh`.
 - **`fix/play-games-sdk-authentication`** — aktualizacja SDK Play Games i rozszerzona diagnostyka,
-  niescalona; patrz „Logowanie do Play Games” wyżej.
-- **`feature/digit-insert-mode`** — przypięcie cyfry długim przytrzymaniem, czeka na test na telefonie.
-- **`feature/soft-palette`** — paleta „Miód”, czeka na test na telefonie.
+  niescalona i świadomie poza 0.33.0; patrz „Logowanie do Play Games” wyżej.
 - **`feature/hypothesis-tools`** — **odłożona**. Narzędzia do symulacji założeń; trzy podejścia
   wróciły z urządzenia zepsute, model właściwy opisuje pozycja 14 w [WISHLIST.md](WISHLIST.md).
   Jej porzucony schemat 6 nie może już wrócić pod tym numerem; oficjalna migracja 6→7 służy wyłącznie
@@ -331,22 +330,13 @@ dopóki jego gałąź nie zostanie scalona albo zamknięta.
 
 ## Do zrobienia
 
-### Historia `master` przed pierwszym wydaniem przez `release.sh`
+### ~~Historia `master` przed pierwszym wydaniem przez `release.sh`~~ — naprawione 2026-11-12
 
-**Zapisane 2026-11-12.** `master` (`9557c08`) ma trzy commity scalające, których nie ma `develop`
-(`b1c0d29`, `b00ddf4`, `9557c08` — dawne scalenia `develop` do `master`), i nie stoi na tagu
-`v0.32.0` (`1474e3d`). `release.sh` odmówi przewinięcia `master`, dopóki to trwa. Treść obu gałęzi
-jest taka sama; różni je tylko historia.
-
-Warianty:
-
-- **A — scalić `master` do `develop` jednym commitem** (przez gałąź, po mojej zgodzie). Wspólna
-  historia wraca, następne wydanie przewinie `master`, nic wypchniętego nie jest przepisywane.
-  Liczba commitów na `develop` rośnie o cztery, więc `versionCode` dalej rośnie. **Rekomendowane.**
-- **B — przestawić `master` na `develop` albo na `v0.32.0`.** Czystsza historia, ale przepisuje
-  wypchnięty `master` i wymaga force pusha.
-- **C — zostawić.** Pierwsze wydanie przez `release.sh` się nie uda.
-
+`master` (`9557c08`) miał trzy commity scalające, których nie było na `develop` (`b1c0d29`,
+`b00ddf4`, `9557c08` — dawne scalenia `develop` do `master`), więc `release.sh` odmówiłby
+przewinięcia. Wybrany wariant: jednorazowe scalenie `master` do `develop` (`8ee63df`, gałąź
+`fix/master-history`). Treść się nie zmieniła; nic wypchniętego nie zostało przepisane. Odrzucone:
+przestawienie `master` (wymagałoby force pusha) i pozostawienie stanu (wydanie by się nie udało).
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
 Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).
