@@ -296,6 +296,7 @@ private fun BoardPalette.labelRes(): Int = when (this) {
     BoardPalette.SEPIA -> R.string.settings_palette_sepia
     BoardPalette.FOREST -> R.string.settings_palette_forest
     BoardPalette.GRAPHITE -> R.string.settings_palette_graphite
+    BoardPalette.HONEY -> R.string.settings_palette_honey
 }
 
 @Composable

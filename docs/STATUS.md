@@ -72,7 +72,9 @@ Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games wł
 - [x] XP i poziomy gracza — rosnący koszt kolejnych poziomów, bez kary za błędy (§32)
 - [x] Ustawienia w DataStore (§35)
 - [x] Motyw jasny / ciemny / systemowy (§9)
-- [x] Cztery palety kolorystyczne z podglądem i tryb wysokiego kontrastu (§9, §35)
+- [x] Pięć palet kolorystycznych z podglądem i tryb wysokiego kontrastu (§9, §35)
+- [x] Paleta „Miód”: delikatny kontrast z żółtym akcentem, ciemny wariant celowo spłaszczony do gry
+      w ciemności (2026-11-12; wygląd obejrzany na telefonie 2026-11-12)
 - [x] Wybór języka w aplikacji: systemowy / EN / PL (§4)
 - [x] Reset statystyk — wszystkie liczniki do zera, gry w toku zostają grywalne
 - [x] Archiwum rozwiązanych plansz, trzymane osobno od statystyk, żeby reset go nie zabierał

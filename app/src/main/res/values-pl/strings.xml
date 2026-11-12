@@ -176,6 +176,7 @@
     <string name="settings_palette_sepia">Sepia</string>
     <string name="settings_palette_forest">Las</string>
     <string name="settings_palette_graphite">Grafit</string>
+    <string name="settings_palette_honey">Miód</string>
     <string name="settings_high_contrast">Wysoki kontrast</string>
     <string name="settings_high_contrast_summary">Mocniej rozdziel odcienie planszy i przyciemnij tekst. Podgląd powyżej uwzględnia to ustawienie.</string>
     <string name="settings_palette_preview">Podgląd palety %1$s</string>

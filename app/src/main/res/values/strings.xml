@@ -178,6 +178,7 @@
     <string name="settings_palette_sepia">Sepia</string>
     <string name="settings_palette_forest">Forest</string>
     <string name="settings_palette_graphite">Graphite</string>
+    <string name="settings_palette_honey">Honey</string>
     <string name="settings_high_contrast">High contrast</string>
     <string name="settings_high_contrast_summary">Separate the board shades more strongly and darken the text. The preview above follows this setting.</string>
     <string name="settings_palette_preview">Preview of the %1$s palette</string>
