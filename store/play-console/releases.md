@@ -4,6 +4,29 @@ One section per artifact handed to Google Play. Ties each published `versionCode
 
 ---
 
+## 0.33.0 — versionCode 232
+
+Closed testing. Notes as uploaded: `store/listing/*/release-notes/default.txt` at `v0.33.0`.
+
+| | |
+| --- | --- |
+| Artifact | `dist/kratkoza-0.33.0-232-a1e1886.aab` |
+| Size | 4431897 bytes |
+| SHA-256 | `442bb77afb2b1c35703ef33b1d70fc0eb3d0e07f317a19f6330a8b8646902b61` |
+| versionCode | 232 — `git rev-list --count HEAD`, not written by hand |
+| versionName | 0.33.0 |
+| Commit | `a1e1886` |
+| Tag | `v0.33.0` |
+| Branch | `develop` (release) |
+| Built | 2026-11-13 |
+
+**Signer**, read from the bundle by `release.sh`: `71:5C:8F:D5:BE:65:8F:9C:02:DE:2F:B3:1C:EB:B4:BF:38:CA:42:E6:F3:82:96:BA:CF:E1:85:52:8E:B8:46:4E`.
+
+**State.** Prepared by `release.sh` on 2026-11-13. Uploaded to Play Console: **not yet** —
+confirmed by hand. Published: **not yet** — confirmed by hand.
+
+**What changed since v0.32.0**: `git log --oneline v0.32.0..v0.33.0`.
+
 ## 0.32.0 — versionCode 215
 
 Closed testing release. First release uploaded to Google Play Closed Testing track (versionCode 51 was rejected by Play Console as already used).
