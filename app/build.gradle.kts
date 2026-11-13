@@ -94,7 +94,7 @@ android {
         // Falls back to 1 outside a git checkout — a source archive, say — which is wrong but
         // harmless: nothing built that way is going to a store.
         versionCode = gitCommitCount
-        versionName = "0.32.0$versionSuffix"
+        versionName = "0.33.0$versionSuffix"
 
         // Enabled in release while the account-specific Play Games failure is being investigated.
         // A dedicated flag keeps ranking diagnostics independent from every other debug-only tool
