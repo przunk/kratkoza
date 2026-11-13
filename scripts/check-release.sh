@@ -122,8 +122,8 @@ refuses() {
     fi
 }
 
-# Brings master into develop's history the way docs/BUILD.md describes for the one-time repair:
-# a merge on develop, not a moved master.
+# Brings master into develop's history the way it was repaired on 2026-11-12 (8ee63df): a merge on
+# develop, not a moved master. A no-op once the history is shared.
 repair_history() {
     git -C "$1" merge -q --no-ff master -m "Merge master into develop to restore a shared history"
 }
@@ -134,7 +134,18 @@ echo "🧪 $APP_NAME — release.sh on throwaway clones ($WORK)"
 echo
 echo "As the history stands"
 repo="$(fresh_clone as-is)"
-refuses "master holding commits develop lacks is refused" "$repo" "cannot be fast-forwarded" 9.0.0 --check
+before="$(snapshot "$repo")"
+if run_release "$repo" "" 9.0.0 --check; then
+    check "this repository's own history passes --check and is left unchanged" \
+        test "$(snapshot "$repo")" = "$before"
+else
+    bad "this repository's own history fails --check (see $repo.log)"
+fi
+# The state master was in until 2026-11-12: a commit that only master has.
+git -C "$repo" checkout -q master
+git -C "$repo" commit -q --allow-empty -m "A commit only master has"
+git -C "$repo" checkout -q develop
+refuses "master holding a commit develop lacks is refused" "$repo" "cannot be fast-forwarded" 9.0.0 --check
 
 # --- refusals before anything is written ---------------------------------------------------------
 echo

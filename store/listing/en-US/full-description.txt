@@ -15,6 +15,7 @@ Difficulty is graded by the human logical techniques required to solve each boar
 
 PLAY YOUR WAY
 • Smart Candidate Notes: Enter pencil marks with auto-removal when a digit is placed. Clear all notes with a single long press.
+• Pin a Digit: Long-press a digit, then tap cells to place it, with every copy of it highlighted.
 • Error Detection: Immediate conflict highlighting without a punitive lives system.
 • Full Undo: Unlimited, step-by-step history covering digits and notes.
 • Erase & Remaining Counts: Clear cells easily and optionally see how many of each digit remain.
@@ -34,7 +35,7 @@ STATISTICS & PROGRESS
 DESIGN & ACCESSIBILITY
 • Calm, high-readability interface with distinct 3×3 block boundaries.
 • Dark, Light, and System themes.
-• Four carefully chosen color palettes (Slate, Classic, Forest, Dusk) plus a dedicated High Contrast mode.
+• Five carefully chosen color palettes (Slate, Sepia, Forest, Graphite, Honey) plus a dedicated High Contrast mode.
 • Full bilingual support: English and Polish, switchable in-app.
 • TalkBack accessibility labels on every cell.
 

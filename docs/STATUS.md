@@ -1,6 +1,6 @@
 # Kratkoza — stan realizacji
 
-**Wersja kodu 0.32.0 (215); przygotowana do wydania na Play w kanale Closed testing (v0.32.0).**
+**Na Play w kanale Closed testing: 0.32.0 (215). Zaakceptowane do wydania: 0.33.0 (2026-11-13).**
 Gra solo i Daily działają na urządzeniu; diagnostyka logowania Play Games włączona w Ustawieniach.
 419 testów jednostkowych, sprawdzian metadanych sklepu i Android Lint czyste.
 
@@ -124,23 +124,54 @@ Architektura żadnej z nich nie blokuje — patrz [ARCHITECTURE.md](ARCHITECTURE
 
 ## Znane usterki
 
-Jedna usterka jest otwarta i ma gotowy build diagnostyczny, ale jej przyczyna pozostaje
-niesprawdzona do czasu ponownego przebiegu na urządzeniu.
+Jedna usterka jest otwarta: logowanie do Play Games. Jej diagnoza jest odłożona (2026-11-12), plan
+jest zapisany niżej.
 
 Zgłoszone z urządzenia, jeszcze nienaprawione. Nie są to pomysły — to rzeczy, które nie działają
 tak, jak miały działać, więc nie mieszkają w [WISHLIST.md](WISHLIST.md).
 
 ### Logowanie do Play Games kończy się bez rezultatu
 
-**Zgłoszone:** 2026-09-05. Okno wyboru konta pojawia się, ale po potwierdzeniu aplikacja nadal nie
-jest zalogowana. Credentiale Android w Play Games Services zostały sprawdzone przez właściciela;
-brak credentiala nie jest ustaloną przyczyną.
+**Zgłoszone:** 2026-09-05; potwierdzone na dwóch telefonach i dwóch kontach 2026-09-24; nadal
+występuje 2026-11-12 na wersji zainstalowanej ze sklepu Play. Okno wyboru konta pojawia się, ale po
+potwierdzeniu aplikacja nadal nie jest zalogowana.
 
-Gałąź `fix/play-games-sign-in-is-silent` zachowuje wynik `signIn()`, pełny status wyjątku oraz wynik
-kontrolnego `isAuthenticated()` w `Settings → Diagnostyka Play Games`. Na czas ustalania przyczyny
-sekcja i szczegółowy Snackbar są włączone również w release AAB, bo problem występuje na zdalnym
-telefonie, a nie na urządzeniu właściciela. Kod i testy potwierdzają drogę raportowania, ale
-przyczyna i samo zachowanie SDK są **niesprawdzone** bez kolejnego przebiegu na tamtym urządzeniu.
+**Stan wiedzy.** Diagnostyka wersji sklepowej `0.32.0 (215)` z 2026-09-24 pokazała na obu
+urządzeniach to samo: `signIn()` kończy zadanie sukcesem, bez anulowania i bez wyjątku, ale zwraca
+`authenticated=false`; kontrolne `isAuthenticated()` też kończy się sukcesem z `authenticated=false`.
+To wyklucza martwy przycisk, zgubiony callback i problem jednego konta. SDK nie podaje przyczyny
+odmowy. Eksperymentowałem z kluczami, więc rozjazd certyfikatów jest
+dziś najbardziej prawdopodobnym tropem — ale **niesprawdzonym**.
+
+**Gałąź `fix/play-games-sdk-authentication`** (Codex, 2026-09-24, niescalona, od 2026-11-12
+przejęta przez Claude) aktualizuje `play-services-games-v2` z `20.1.2` do `22.1.0` i dopisuje do
+diagnostyki wersję SDK, wersję usług Google Play, źródło instalacji i SHA-1 certyfikatu faktycznie
+zainstalowanego APK. Wpływ aktualizacji na logowanie jest **niesprawdzony**.
+
+**Odłożone 2026-11-12.** Plan diagnozy, w tej kolejności — od tego, co da się sprawdzić bez nowego
+buildu:
+
+1. **Zestawić odciski SHA-1.** Aplikacja ze sklepu jest podpisana kluczem Google, nie kluczem upload.
+   - Play Console → aplikacja → **Test and release → Setup → App signing**: SHA-1 z
+     **App signing key certificate** i z **Upload key certificate**.
+   - Play Console → **Grow users → Play Games Services → Setup and management → Configuration** →
+     **Credentials**: credential typu Android, jego package name i SHA-1 klienta OAuth.
+   - Google Cloud Console → **APIs & Services → Credentials**: klient OAuth typu Android wskazany
+     przez credential — czy package name to `com.przunk.kratkoza`, a SHA-1 jest równy SHA-1
+     **App signing key certificate**.
+2. **Sprawdzić bramki testowe.** Ten sam objaw (sukces z `authenticated=false`) daje konto, które nie
+   ma prawa się zalogować:
+   - Play Games Services → **Setup and management → Testers**: czy oba konta są na liście, dopóki
+     konfiguracja Play Games nie jest opublikowana;
+   - Play Games Services → **Publishing**: czy ostatnie zmiany konfiguracji zostały opublikowane;
+   - Google Cloud Console → **APIs & Services → OAuth consent screen**: status publikacji i lista
+     **Test users**.
+3. **Dopiero potem kod.** Przejrzeć i doprowadzić do scalenia gałąź
+   `fix/play-games-sdk-authentication`, wydać ją przez kanał testowy Play i odczytać na telefonie SHA-1
+   zainstalowanego APK z diagnostyki. Ten odczyt rozstrzyga, czym telefon naprawdę jest podpisany.
+
+APK instalowane z `dist/` są podpisane kluczem debug (SHA-1 `db9eb72c…`) i nie zalogują się, dopóki
+ten odcisk nie ma osobnego credentiala. Do diagnozy tej usterki nadaje się więc tylko wersja ze sklepu.
 
 ### ~~Grafika tytułowa jest zrobiona pod ciemny motyw~~ — naprawione 2026-08-28
 
@@ -279,34 +310,33 @@ kopia klucza upload, cztery formularze, opisy, zrzuty ekranu i `mapping.txt` prz
 
 ## Gałęzie
 
-- **`master`** — `9557c08`, równy zawartością `develop`, 0.32.0 (51). Aktualizowany rzadko,
-  decyzją właściciela.
-- **`develop`** — `4182801`, gałąź główna, wszystko wchodzi tutaj i stąd wychodzi.
-- **`fix/play-games-sign-in-is-silent`** — bieżąca diagnostyka logowania do Play Games.
+Stan na 2026-11-12.
+
+- **`master`** — `9557c08`, 0.32.0; zmienia się tylko w procedurze wydania (`release.sh`).
+- **`develop`** — gałąź bieżąca; od `8ee63df` zawiera `master`, więc wydanie może go przewinąć.
+- **`release/0.33.0`**, **`feature/digit-insert-mode`**, **`feature/soft-palette`**,
+  **`feature/release-scripts`**, **`fix/master-history`**, **`fix/play-games-sign-in-is-silent`** —
+  scalone do `develop`. 0.33.0 zaakceptowane do wydania 2026-11-13; wydanie robię `release.sh`.
+- **`fix/play-games-sdk-authentication`** — aktualizacja SDK Play Games i rozszerzona diagnostyka,
+  niescalona i świadomie poza 0.33.0; patrz „Logowanie do Play Games” wyżej.
 - **`feature/hypothesis-tools`** — **odłożona**. Narzędzia do symulacji założeń; trzy podejścia
   wróciły z urządzenia zepsute, model właściwy opisuje pozycja 14 w [WISHLIST.md](WISHLIST.md).
   Jej porzucony schemat 6 nie może już wrócić pod tym numerem; oficjalna migracja 6→7 służy wyłącznie
   odzyskaniu telefonów, które zdążyły go uruchomić.
 - **`docs/full-code-review`** — stara, niescalona.
 
+Codex nie pracuje już nad projektem (2026-11-12); worktree `/mnt/workspace/Kratkoza-codex` zostaje,
+dopóki jego gałąź nie zostanie scalona albo zamknięta.
+
 ## Do zrobienia
 
-### Historia `master` przed pierwszym wydaniem przez `release.sh`
+### ~~Historia `master` przed pierwszym wydaniem przez `release.sh`~~ — naprawione 2026-11-12
 
-**Zapisane 2026-11-12.** `master` (`9557c08`) ma trzy commity scalające, których nie ma `develop`
-(`b1c0d29`, `b00ddf4`, `9557c08` — dawne scalenia `develop` do `master`), i nie stoi na tagu
-`v0.32.0` (`1474e3d`). `release.sh` odmówi przewinięcia `master`, dopóki to trwa. Treść obu gałęzi
-jest taka sama; różni je tylko historia.
-
-Warianty:
-
-- **A — scalić `master` do `develop` jednym commitem** (przez gałąź, po mojej zgodzie). Wspólna
-  historia wraca, następne wydanie przewinie `master`, nic wypchniętego nie jest przepisywane.
-  Liczba commitów na `develop` rośnie o cztery, więc `versionCode` dalej rośnie. **Rekomendowane.**
-- **B — przestawić `master` na `develop` albo na `v0.32.0`.** Czystsza historia, ale przepisuje
-  wypchnięty `master` i wymaga force pusha.
-- **C — zostawić.** Pierwsze wydanie przez `release.sh` się nie uda.
-
+`master` (`9557c08`) miał trzy commity scalające, których nie było na `develop` (`b1c0d29`,
+`b00ddf4`, `9557c08` — dawne scalenia `develop` do `master`), więc `release.sh` odmówiłby
+przewinięcia. Wybrany wariant: jednorazowe scalenie `master` do `develop` (`8ee63df`, gałąź
+`fix/master-history`). Treść się nie zmieniła; nic wypchniętego nie zostało przepisane. Odrzucone:
+przestawienie `master` (wymagałoby force pusha) i pozostawienie stanu (wydanie by się nie udało).
 
 Kod jest gotowy do wydania alpha. Zostało to, co poza kodem — patrz niżej.
 Skrypt AAB jest gotowy — patrz [BUILD.md](BUILD.md).

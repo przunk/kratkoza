@@ -15,6 +15,7 @@ Poziom trudności wynika z ludzkich technik logicznych potrzebnych do rozwiązan
 
 KOMFORTOWA ROZGRYWKA
 • Inteligentne notatki kandydatów: wpisywanie ołówkiem z automatycznym czyszczeniem po wstawieniu cyfry. Kasowanie wszystkich notatek jednym długim dotknięciem.
+• Przypięcie cyfry: przytrzymaj cyfrę i dotykaj pól, żeby ją wstawiać; wszystkie jej wystąpienia są podświetlone.
 • Wykrywanie błędów: natychmiastowe oznaczanie konfliktów bez frustrującego systemu żyć.
 • Pełne Undo: nielimitowana historia ruchów obejmująca cyfry i notatki.
 • Wymazywanie i licznik cyfr: łatwe czyszczenie pól i opcjonalny podgląd pozostałych cyfr.
@@ -34,7 +35,7 @@ STATYSTYKI I POSTĘP
 WYGLĄD I DOSTĘPNOŚĆ
 • Spokojny, minimalistyczny interfejs z wyraźnymi granicami bloków 3×3.
 • Motyw ciemny, jasny oraz systemowy.
-• Cztery starannie dobrane palety kolorystyczne (Slate, Classic, Forest, Dusk) oraz tryb wysokiego kontrastu.
+• Pięć starannie dobranych palet kolorystycznych (Łupek, Sepia, Las, Grafit, Miód) oraz tryb wysokiego kontrastu.
 • Pełna dwujęzyczność: polski i angielski z możliwością przełączenia w aplikacji.
 • Pełna dostępność TalkBack na każdym polu planszy.
 
